@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "MotorTrack",
+    "slug": "motortrack",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F1117"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.motortrack.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F1117"
+      },
+      "package": "com.motortrack.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      ["expo-camera", { "cameraPermission": "Parça ve motor QR kodlarını taramak için kamera izni gereklidir." }],
+      ["expo-notifications", { "icon": "./assets/notification-icon.png", "color": "#6366F1" }]
+    ],
+    "scheme": "motortrack",
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{"_e":"root:init","_t":1788470352138,"format":"v0-jsonl","version":"57.0.21"}
+{"_e":"env:mode","_t":1788470352138,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1788470352139,"mode":"development","files":["../../../.env"],"env":{"EXPO_PUBLIC_API_URL":"http://192.168.1.146:3000/api"}}
+{"_e":"devserver:start","_t":1788470357456,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../../../app","serverComponents":false,"serverActions":false,"serverRendering":true,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1788470357575,"serverRoot":"../../..","projectRoot":"../../..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1788470357678,"plugins":[]}
+{"_e":"metro:instantiate","_t":1788470357906,"atlas":false,"workers":6,"host":"::","port":8082}
+{"_e":"metro:bundling:started","_t":1788470920889,"id":"c","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:progress","_t":1788470920889,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788470920893,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:failed","_t":1788470920898,"id":"c","message":"Cannot read properties of undefined (reading 'transformFile')","importStack":null,"filename":null,"targetModuleName":null,"originModulePath":null}
+{"_e":"metro:bundling:started","_t":1788470933385,"id":"d","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:progress","_t":1788470933385,"id":"d","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788470933388,"id":"d","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:failed","_t":1788470933391,"id":"d","message":"Cannot read properties of undefined (reading 'transformFile')","importStack":null,"filename":null,"targetModuleName":null,"originModulePath":null}
+{"_e":"metro:bundling:started","_t":1788470965396,"id":"e","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:progress","_t":1788470965396,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788470965397,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:failed","_t":1788470965399,"id":"e","message":"Cannot read properties of undefined (reading 'transformFile')","importStack":null,"filename":null,"targetModuleName":null,"originModulePath":null}
+{"_e":"metro:bundling:started","_t":1788470966878,"id":"f","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:progress","_t":1788470966878,"id":"f","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788470966881,"id":"f","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:failed","_t":1788470966884,"id":"f","message":"Cannot read properties of undefined (reading 'transformFile')","importStack":null,"filename":null,"targetModuleName":null,"originModulePath":null}
+{"_e":"metro:server_log","_t":1788471089843,"level":"error","data":["[timeout] connection terminated with Device for app='%s' on device='%s' after not responding for %s seconds.","host.exp.Exponent","iPhone","60"]}
