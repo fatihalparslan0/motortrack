@@ -1,2 +1,972 @@
 2026-09-04 00:01:55 [[32minfo[39m]: 🚀 MotorTrack API çalışıyor → http://localhost:3000
 2026-09-04 00:01:55 [[32minfo[39m]: 📋 Ortam: development
+2026-09-04 22:32:52 [[32minfo[39m]: 🚀 MotorTrack API çalışıyor → http://localhost:3000
+2026-09-04 22:32:52 [[32minfo[39m]: 📋 Ortam: development
+2026-09-04 22:34:36 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:34:36 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:34:37 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:34:37 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:34:39 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:34:39 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:36:00 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:36:00 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:36:01 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:36:01 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:36:03 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:36:03 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:36:17 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:36:17 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:36:18 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:36:18 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:36:20 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:36:20 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:37:26 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:37:26 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:37:27 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:37:27 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:37:29 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:37:29 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:37:46 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:37:47 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:37:49 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:44:09 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:44:09 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:44:22 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:44:22 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:44:23 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:44:23 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:44:31 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:44:31 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:44:32 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:44:32 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:44:34 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:44:34 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:44:46 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:44:47 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:44:49 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:44:58 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:44:58 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:44:59 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:44:59 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:45:01 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:45:01 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:45:21 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:45:22 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:45:24 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:47:23 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:47:23 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:47:24 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:47:24 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:47:26 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:47:26 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:48:17 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:48:17 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:48:18 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:48:18 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:48:20 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:48:20 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:49:59 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:50:00 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:50:02 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:50:05 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:50:05 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:50:06 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:50:06 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:50:08 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:50:08 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:52:05 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:52:05 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:52:06 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:52:06 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:52:08 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:52:08 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:52:28 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:52:28 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:52:29 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:52:29 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:52:32 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:52:32 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:52:52 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:52:52 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:52:53 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:52:53 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:52:55 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:52:55 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column p.motor_id does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.getLowStockParts (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:48:19)
+2026-09-04 22:55:33 [[32minfo[39m]: 🚀 MotorTrack API çalışıyor → http://localhost:3000
+2026-09-04 22:55:33 [[32minfo[39m]: 📋 Ortam: development
+2026-09-04 22:57:01 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `column "company_id" does not exist`
+    at $n.handleRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 2)
+    at async exports.getPartsStats (/Users/fatihalparslan/.gemini/antigravity-ide/scratch/motortrack/backend/src/controllers/parts.controller.js:69:65)
+2026-09-04 22:57:53 [[32minfo[39m]: 🚀 MotorTrack API çalışıyor → http://localhost:3000
+2026-09-04 22:57:53 [[32minfo[39m]: 📋 Ortam: development
+2026-09-04 23:05:21 [[32minfo[39m]: 🚀 MotorTrack API çalışıyor → http://localhost:3000
+2026-09-04 23:05:21 [[32minfo[39m]: 📋 Ortam: development

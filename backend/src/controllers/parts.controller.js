@@ -48,11 +48,11 @@ exports.getLowStockParts = async (req, res, next) => {
     const parts = await prisma.$queryRaw`
       SELECT p.*, m.brand as motor_brand, m.model as motor_model
       FROM parts p
-      LEFT JOIN motors m ON p.motor_id = m.id
-      WHERE p.company_id = ${req.company.id}
-        AND p.quantity <= p.min_quantity
-        AND p.min_quantity > 0
-      ORDER BY (p.quantity - p.min_quantity) ASC
+      LEFT JOIN motors m ON p."motorId" = m.id
+      WHERE p."companyId" = ${req.company.id}
+        AND p.quantity <= p."minQuantity"
+        AND p."minQuantity" > 0
+      ORDER BY (p.quantity - p."minQuantity") ASC
       LIMIT 50
     `;
 
@@ -74,7 +74,7 @@ exports.getPartsStats = async (req, res, next) => {
       }),
       prisma.$queryRaw`
         SELECT COUNT(*) as count FROM parts
-        WHERE company_id = ${companyId} AND quantity <= min_quantity AND min_quantity > 0
+        WHERE "companyId" = ${companyId} AND quantity <= "minQuantity" AND "minQuantity" > 0
       `,
       prisma.part.groupBy({
         by: ['category'],

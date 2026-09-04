@@ -29,12 +29,16 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Only attempt token refresh on actual 401 responses
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
-        if (!refreshToken) throw new Error('No refresh token');
+        if (!refreshToken) {
+          await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
+          return Promise.reject(error);
+        }
 
         const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
         const { accessToken, refreshToken: newRefreshToken } = response.data.data;
@@ -46,11 +50,11 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch {
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
-        // Navigate to login
         return Promise.reject(error);
       }
     }
 
+    // For non-401 errors, just reject with the error data without clearing auth
     return Promise.reject(error.response?.data || error);
   }
 );

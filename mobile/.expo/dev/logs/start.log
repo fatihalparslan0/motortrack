@@ -22,3 +22,235 @@
 {"_e":"metro:bundling:progress","_t":1788470966881,"id":"f","progress":0,"total":1,"current":0}
 {"_e":"metro:bundling:failed","_t":1788470966884,"id":"f","message":"Cannot read properties of undefined (reading 'transformFile')","importStack":null,"filename":null,"targetModuleName":null,"originModulePath":null}
 {"_e":"metro:server_log","_t":1788471089843,"level":"error","data":["[timeout] connection terminated with Device for app='%s' on device='%s' after not responding for %s seconds.","host.exp.Exponent","iPhone","60"]}
+{"_e":"root:init","_t":1788548992605,"format":"v0-jsonl","version":"57.0.21"}
+{"_e":"env:mode","_t":1788548992605,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1788548992607,"mode":"development","files":["../../../.env"],"env":{"EXPO_PUBLIC_API_URL":"http://192.168.1.146:3000/api"}}
+{"_e":"devserver:start","_t":1788548992896,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../../../app","serverComponents":false,"serverActions":false,"serverRendering":true,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1788548993069,"serverRoot":"../../..","projectRoot":"../../..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1788548993213,"plugins":[]}
+{"_e":"metro:instantiate","_t":1788548993477,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1788548996369,"id":"2","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:progress","_t":1788548996369,"id":"2","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788548996373,"id":"2","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:failed","_t":1788548996378,"id":"2","message":"Cannot read properties of undefined (reading 'transformFile')","importStack":null,"filename":null,"targetModuleName":null,"originModulePath":null}
+{"_e":"metro:server_log","_t":1788549069209,"level":"error","data":["[timeout] connection terminated with Device for app='%s' on device='%s' after not responding for %s seconds.","host.exp.Exponent","iPhone","60"]}
+{"_e":"root:init","_t":1788549504625,"format":"v0-jsonl","version":"57.0.22"}
+{"_e":"env:mode","_t":1788549504625,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1788549504627,"mode":"development","files":["../../../.env"],"env":{"EXPO_PUBLIC_API_URL":"http://192.168.1.146:3000/api"}}
+{"_e":"root:init","_t":1788549533399,"format":"v0-jsonl","version":"57.0.22"}
+{"_e":"env:mode","_t":1788549533399,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1788549533400,"mode":"development","files":["../../../.env"],"env":{"EXPO_PUBLIC_API_URL":"http://192.168.1.146:3000/api"}}
+{"_e":"devserver:start","_t":1788549533548,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../../../app","serverComponents":false,"serverActions":false,"serverRendering":true,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1788549533715,"serverRoot":"../../..","projectRoot":"../../..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1788549533817,"plugins":[]}
+{"_e":"metro:instantiate","_t":1788549534029,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"root:init","_t":1788549735814,"format":"v0-jsonl","version":"57.0.22"}
+{"_e":"env:mode","_t":1788549735814,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1788549735815,"mode":"development","files":["../../../.env"],"env":{"EXPO_PUBLIC_API_URL":"http://192.168.1.146:3000/api"}}
+{"_e":"devserver:start","_t":1788549735939,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../../../app","serverComponents":false,"serverActions":false,"serverRendering":true,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1788549736039,"serverRoot":"../../..","projectRoot":"../../..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1788549736118,"plugins":[]}
+{"_e":"metro:instantiate","_t":1788549736330,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1788549903912,"id":"2","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:failed","_t":1788549907499,"id":"2","message":"Unable to resolve \"react-native-gesture-handler\" from \"app/_layout.tsx\"\n  3 | import { StatusBar } from 'expo-status-bar';\n  4 | import { QueryClient, QueryClientProvider } from '@tanstack/react-query';\n> 5 | import { GestureHandlerRootView } from 'react-native-gesture-handler';\n    |                                         ^\n  6 | import { SafeAreaProvider } from 'react-native-safe-area-context';\n  7 | import * as SplashScreen from 'expo-splash-screen';\n  8 | import { useAuthStore } from '../src/store/auth.store';","importStack":"Import stack:\n\n app/_layout.tsx\n | import \"react-native-gesture-handler\"\n\n app (require.context)\n","filename":null,"targetModuleName":"react-native-gesture-handler","originModulePath":"app/_layout.tsx"}
+{"_e":"metro:bundling:started","_t":1788549974282,"id":"3","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:failed","_t":1788549975383,"id":"3","message":"Unable to resolve \"expo-linking\" from \"node_modules/expo-router/build/fork/useLinking.native.js\"\n  36 | exports.useLinking = useLinking;\n  37 | exports.getInitialURLWithTimeout = getInitialURLWithTimeout;\n> 38 | const ExpoLinking = __importStar(require(\"expo-linking\"));\n     |                                           ^\n  39 | const react_1 = require(\"react\");\n  40 | const react_native_1 = require(\"react-native\");\n  41 | const extractPathFromURL_1 = require(\"./extractPathFromURL\");","importStack":"Import stack:\n\n node_modules/expo-router/build/fork/useLinking.native.js\n | import \"expo-linking\"\n\n node_modules/expo-router/build/fork/NavigationContainer.js\n | import \"./useLinking\"\n\n node_modules/expo-router/build/ExpoRoot.js\n | import \"./fork/NavigationContainer\"\n\n node_modules/expo-router/build/qualified-entry.js\n | import \"./ExpoRoot\"\n\n node_modules/expo-router/entry-classic.js\n | import \"expo-router/build/qualified-entry\"\n\n node_modules/expo-router/entry.js\n | import \"expo-router/entry-classic\"\n\n \n | import \"./node_modules/expo-router/entry\"\n","filename":null,"targetModuleName":"expo-linking","originModulePath":"node_modules/expo-router/build/fork/useLinking.native.js"}
+{"_e":"metro:bundling:started","_t":1788549985845,"id":"4","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:failed","_t":1788549986130,"id":"4","message":"Unable to resolve \"expo-linking\" from \"node_modules/expo-router/build/fork/useLinking.native.js\"\n  36 | exports.useLinking = useLinking;\n  37 | exports.getInitialURLWithTimeout = getInitialURLWithTimeout;\n> 38 | const ExpoLinking = __importStar(require(\"expo-linking\"));\n     |                                           ^\n  39 | const react_1 = require(\"react\");\n  40 | const react_native_1 = require(\"react-native\");\n  41 | const extractPathFromURL_1 = require(\"./extractPathFromURL\");","importStack":"Import stack:\n\n node_modules/expo-router/build/fork/useLinking.native.js\n | import \"expo-linking\"\n\n node_modules/expo-router/build/fork/NavigationContainer.js\n | import \"./useLinking\"\n\n node_modules/expo-router/build/ExpoRoot.js\n | import \"./fork/NavigationContainer\"\n\n node_modules/expo-router/build/qualified-entry.js\n | import \"./ExpoRoot\"\n\n node_modules/expo-router/entry-classic.js\n | import \"expo-router/build/qualified-entry\"\n\n node_modules/expo-router/entry.js\n | import \"expo-router/entry-classic\"\n\n \n | import \"./node_modules/expo-router/entry\"\n","filename":null,"targetModuleName":"expo-linking","originModulePath":"node_modules/expo-router/build/fork/useLinking.native.js"}
+{"_e":"root:init","_t":1788550009074,"format":"v0-jsonl","version":"57.0.22"}
+{"_e":"env:mode","_t":1788550009074,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1788550009075,"mode":"development","files":["../../../.env"],"env":{"EXPO_PUBLIC_API_URL":"http://192.168.1.146:3000/api"}}
+{"_e":"devserver:start","_t":1788550014737,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../../../app","serverComponents":false,"serverActions":false,"serverRendering":true,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1788550014838,"serverRoot":"../../..","projectRoot":"../../..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1788550014902,"plugins":[]}
+{"_e":"metro:instantiate","_t":1788550015587,"atlas":false,"workers":6,"host":"::","port":8082}
+{"_e":"metro:bundling:started","_t":1788550020050,"id":"b","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:failed","_t":1788550020365,"id":"b","message":"Unable to resolve \"expo-linking\" from \"node_modules/expo-router/build/fork/useLinking.native.js\"\n  36 | exports.useLinking = useLinking;\n  37 | exports.getInitialURLWithTimeout = getInitialURLWithTimeout;\n> 38 | const ExpoLinking = __importStar(require(\"expo-linking\"));\n     |                                           ^\n  39 | const react_1 = require(\"react\");\n  40 | const react_native_1 = require(\"react-native\");\n  41 | const extractPathFromURL_1 = require(\"./extractPathFromURL\");","importStack":"Import stack:\n\n node_modules/expo-router/build/fork/useLinking.native.js\n | import \"expo-linking\"\n\n node_modules/expo-router/build/fork/NavigationContainer.js\n | import \"./useLinking\"\n\n node_modules/expo-router/build/ExpoRoot.js\n | import \"./fork/NavigationContainer\"\n\n node_modules/expo-router/build/qualified-entry.js\n | import \"./ExpoRoot\"\n\n node_modules/expo-router/entry-classic.js\n | import \"expo-router/build/qualified-entry\"\n\n node_modules/expo-router/entry.js\n | import \"expo-router/entry-classic\"\n\n \n | import \"./node_modules/expo-router/entry\"\n","filename":null,"targetModuleName":"expo-linking","originModulePath":"node_modules/expo-router/build/fork/useLinking.native.js"}
+{"_e":"metro:bundling:started","_t":1788550100789,"id":"c","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:failed","_t":1788550101214,"id":"c","message":"Unable to resolve \"react-native-worklets\" from \"node_modules/react-native-reanimated/src/initializers.ts\"\n  3 |   runOnUISync,\n  4 |   toggleSlowAnimationsOnUIRuntime,\n> 5 | } from 'react-native-worklets';\n    |         ^\n  6 |\n  7 | import { IS_WEB, SHOULD_BE_USE_WEB } from './common';\n  8 | import { initSvgCssSupport } from './css/svg';","importStack":"Import stack:\n\n node_modules/react-native-reanimated/src/initializers.ts\n | import \"react-native-worklets\"\n\n node_modules/react-native-reanimated/src/index.ts\n | import \"./initializers\"\n\n node_modules/react-native-gesture-handler/src/handlers/gestures/reanimatedWrapper.ts\n | import \"react-native-reanimated\"\n\n node_modules/react-native-gesture-handler/src/handlers/gestures/GestureDetector/utils.ts\n | import \"../reanimatedWrapper\"\n\n node_modules/react-native-gesture-handler/src/handlers/gestures/GestureDetector/index.tsx\n | import \"./utils\"\n\n node_modules/react-native-gesture-handler/src/components/Text.tsx\n | import \"../handlers/gestures/GestureDetector\"\n\n node_modules/react-native-gesture-handler/src/index.ts\n | import \"./components/Text\"\n\n app/_layout.tsx\n | import \"react-native-gesture-handler\"\n\n app (require.context)\n","filename":null,"targetModuleName":"react-native-worklets","originModulePath":"node_modules/react-native-reanimated/src/initializers.ts"}
+{"_e":"metro:bundling:started","_t":1788550218624,"id":"d","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:done","_t":1788550219399,"id":"d","total":1795,"ms":774.612084}
+{"_e":"metro:client_log","_t":1788550220714,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788550406313,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:server_log","_t":1788550543526,"level":"error","data":["[timeout] connection terminated with Device for app='%s' on device='%s' after not responding for %s seconds.","host.exp.Exponent","iPhone","60"]}
+{"_e":"metro:client_log","_t":1788550554520,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788550571772,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788550641305,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:server_log","_t":1788550741646,"level":"error","data":["[timeout] connection terminated with Device for app='%s' on device='%s' after not responding for %s seconds.","host.exp.Exponent","iPhone","60"]}
+{"_e":"metro:client_log","_t":1788551044805,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:bundling:started","_t":1788551059545,"id":"3","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:progress","_t":1788551059546,"id":"3","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788551059549,"id":"3","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788551059649,"id":"3","progress":0.11490950876185003,"total":354,"current":120}
+{"_e":"metro:bundling:progress","_t":1788551059749,"id":"3","progress":0.3167744853485375,"total":764,"current":430}
+{"_e":"metro:bundling:progress","_t":1788551059849,"id":"3","progress":0.5410928230802521,"total":1093,"current":804}
+{"_e":"metro:bundling:progress","_t":1788551059949,"id":"3","progress":0.892298224852071,"total":1300,"current":1228}
+{"_e":"metro:bundling:progress","_t":1788551060049,"id":"3","progress":0.9497891400572341,"total":1691,"current":1648}
+{"_e":"metro:bundling:done","_t":1788551060133,"id":"3","total":1691,"ms":587.269709}
+{"_e":"metro:client_log","_t":1788551062371,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788551066718,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788551092764,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788551237216,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788551292822,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:server_log","_t":1788551494040,"level":"error","data":["[timeout] connection terminated with Device for app='%s' on device='%s' after not responding for %s seconds.","host.exp.Exponent","iPhone","60"]}
+{"_e":"metro:server_log","_t":1788551494040,"level":"error","data":["[timeout] connection terminated with Device for app='%s' on device='%s' after not responding for %s seconds.","host.exp.Exponent","iPhone","60"]}
+{"_e":"root:init","_t":1788551517872,"format":"v0-jsonl","version":"57.0.22"}
+{"_e":"env:mode","_t":1788551517873,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1788551517874,"mode":"development","files":["../../../.env"],"env":{"EXPO_PUBLIC_API_URL":"http://192.168.1.156:3000/api"}}
+{"_e":"devserver:start","_t":1788551520655,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../../../app","serverComponents":false,"serverActions":false,"serverRendering":true,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1788551520818,"serverRoot":"../../..","projectRoot":"../../..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1788551520908,"plugins":[]}
+{"_e":"metro:instantiate","_t":1788551521281,"atlas":false,"workers":6,"host":"::","port":8082}
+{"_e":"metro:bundling:started","_t":1788551541214,"id":"4","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:progress","_t":1788551541214,"id":"4","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788551541217,"id":"4","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788551541450,"id":"4","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:progress","_t":1788551541550,"id":"4","progress":0.1111111111111111,"total":18,"current":6}
+{"_e":"metro:bundling:progress","_t":1788551541651,"id":"4","progress":0.1111111111111111,"total":25,"current":8}
+{"_e":"metro:bundling:progress","_t":1788551541752,"id":"4","progress":0.12456747404844293,"total":34,"current":12}
+{"_e":"metro:bundling:progress","_t":1788551541852,"id":"4","progress":0.1495111111111111,"total":75,"current":29}
+{"_e":"metro:bundling:progress","_t":1788551541959,"id":"4","progress":0.1495111111111111,"total":240,"current":52}
+{"_e":"metro:bundling:progress","_t":1788551542059,"id":"4","progress":0.1495111111111111,"total":308,"current":86}
+{"_e":"metro:bundling:progress","_t":1788551542159,"id":"4","progress":0.1495111111111111,"total":352,"current":114}
+{"_e":"metro:bundling:progress","_t":1788551542259,"id":"4","progress":0.1495111111111111,"total":389,"current":133}
+{"_e":"metro:bundling:progress","_t":1788551542359,"id":"4","progress":0.1581449432125473,"total":430,"current":171}
+{"_e":"metro:bundling:progress","_t":1788551542460,"id":"4","progress":0.20644762534643488,"total":504,"current":229}
+{"_e":"metro:bundling:progress","_t":1788551542560,"id":"4","progress":0.25,"total":544,"current":272}
+{"_e":"metro:bundling:progress","_t":1788551542660,"id":"4","progress":0.2835927237755676,"total":584,"current":311}
+{"_e":"metro:bundling:progress","_t":1788551542760,"id":"4","progress":0.2911994631009899,"total":593,"current":320}
+{"_e":"metro:bundling:progress","_t":1788551542860,"id":"4","progress":0.3388565007601296,"total":615,"current":358}
+{"_e":"metro:bundling:progress","_t":1788551542960,"id":"4","progress":0.38159900494720794,"total":654,"current":404}
+{"_e":"metro:bundling:progress","_t":1788551543060,"id":"4","progress":0.41611585002975604,"total":710,"current":458}
+{"_e":"metro:bundling:progress","_t":1788551543161,"id":"4","progress":0.41611585002975604,"total":793,"current":505}
+{"_e":"metro:bundling:progress","_t":1788551543261,"id":"4","progress":0.45376340848357105,"total":815,"current":549}
+{"_e":"metro:bundling:progress","_t":1788551543361,"id":"4","progress":0.4702498580662066,"total":856,"current":587}
+{"_e":"metro:bundling:progress","_t":1788551543461,"id":"4","progress":0.47312699968448924,"total":913,"current":628}
+{"_e":"metro:bundling:progress","_t":1788551543561,"id":"4","progress":0.5229127099491772,"total":921,"current":666}
+{"_e":"metro:bundling:progress","_t":1788551543661,"id":"4","progress":0.5860279518912004,"total":934,"current":715}
+{"_e":"metro:bundling:progress","_t":1788551543761,"id":"4","progress":0.591715976331361,"total":975,"current":750}
+{"_e":"metro:bundling:progress","_t":1788551543861,"id":"4","progress":0.6150268145308063,"total":1015,"current":796}
+{"_e":"metro:bundling:progress","_t":1788551543961,"id":"4","progress":0.6331527414234797,"total":1072,"current":853}
+{"_e":"metro:bundling:progress","_t":1788551544065,"id":"4","progress":0.6331527414234797,"total":1127,"current":883}
+{"_e":"metro:bundling:progress","_t":1788551544167,"id":"4","progress":0.6529091246889552,"total":1146,"current":926}
+{"_e":"metro:bundling:progress","_t":1788551544267,"id":"4","progress":0.6951661325687298,"total":1155,"current":963}
+{"_e":"metro:bundling:progress","_t":1788551544367,"id":"4","progress":0.744792644023269,"total":1168,"current":1008}
+{"_e":"metro:bundling:progress","_t":1788551544469,"id":"4","progress":0.7921149454945114,"total":1191,"current":1060}
+{"_e":"metro:bundling:progress","_t":1788551544568,"id":"4","progress":0.8185941043083901,"total":1218,"current":1102}
+{"_e":"metro:bundling:progress","_t":1788551544669,"id":"4","progress":0.8513778426300663,"total":1229,"current":1134}
+{"_e":"metro:bundling:progress","_t":1788551544769,"id":"4","progress":0.8633013763235831,"total":1256,"current":1167}
+{"_e":"metro:bundling:progress","_t":1788551544869,"id":"4","progress":0.8837732803839539,"total":1302,"current":1224}
+{"_e":"metro:bundling:progress","_t":1788551544970,"id":"4","progress":0.9335737764791819,"total":1332,"current":1287}
+{"_e":"metro:bundling:progress","_t":1788551545069,"id":"4","progress":0.9335737764791819,"total":1436,"current":1345}
+{"_e":"metro:bundling:progress","_t":1788551545169,"id":"4","progress":0.9335737764791819,"total":1476,"current":1365}
+{"_e":"metro:bundling:progress","_t":1788551545269,"id":"4","progress":0.9335737764791819,"total":1490,"current":1386}
+{"_e":"metro:bundling:progress","_t":1788551545371,"id":"4","progress":0.9335737764791819,"total":1538,"current":1428}
+{"_e":"metro:bundling:progress","_t":1788551545471,"id":"4","progress":0.9335737764791819,"total":1549,"current":1455}
+{"_e":"metro:bundling:progress","_t":1788551545571,"id":"4","progress":0.9335737764791819,"total":1576,"current":1479}
+{"_e":"metro:bundling:progress","_t":1788551545671,"id":"4","progress":0.9335737764791819,"total":1609,"current":1526}
+{"_e":"metro:bundling:progress","_t":1788551545771,"id":"4","progress":0.9335737764791819,"total":1635,"current":1544}
+{"_e":"metro:bundling:progress","_t":1788551545872,"id":"4","progress":0.9335737764791819,"total":1645,"current":1553}
+{"_e":"metro:bundling:progress","_t":1788551545972,"id":"4","progress":0.9335737764791819,"total":1645,"current":1572}
+{"_e":"metro:bundling:progress","_t":1788551546073,"id":"4","progress":0.9335737764791819,"total":1662,"current":1601}
+{"_e":"metro:bundling:progress","_t":1788551546173,"id":"4","progress":0.9550087848255584,"total":1670,"current":1632}
+{"_e":"metro:bundling:progress","_t":1788551546273,"id":"4","progress":0.9598550020207607,"total":1726,"current":1691}
+{"_e":"metro:bundling:progress","_t":1788551546373,"id":"4","progress":0.98771990434498,"total":1786,"current":1775}
+{"_e":"metro:bundling:progress","_t":1788551546474,"id":"4","progress":0.999,"total":1795,"current":1795}
+{"_e":"metro:bundling:done","_t":1788551546566,"id":"4","total":1795,"ms":5351.987958}
+{"_e":"metro:client_log","_t":1788551548621,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788551562297,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"root:init","_t":1788551944391,"format":"v0-jsonl","version":"57.0.22"}
+{"_e":"env:mode","_t":1788551944391,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1788551944392,"mode":"development","files":["../../../.env"],"env":{"EXPO_PUBLIC_API_URL":"http://192.168.1.156:3000/api"}}
+{"_e":"devserver:start","_t":1788551947513,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../../../app","serverComponents":false,"serverActions":false,"serverRendering":true,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1788551947678,"serverRoot":"../../..","projectRoot":"../../..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1788551947768,"plugins":[]}
+{"_e":"metro:instantiate","_t":1788551948184,"atlas":false,"workers":6,"host":"::","port":8082}
+{"_e":"metro:bundling:started","_t":1788551965154,"id":"3","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:progress","_t":1788551965154,"id":"3","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788551965157,"id":"3","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788551965393,"id":"3","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:progress","_t":1788551965496,"id":"3","progress":0.21301775147928997,"total":13,"current":6}
+{"_e":"metro:bundling:progress","_t":1788551965598,"id":"3","progress":0.21301775147928997,"total":21,"current":8}
+{"_e":"metro:bundling:progress","_t":1788551965699,"id":"3","progress":0.2688614540466392,"total":27,"current":14}
+{"_e":"metro:bundling:progress","_t":1788551965799,"id":"3","progress":0.2688614540466392,"total":74,"current":33}
+{"_e":"metro:bundling:progress","_t":1788551965899,"id":"3","progress":0.2688614540466392,"total":203,"current":50}
+{"_e":"metro:bundling:progress","_t":1788551965999,"id":"3","progress":0.2688614540466392,"total":259,"current":74}
+{"_e":"metro:bundling:progress","_t":1788551966099,"id":"3","progress":0.2688614540466392,"total":312,"current":96}
+{"_e":"metro:bundling:progress","_t":1788551966199,"id":"3","progress":0.2688614540466392,"total":345,"current":117}
+{"_e":"metro:bundling:progress","_t":1788551966299,"id":"3","progress":0.2688614540466392,"total":392,"current":163}
+{"_e":"metro:bundling:progress","_t":1788551966399,"id":"3","progress":0.2688614540466392,"total":409,"current":187}
+{"_e":"metro:bundling:progress","_t":1788551966500,"id":"3","progress":0.2688614540466392,"total":441,"current":215}
+{"_e":"metro:bundling:progress","_t":1788551966601,"id":"3","progress":0.275161050019106,"total":509,"current":267}
+{"_e":"metro:bundling:progress","_t":1788551966701,"id":"3","progress":0.3130668934240363,"total":588,"current":329}
+{"_e":"metro:bundling:progress","_t":1788551966801,"id":"3","progress":0.34357633136094673,"total":650,"current":381}
+{"_e":"metro:bundling:progress","_t":1788551966901,"id":"3","progress":0.34357633136094673,"total":786,"current":452}
+{"_e":"metro:bundling:progress","_t":1788551967002,"id":"3","progress":0.3492374317986769,"total":841,"current":497}
+{"_e":"metro:bundling:progress","_t":1788551967105,"id":"3","progress":0.3666975308641975,"total":900,"current":545}
+{"_e":"metro:bundling:progress","_t":1788551967205,"id":"3","progress":0.3912845608787765,"total":948,"current":593}
+{"_e":"metro:bundling:progress","_t":1788551967305,"id":"3","progress":0.4321468090793973,"total":969,"current":637}
+{"_e":"metro:bundling:progress","_t":1788551967405,"id":"3","progress":0.4774048298096596,"total":1016,"current":702}
+{"_e":"metro:bundling:progress","_t":1788551967505,"id":"3","progress":0.5102040816326531,"total":1043,"current":745}
+{"_e":"metro:bundling:progress","_t":1788551967605,"id":"3","progress":0.5202683470507545,"total":1080,"current":779}
+{"_e":"metro:bundling:progress","_t":1788551967705,"id":"3","progress":0.5611170871856319,"total":1084,"current":812}
+{"_e":"metro:bundling:progress","_t":1788551967805,"id":"3","progress":0.6021081549165397,"total":1098,"current":852}
+{"_e":"metro:bundling:progress","_t":1788551967906,"id":"3","progress":0.6443316289262235,"total":1110,"current":891}
+{"_e":"metro:bundling:progress","_t":1788551968007,"id":"3","progress":0.6870763857451838,"total":1128,"current":935}
+{"_e":"metro:bundling:progress","_t":1788551968108,"id":"3","progress":0.727073940690057,"total":1154,"current":984}
+{"_e":"metro:bundling:progress","_t":1788551968208,"id":"3","progress":0.7498288047104775,"total":1171,"current":1014}
+{"_e":"metro:bundling:progress","_t":1788551968310,"id":"3","progress":0.7749892333817685,"total":1195,"current":1052}
+{"_e":"metro:bundling:progress","_t":1788551968412,"id":"3","progress":0.7955109248548619,"total":1212,"current":1081}
+{"_e":"metro:bundling:progress","_t":1788551968512,"id":"3","progress":0.8011717280300994,"total":1220,"current":1092}
+{"_e":"metro:bundling:progress","_t":1788551968612,"id":"3","progress":0.8268478421216541,"total":1235,"current":1123}
+{"_e":"metro:bundling:progress","_t":1788551968712,"id":"3","progress":0.8286778785588309,"total":1260,"current":1147}
+{"_e":"metro:bundling:progress","_t":1788551968812,"id":"3","progress":0.8714958350154918,"total":1294,"current":1208}
+{"_e":"metro:bundling:progress","_t":1788551968912,"id":"3","progress":0.9138605087723243,"total":1317,"current":1259}
+{"_e":"metro:bundling:progress","_t":1788551969013,"id":"3","progress":0.9189824128277451,"total":1378,"current":1321}
+{"_e":"metro:bundling:progress","_t":1788551969113,"id":"3","progress":0.9189824128277451,"total":1466,"current":1349}
+{"_e":"metro:bundling:progress","_t":1788551969219,"id":"3","progress":0.9189824128277451,"total":1479,"current":1359}
+{"_e":"metro:bundling:progress","_t":1788551969319,"id":"3","progress":0.9189824128277451,"total":1506,"current":1393}
+{"_e":"metro:bundling:progress","_t":1788551969420,"id":"3","progress":0.9189824128277451,"total":1539,"current":1441}
+{"_e":"metro:bundling:progress","_t":1788551969520,"id":"3","progress":0.9189824128277451,"total":1572,"current":1474}
+{"_e":"metro:bundling:progress","_t":1788551969620,"id":"3","progress":0.9189824128277451,"total":1597,"current":1503}
+{"_e":"metro:bundling:progress","_t":1788551969720,"id":"3","progress":0.9189824128277451,"total":1629,"current":1529}
+{"_e":"metro:bundling:progress","_t":1788551969820,"id":"3","progress":0.9189824128277451,"total":1645,"current":1554}
+{"_e":"metro:bundling:progress","_t":1788551969921,"id":"3","progress":0.9189824128277451,"total":1645,"current":1560}
+{"_e":"metro:bundling:progress","_t":1788551970022,"id":"3","progress":0.9189824128277451,"total":1652,"current":1582}
+{"_e":"metro:bundling:progress","_t":1788551970123,"id":"3","progress":0.9512993528637326,"total":1663,"current":1622}
+{"_e":"metro:bundling:progress","_t":1788551970223,"id":"3","progress":0.9512993528637326,"total":1705,"current":1660}
+{"_e":"metro:bundling:progress","_t":1788551970323,"id":"3","progress":0.9783913114117976,"total":1749,"current":1730}
+{"_e":"metro:bundling:progress","_t":1788551970423,"id":"3","progress":0.999,"total":1795,"current":1795}
+{"_e":"metro:bundling:done","_t":1788551970566,"id":"3","total":1795,"ms":5412.075125}
+{"_e":"metro:client_log","_t":1788551972663,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:server_log","_t":1788552195288,"level":"error","data":["[timeout] connection terminated with Device for app='%s' on device='%s' after not responding for %s seconds.","host.exp.Exponent","iPhone","60"]}
+{"_e":"root:init","_t":1788552511250,"format":"v0-jsonl","version":"57.0.22"}
+{"_e":"env:mode","_t":1788552511251,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1788552511252,"mode":"development","files":["../../../.env"],"env":{"EXPO_PUBLIC_API_URL":"http://192.168.1.156:3000/api"}}
+{"_e":"devserver:start","_t":1788552513141,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../../../app","serverComponents":false,"serverActions":false,"serverRendering":true,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1788552513307,"serverRoot":"../../..","projectRoot":"../../..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1788552513397,"plugins":[]}
+{"_e":"metro:instantiate","_t":1788552513715,"atlas":false,"workers":6,"host":"::","port":8082}
+{"_e":"metro:bundling:started","_t":1788552518666,"id":"3","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:progress","_t":1788552518666,"id":"3","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788552518669,"id":"3","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788552518769,"id":"3","progress":0.1818134968692829,"total":394,"current":168}
+{"_e":"metro:bundling:progress","_t":1788552518869,"id":"3","progress":0.3436826624206251,"total":916,"current":537}
+{"_e":"metro:bundling:progress","_t":1788552518979,"id":"3","progress":0.7202843100189037,"total":1150,"current":976}
+{"_e":"metro:bundling:progress","_t":1788552519079,"id":"3","progress":0.8869852467736065,"total":1512,"current":1424}
+{"_e":"metro:bundling:done","_t":1788552519207,"id":"3","total":1512,"ms":541.232667}
+{"_e":"metro:client_log","_t":1788552521325,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788552577845,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788552593618,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:server_log","_t":1788552659717,"level":"error","data":["[timeout] connection terminated with Device for app='%s' on device='%s' after not responding for %s seconds.","host.exp.Exponent","iPhone","60"]}
+{"_e":"metro:client_log","_t":1788552778203,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:server_log","_t":1788552930254,"level":"error","data":["[timeout] connection terminated with Device for app='%s' on device='%s' after not responding for %s seconds.","host.exp.Exponent","iPhone","60"]}
+{"_e":"metro:bundling:started","_t":1788553235384,"id":"x","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:done","_t":1788553235494,"id":"x","total":1,"ms":109.223542}
+{"_e":"metro:client_log","_t":1788553237915,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788553267390,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788553371497,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:bundling:started","_t":1788553392662,"id":"b","platform":"ios","environment":null,"entry":"node_modules/expo-router/entry.js"}
+{"_e":"metro:bundling:progress","_t":1788553392662,"id":"b","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788553392666,"id":"b","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1788553392745,"id":"b","total":1,"ms":83.300166}
+{"_e":"metro:client_log","_t":1788553395718,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}
+{"_e":"metro:client_log","_t":1788553401879,"level":"warn","data":["[Layout children]: No route named \"subscription\" exists in nested children:","[\"index\", \"(auth)\", \"(tabs)\"]"]}

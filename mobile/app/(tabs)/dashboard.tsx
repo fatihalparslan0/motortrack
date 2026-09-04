@@ -115,19 +115,19 @@ export default function Dashboard() {
           <View style={styles.statsGrid}>
             <StatCard
               emoji="⚙️" label="Toplam Motor" value={ms?.totalMotors}
-              color={Colors.primary} onPress={() => router.push('/(tabs)/motors/index' as any)}
+              color={Colors.primary} onPress={() => router.navigate('/(tabs)/motors' as any)}
             />
             <StatCard
               emoji="✅" label="Aktif Motor" value={ms?.activeMotors}
-              color={Colors.success} onPress={() => router.push('/(tabs)/motors/index' as any)}
+              color={Colors.success} onPress={() => router.navigate('/(tabs)/motors' as any)}
             />
             <StatCard
               emoji="🔧" label="Bakımda" value={ms?.maintenanceMotors}
-              color={Colors.warning} onPress={() => router.push('/(tabs)/maintenance/index' as any)}
+              color={Colors.warning} onPress={() => router.navigate('/(tabs)/maintenance' as any)}
             />
             <StatCard
               emoji="📦" label="Toplam Parça" value={ps?.totalParts}
-              color={Colors.secondary} onPress={() => router.push('/(tabs)/parts/index' as any)}
+              color={Colors.secondary} onPress={() => router.navigate('/(tabs)/parts' as any)}
             />
           </View>
         </View>

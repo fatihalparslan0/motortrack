@@ -52,6 +52,13 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => <TabIcon emoji="🛠️" label="Bakım" focused={focused} />,
         }}
       />
+      {/* Hidden routes — accessible via navigation but not shown in tab bar */}
+      <Tabs.Screen name="motors/create" options={{ href: null }} />
+      <Tabs.Screen name="motors/[id]" options={{ href: null }} />
+      <Tabs.Screen name="maintenance/create" options={{ href: null }} />
+      <Tabs.Screen name="parts/create" options={{ href: null }} />
+      <Tabs.Screen name="parts/[id]" options={{ href: null }} />
+      <Tabs.Screen name="marketplace/create" options={{ href: null }} />
     </Tabs>
   );
 }
