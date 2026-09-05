@@ -9,43 +9,43 @@ datasource db {
 
 // ─── Subscription Plans ───────────────────────────────────────────────────────
 model SubscriptionPlan {
-  id             String   @id @default(uuid())
-  name           String   // Starter, Pro, Enterprise
-  priceMonthly   Decimal  @db.Decimal(10, 2)
-  priceYearly    Decimal  @db.Decimal(10, 2)
-  maxMotors      Int?     // null = unlimited
-  maxUsers       Int?
-  maxListings    Int?
-  stripePriceId  String?  @unique
-  features       Json     @default("{}")
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  subscriptions  Subscription[]
+  id            String         @id @default(uuid())
+  name          String // Starter, Pro, Enterprise
+  priceMonthly  Decimal        @db.Decimal(10, 2)
+  priceYearly   Decimal        @db.Decimal(10, 2)
+  maxMotors     Int? // null = unlimited
+  maxUsers      Int?
+  maxListings   Int?
+  stripePriceId String?        @unique
+  features      Json           @default("{}")
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  subscriptions Subscription[]
 
   @@map("subscription_plans")
 }
 
 // ─── Companies ────────────────────────────────────────────────────────────────
 model Company {
-  id               String             @id @default(uuid())
-  name             String
-  taxNumber        String?            @unique
-  email            String             @unique
-  phone            String?
-  address          String?
-  city             String?
-  country          String             @default("TR")
-  logoUrl          String?
-  isActive         Boolean            @default(true)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  taxNumber String?  @unique
+  email     String   @unique
+  phone     String?
+  address   String?
+  city      String?
+  country   String   @default("TR")
+  logoUrl   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   users            User[]
   motors           Motor[]
   parts            Part[]
   listings         Listing[]
-  sentMessages     ListingMessage[]   @relation("SentMessages")
-  receivedMessages ListingMessage[]   @relation("ReceivedMessages")
+  sentMessages     ListingMessage[] @relation("SentMessages")
+  receivedMessages ListingMessage[] @relation("ReceivedMessages")
   subscription     Subscription?
 
   @@map("companies")
@@ -138,29 +138,29 @@ enum MotorStatus {
 
 // ─── Parts ────────────────────────────────────────────────────────────────────
 model Part {
-  id                  String        @id @default(uuid())
-  companyId           String
-  motorId             String?       // Bir motora bağlı olabilir
-  partNumber          String?
-  name                String
-  brand               String?
-  category            String?
-  quantity            Int           @default(0)
-  unit                String        @default("adet")
-  minQuantity         Int           @default(0)  // Düşük stok uyarı eşiği
-  purchasePrice       Decimal?      @db.Decimal(10, 2)
-  sellingPrice        Decimal?      @db.Decimal(10, 2)
-  warehouseLocation   String?
-  condition           PartCondition @default(NEW)
-  notes               String?
-  imageUrls           String[]      @default([])
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  id                String        @id @default(uuid())
+  companyId         String
+  motorId           String? // Bir motora bağlı olabilir
+  partNumber        String?
+  name              String
+  brand             String?
+  category          String?
+  quantity          Int           @default(0)
+  unit              String        @default("adet")
+  minQuantity       Int           @default(0) // Düşük stok uyarı eşiği
+  purchasePrice     Decimal?      @db.Decimal(10, 2)
+  sellingPrice      Decimal?      @db.Decimal(10, 2)
+  warehouseLocation String?
+  condition         PartCondition @default(NEW)
+  notes             String?
+  imageUrls         String[]      @default([])
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  company    Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  motor      Motor?         @relation(fields: [motorId], references: [id], onDelete: SetNull)
-  movements  PartMovement[]
-  listings   Listing[]
+  company   Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  motor     Motor?         @relation(fields: [motorId], references: [id], onDelete: SetNull)
+  movements PartMovement[]
+  listings  Listing[]
 
   @@map("parts")
 }
@@ -191,39 +191,41 @@ model PartMovement {
 }
 
 enum MovementType {
-  IN         // Stok girişi
-  OUT        // Stok çıkışı / kullanım
-  TRANSFER   // Transfer
+  IN // Stok girişi
+  OUT // Stok çıkışı / kullanım
+  TRANSFER // Transfer
   ADJUSTMENT // Düzeltme
-  RETURN     // İade
+  RETURN // İade
 }
 
 // ─── Maintenance Records ──────────────────────────────────────────────────────
 model MaintenanceRecord {
   id                  String            @id @default(uuid())
-  motorId             String
+  motorId             String?
   userId              String
   maintenanceType     MaintenanceType
   title               String
   description         String?
   cost                Decimal?          @db.Decimal(10, 2)
+  customerInfo        String?
+  vehicleInfo         String?
   performedAt         DateTime          @default(now())
   nextMaintenanceDate DateTime?
   status              MaintenanceStatus @default(COMPLETED)
   imageUrls           String[]          @default([])
   createdAt           DateTime          @default(now())
 
-  motor Motor @relation(fields: [motorId], references: [id], onDelete: Cascade)
+  motor Motor? @relation(fields: [motorId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id])
 
   @@map("maintenance_records")
 }
 
 enum MaintenanceType {
-  PREVENTIVE    // Önleyici bakım
-  CORRECTIVE    // Düzeltici bakım
-  INSPECTION    // Muayene
-  EMERGENCY     // Acil bakım
+  PREVENTIVE // Önleyici bakım
+  CORRECTIVE // Düzeltici bakım
+  INSPECTION // Muayene
+  EMERGENCY // Acil bakım
   OTHER
 }
 

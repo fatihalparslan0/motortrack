@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuthStore } from '../src/store/auth.store';
+import { useAppTheme } from '../src/hooks/useAppTheme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -21,6 +22,7 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   const restoreSession = useAuthStore((s) => s.restoreSession);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const { colors, isDark } = useAppTheme();
 
   useEffect(() => {
     restoreSession().finally(() => SplashScreen.hideAsync());
@@ -29,11 +31,17 @@ export default function RootLayout() {
   if (isLoading) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="light" backgroundColor="#0F1117" />
-          <Stack screenOptions={{ headerShown: false }}>
+          <StatusBar style={isDark ? "light" : "dark"} backgroundColor={colors.background} />
+          <Stack screenOptions={{ 
+            headerShown: false, 
+            contentStyle: { backgroundColor: colors.background },
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+            animation: 'slide_from_right'
+          }}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="subscription" options={{ headerShown: false }} />

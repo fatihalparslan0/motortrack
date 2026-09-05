@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator,
@@ -6,7 +6,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../src/store/auth.store';
-import { Colors, Typography, Spacing, BorderRadius } from '../../src/constants/theme';
+import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { Typography, Spacing, BorderRadius } from '../../src/constants/theme';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -14,6 +15,13 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const login = useAuthStore((s) => s.login);
+  const { colors: theme, themeMode } = useAppTheme();
+  
+  const dynamicStyles = useMemo(() => styles(theme), [theme]);
+  
+  const gradientColors = themeMode === 'light' 
+    ? [theme.background, '#F3F4F6', theme.background] 
+    : ['#0F1117', '#1A1D27', '#0F1117'];
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -23,7 +31,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(email.trim().toLowerCase(), password);
-      router.replace('/(tabs)/dashboard');
+      router.replace('/(tabs)');
     } catch (err: any) {
       Alert.alert('Giriş Hatası', err?.message || 'E-posta veya şifre hatalı.');
     } finally {
@@ -32,35 +40,35 @@ export default function LoginScreen() {
   };
 
   return (
-    <LinearGradient colors={['#0F1117', '#1A1D27', '#0F1117']} style={styles.container}>
+    <LinearGradient colors={gradientColors as [string, string, string]} style={dynamicStyles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.kav}
+        style={dynamicStyles.kav}
       >
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={dynamicStyles.scroll} showsVerticalScrollIndicator={false}>
           {/* Logo */}
-          <View style={styles.logoContainer}>
+          <View style={dynamicStyles.logoContainer}>
             <LinearGradient
               colors={['#6366F1', '#818CF8']}
-              style={styles.logoBox}
+              style={dynamicStyles.logoBox}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             >
-              <Text style={styles.logoIcon}>⚙️</Text>
+              <Text style={dynamicStyles.logoIcon}>⚙️</Text>
             </LinearGradient>
-            <Text style={styles.logoText}>MotorTrack</Text>
-            <Text style={styles.tagline}>Motor & Parça Yönetim Sistemi</Text>
+            <Text style={dynamicStyles.logoText}>MotorTrack</Text>
+            <Text style={dynamicStyles.tagline}>Motor & Parça Yönetim Sistemi</Text>
           </View>
 
           {/* Form */}
-          <View style={styles.formContainer}>
-            <Text style={styles.formTitle}>Giriş Yap</Text>
+          <View style={dynamicStyles.formContainer}>
+            <Text style={dynamicStyles.formTitle}>Giriş Yap</Text>
 
-            <View style={styles.inputWrapper}>
-              <Text style={styles.label}>E-posta</Text>
+            <View style={dynamicStyles.inputWrapper}>
+              <Text style={dynamicStyles.label}>E-posta</Text>
               <TextInput
-                style={styles.input}
+                style={dynamicStyles.input}
                 placeholder="ornek@sirket.com"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={theme.textMuted}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -69,60 +77,60 @@ export default function LoginScreen() {
               />
             </View>
 
-            <View style={styles.inputWrapper}>
-              <Text style={styles.label}>Şifre</Text>
-              <View style={styles.passwordContainer}>
+            <View style={dynamicStyles.inputWrapper}>
+              <Text style={dynamicStyles.label}>Şifre</Text>
+              <View style={dynamicStyles.passwordContainer}>
                 <TextInput
-                  style={[styles.input, { flex: 1, borderWidth: 0 }]}
+                  style={[dynamicStyles.input, { flex: 1, borderWidth: 0 }]}
                   placeholder="••••••••"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={theme.textMuted}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeBtn}
+                  style={dynamicStyles.eyeBtn}
                 >
-                  <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+                  <Text style={dynamicStyles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             <TouchableOpacity
-              style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
+              style={[dynamicStyles.loginBtn, loading && dynamicStyles.loginBtnDisabled]}
               onPress={handleLogin}
               disabled={loading}
               activeOpacity={0.8}
             >
               <LinearGradient
                 colors={['#6366F1', '#4F46E5']}
-                style={styles.loginBtnGradient}
+                style={dynamicStyles.loginBtnGradient}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               >
                 {loading
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.loginBtnText}>Giriş Yap</Text>
+                  : <Text style={dynamicStyles.loginBtnText}>Giriş Yap</Text>
                 }
               </LinearGradient>
             </TouchableOpacity>
 
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>veya</Text>
-              <View style={styles.dividerLine} />
+            <View style={dynamicStyles.divider}>
+              <View style={dynamicStyles.dividerLine} />
+              <Text style={dynamicStyles.dividerText}>veya</Text>
+              <View style={dynamicStyles.dividerLine} />
             </View>
 
             <TouchableOpacity
-              style={styles.registerBtn}
+              style={dynamicStyles.registerBtn}
               onPress={() => router.push('/(auth)/register')}
             >
-              <Text style={styles.registerText}>
-                Hesabınız yok mu? <Text style={styles.registerLink}>Ücretsiz Kaydolun</Text>
+              <Text style={dynamicStyles.registerText}>
+                Hesabınız yok mu? <Text style={dynamicStyles.registerLink}>Ücretsiz Kaydolun</Text>
               </Text>
             </TouchableOpacity>
 
-            <Text style={styles.trialNote}>
+            <Text style={dynamicStyles.trialNote}>
               🎉 14 gün ücretsiz deneme — kredi kartı gerekmez
             </Text>
           </View>
@@ -132,7 +140,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = (theme: any) => StyleSheet.create({
   container: { flex: 1 },
   kav: { flex: 1 },
   scroll: { flexGrow: 1, padding: Spacing.lg, justifyContent: 'center' },
@@ -145,36 +153,36 @@ const styles = StyleSheet.create({
   logoIcon: { fontSize: 36 },
   logoText: {
     fontSize: Typography.fontSize['3xl'], fontWeight: '700',
-    color: Colors.textPrimary, letterSpacing: -1,
+    color: theme.textPrimary, letterSpacing: -1,
   },
-  tagline: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, marginTop: 4 },
+  tagline: { fontSize: Typography.fontSize.sm, color: theme.textSecondary, marginTop: 4 },
 
   formContainer: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
   },
   formTitle: {
     fontSize: Typography.fontSize.xl, fontWeight: '700',
-    color: Colors.textPrimary, marginBottom: Spacing.lg,
+    color: theme.textPrimary, marginBottom: Spacing.lg,
   },
 
   inputWrapper: { marginBottom: Spacing.md },
-  label: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, marginBottom: 6 },
+  label: { fontSize: Typography.fontSize.sm, color: theme.textSecondary, marginBottom: 6 },
   input: {
-    backgroundColor: Colors.surfaceElevated,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: theme.surfaceElevated,
+    borderWidth: 1, borderColor: theme.border,
     borderRadius: BorderRadius.md,
     padding: Spacing.md, paddingHorizontal: Spacing.md,
-    color: Colors.textPrimary,
+    color: theme.textPrimary,
     fontSize: Typography.fontSize.base,
   },
   passwordContainer: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.surfaceElevated,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: theme.surfaceElevated,
+    borderWidth: 1, borderColor: theme.border,
     borderRadius: BorderRadius.md,
   },
   eyeBtn: { padding: Spacing.md },
@@ -186,15 +194,15 @@ const styles = StyleSheet.create({
   loginBtnText: { color: '#fff', fontSize: Typography.fontSize.md, fontWeight: '700' },
 
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: Spacing.lg },
-  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
-  dividerText: { color: Colors.textMuted, paddingHorizontal: Spacing.md, fontSize: Typography.fontSize.sm },
+  dividerLine: { flex: 1, height: 1, backgroundColor: theme.border },
+  dividerText: { color: theme.textMuted, paddingHorizontal: Spacing.md, fontSize: Typography.fontSize.sm },
 
   registerBtn: { alignItems: 'center' },
-  registerText: { color: Colors.textSecondary, fontSize: Typography.fontSize.sm },
-  registerLink: { color: Colors.primary, fontWeight: '600' },
+  registerText: { color: theme.textSecondary, fontSize: Typography.fontSize.sm },
+  registerLink: { color: theme.primary, fontWeight: '600' },
 
   trialNote: {
-    textAlign: 'center', color: Colors.textMuted,
+    textAlign: 'center', color: theme.textMuted,
     fontSize: Typography.fontSize.xs, marginTop: Spacing.md,
   },
 });

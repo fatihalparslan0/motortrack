@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator,
@@ -6,7 +6,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../src/store/auth.store';
-import { Colors, Typography, Spacing, BorderRadius } from '../../src/constants/theme';
+import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { Typography, Spacing, BorderRadius } from '../../src/constants/theme';
 
 export default function RegisterScreen() {
   const [form, setForm] = useState({
@@ -14,6 +15,13 @@ export default function RegisterScreen() {
   });
   const [loading, setLoading] = useState(false);
   const register = useAuthStore((s) => s.register);
+  const { colors: theme, themeMode } = useAppTheme();
+  
+  const dynamicStyles = useMemo(() => styles(theme), [theme]);
+  
+  const gradientColors = themeMode === 'light' 
+    ? [theme.background, '#F3F4F6', theme.background] 
+    : ['#0F1117', '#1A1D27', '#0F1117'];
 
   const update = (field: string, value: string) => setForm((p) => ({ ...p, [field]: value }));
 
@@ -34,7 +42,7 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await register(form);
-      router.replace('/(tabs)/dashboard');
+      router.replace('/(tabs)');
     } catch (err: any) {
       Alert.alert('Kayıt Hatası', err?.message || 'Bir hata oluştu, lütfen tekrar deneyin.');
     } finally {
@@ -43,12 +51,12 @@ export default function RegisterScreen() {
   };
 
   const InputField = ({ label, field, placeholder, options = {} }: any) => (
-    <View style={styles.inputWrapper}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={dynamicStyles.inputWrapper}>
+      <Text style={dynamicStyles.label}>{label}</Text>
       <TextInput
-        style={styles.input}
+        style={dynamicStyles.input}
         placeholder={placeholder}
-        placeholderTextColor={Colors.textMuted}
+        placeholderTextColor={theme.textMuted}
         value={form[field as keyof typeof form]}
         onChangeText={(v) => update(field, v)}
         {...options}
@@ -57,28 +65,28 @@ export default function RegisterScreen() {
   );
 
   return (
-    <LinearGradient colors={['#0F1117', '#1A1D27', '#0F1117']} style={styles.container}>
+    <LinearGradient colors={gradientColors as [string, string, string]} style={dynamicStyles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={styles.backText}>← Geri</Text>
+        <ScrollView contentContainerStyle={dynamicStyles.scroll} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity style={dynamicStyles.backBtn} onPress={() => router.back()}>
+            <Text style={dynamicStyles.backText}>← Geri</Text>
           </TouchableOpacity>
 
-          <View style={styles.header}>
-            <Text style={styles.title}>Hesap Oluştur</Text>
-            <Text style={styles.subtitle}>14 gün ücretsiz deneyin, kredi kartı gerekmez</Text>
+          <View style={dynamicStyles.header}>
+            <Text style={dynamicStyles.title}>Hesap Oluştur</Text>
+            <Text style={dynamicStyles.subtitle}>14 gün ücretsiz deneyin, kredi kartı gerekmez</Text>
           </View>
 
-          <View style={styles.trialBadge}>
+          <View style={dynamicStyles.trialBadge}>
             <LinearGradient
               colors={['rgba(99,102,241,0.2)', 'rgba(99,102,241,0.1)']}
-              style={styles.trialBadgeInner}
+              style={dynamicStyles.trialBadgeInner}
             >
-              <Text style={styles.trialBadgeText}>🎉 14 Gün Ücretsiz Deneme</Text>
+              <Text style={dynamicStyles.trialBadgeText}>🎉 14 Gün Ücretsiz Deneme</Text>
             </LinearGradient>
           </View>
 
-          <View style={styles.formContainer}>
+          <View style={dynamicStyles.formContainer}>
             <InputField label="Şirket Adı *" field="companyName" placeholder="Şirket adınız" />
             <InputField label="Ad Soyad *" field="fullName" placeholder="Adınız ve soyadınız" />
             <InputField
@@ -99,35 +107,35 @@ export default function RegisterScreen() {
             />
 
             <TouchableOpacity
-              style={[styles.registerBtn, loading && { opacity: 0.7 }]}
+              style={[dynamicStyles.registerBtn, loading && { opacity: 0.7 }]}
               onPress={handleRegister}
               disabled={loading}
               activeOpacity={0.8}
             >
               <LinearGradient
                 colors={['#6366F1', '#4F46E5']}
-                style={styles.btnGradient}
+                style={dynamicStyles.btnGradient}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               >
                 {loading
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.btnText}>Ücretsiz Başla →</Text>
+                  : <Text style={dynamicStyles.btnText}>Ücretsiz Başla →</Text>
                 }
               </LinearGradient>
             </TouchableOpacity>
 
-            <Text style={styles.termsText}>
+            <Text style={dynamicStyles.termsText}>
               Kaydolarak{' '}
-              <Text style={styles.termsLink}>Kullanım Koşulları</Text>
+              <Text style={dynamicStyles.termsLink}>Kullanım Koşulları</Text>
               {' '}ve{' '}
-              <Text style={styles.termsLink}>Gizlilik Politikası</Text>
+              <Text style={dynamicStyles.termsLink}>Gizlilik Politikası</Text>
               'nı kabul etmiş olursunuz.
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.loginLink} onPress={() => router.push('/(auth)/login')}>
-            <Text style={styles.loginLinkText}>
-              Zaten hesabınız var mı? <Text style={styles.loginLinkHighlight}>Giriş Yapın</Text>
+          <TouchableOpacity style={dynamicStyles.loginLink} onPress={() => router.push('/(auth)/login')}>
+            <Text style={dynamicStyles.loginLinkText}>
+              Zaten hesabınız var mı? <Text style={dynamicStyles.loginLinkHighlight}>Giriş Yapın</Text>
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -136,37 +144,37 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = (theme: any) => StyleSheet.create({
   container: { flex: 1 },
   scroll: { flexGrow: 1, padding: Spacing.lg },
   backBtn: { marginTop: Spacing.xl, marginBottom: Spacing.md },
-  backText: { color: Colors.primary, fontSize: Typography.fontSize.base },
+  backText: { color: theme.primary, fontSize: Typography.fontSize.base },
   header: { marginBottom: Spacing.lg },
-  title: { fontSize: Typography.fontSize['2xl'], fontWeight: '700', color: Colors.textPrimary },
-  subtitle: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, marginTop: 4 },
+  title: { fontSize: Typography.fontSize['2xl'], fontWeight: '700', color: theme.textPrimary },
+  subtitle: { fontSize: Typography.fontSize.sm, color: theme.textSecondary, marginTop: 4 },
   trialBadge: { marginBottom: Spacing.lg, borderRadius: BorderRadius.md, overflow: 'hidden' },
   trialBadgeInner: { padding: Spacing.md, alignItems: 'center', borderRadius: BorderRadius.md, borderWidth: 1, borderColor: 'rgba(99,102,241,0.3)' },
-  trialBadgeText: { color: Colors.primaryLight, fontWeight: '600' },
+  trialBadgeText: { color: theme.primaryLight, fontWeight: '600' },
   formContainer: {
-    backgroundColor: Colors.surface, borderRadius: BorderRadius.xl,
-    padding: Spacing.lg, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: theme.surface, borderRadius: BorderRadius.xl,
+    padding: Spacing.lg, borderWidth: 1, borderColor: theme.border,
   },
   inputWrapper: { marginBottom: Spacing.md },
-  label: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, marginBottom: 6 },
+  label: { fontSize: Typography.fontSize.sm, color: theme.textSecondary, marginBottom: 6 },
   input: {
-    backgroundColor: Colors.surfaceElevated, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: theme.surfaceElevated, borderWidth: 1, borderColor: theme.border,
     borderRadius: BorderRadius.md, padding: Spacing.md,
-    color: Colors.textPrimary, fontSize: Typography.fontSize.base,
+    color: theme.textPrimary, fontSize: Typography.fontSize.base,
   },
   registerBtn: { borderRadius: BorderRadius.md, overflow: 'hidden', marginTop: Spacing.md },
   btnGradient: { paddingVertical: Spacing.md, alignItems: 'center' },
   btnText: { color: '#fff', fontSize: Typography.fontSize.md, fontWeight: '700' },
   termsText: {
-    textAlign: 'center', color: Colors.textMuted,
+    textAlign: 'center', color: theme.textMuted,
     fontSize: Typography.fontSize.xs, marginTop: Spacing.md, lineHeight: 18,
   },
-  termsLink: { color: Colors.primary },
+  termsLink: { color: theme.primary },
   loginLink: { alignItems: 'center', marginTop: Spacing.xl, marginBottom: Spacing.lg },
-  loginLinkText: { color: Colors.textSecondary, fontSize: Typography.fontSize.sm },
-  loginLinkHighlight: { color: Colors.primary, fontWeight: '600' },
+  loginLinkText: { color: theme.textSecondary, fontSize: Typography.fontSize.sm },
+  loginLinkHighlight: { color: theme.primary, fontWeight: '600' },
 });

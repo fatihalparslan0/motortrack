@@ -12,7 +12,7 @@ router.get('/upcoming', maintenanceController.getUpcomingMaintenance);
 router.get('/:id', maintenanceController.getMaintenanceById);
 
 router.post('/', [
-  body('motorId').notEmpty().withMessage('Motor ID zorunludur.'),
+  body('motorId').optional({ nullable: true, checkFalsy: true }),
   body('title').notEmpty().withMessage('Başlık zorunludur.'),
   body('maintenanceType').isIn(['PREVENTIVE','CORRECTIVE','INSPECTION','EMERGENCY','OTHER']),
 ], validate, maintenanceController.createMaintenance);

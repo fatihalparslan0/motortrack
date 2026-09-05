@@ -6,7 +6,7 @@ exports.getMaintenanceRecords = async (req, res, next) => {
     const { page = 1, limit = 20, motorId, status, maintenanceType } = req.query;
 
     const where = {
-      motor: { companyId: req.company.id },
+      user: { companyId: req.company.id },
       ...(motorId && { motorId }),
       ...(status && { status }),
       ...(maintenanceType && { maintenanceType }),
@@ -40,10 +40,9 @@ exports.getUpcomingMaintenance = async (req, res, next) => {
 
     const records = await prisma.maintenanceRecord.findMany({
       where: {
-        motor: { companyId: req.company.id },
-        status: 'PLANNED',
+        user: { companyId: req.company.id },
+        status: { in: ['PLANNED', 'IN_PROGRESS'] },
         nextMaintenanceDate: {
-          gte: new Date(),
           lte: endDate,
         },
       },
@@ -65,7 +64,7 @@ exports.getMaintenanceById = async (req, res, next) => {
     const record = await prisma.maintenanceRecord.findFirst({
       where: {
         id: req.params.id,
-        motor: { companyId: req.company.id },
+        user: { companyId: req.company.id },
       },
       include: {
         motor: true,
@@ -83,21 +82,27 @@ exports.getMaintenanceById = async (req, res, next) => {
 exports.createMaintenance = async (req, res, next) => {
   try {
     const { motorId, title, description, maintenanceType, cost,
+      customerInfo, vehicleInfo,
       performedAt, nextMaintenanceDate, status, imageUrls } = req.body;
 
-    const motor = await prisma.motor.findFirst({
-      where: { id: motorId, companyId: req.company.id },
-    });
-    if (!motor) return error(res, 'Motor bulunamadı.', 404);
+    let motor = null;
+    if (motorId) {
+      motor = await prisma.motor.findFirst({
+        where: { id: motorId, companyId: req.company.id },
+      });
+      if (!motor) return error(res, 'Motor bulunamadı.', 404);
+    }
 
     const record = await prisma.maintenanceRecord.create({
       data: {
-        motorId,
+        ...(motorId ? { motorId } : {}),
         userId: req.user.id,
         title,
         description,
         maintenanceType,
         cost: cost ? parseFloat(cost) : null,
+        customerInfo,
+        vehicleInfo,
         performedAt: performedAt ? new Date(performedAt) : new Date(),
         nextMaintenanceDate: nextMaintenanceDate ? new Date(nextMaintenanceDate) : null,
         status: status || 'COMPLETED',
@@ -110,7 +115,7 @@ exports.createMaintenance = async (req, res, next) => {
     });
 
     // Motoru bakım durumuna al
-    if (status === 'IN_PROGRESS') {
+    if (status === 'IN_PROGRESS' && motorId) {
       await prisma.motor.update({
         where: { id: motorId },
         data: { status: 'MAINTENANCE' },
@@ -126,7 +131,7 @@ exports.createMaintenance = async (req, res, next) => {
 exports.updateMaintenance = async (req, res, next) => {
   try {
     const existing = await prisma.maintenanceRecord.findFirst({
-      where: { id: req.params.id, motor: { companyId: req.company.id } },
+      where: { id: req.params.id, user: { companyId: req.company.id } },
     });
     if (!existing) return error(res, 'Bakım kaydı bulunamadı.', 404);
 
@@ -136,6 +141,8 @@ exports.updateMaintenance = async (req, res, next) => {
         ...(req.body.title && { title: req.body.title }),
         ...(req.body.description !== undefined && { description: req.body.description }),
         ...(req.body.cost && { cost: parseFloat(req.body.cost) }),
+        ...(req.body.customerInfo !== undefined && { customerInfo: req.body.customerInfo }),
+        ...(req.body.vehicleInfo !== undefined && { vehicleInfo: req.body.vehicleInfo }),
         ...(req.body.status && { status: req.body.status }),
         ...(req.body.nextMaintenanceDate && { nextMaintenanceDate: new Date(req.body.nextMaintenanceDate) }),
         ...(req.body.imageUrls && { imageUrls: req.body.imageUrls }),
@@ -143,7 +150,7 @@ exports.updateMaintenance = async (req, res, next) => {
     });
 
     // Bakım tamamlandıysa motoru aktife al
-    if (req.body.status === 'COMPLETED') {
+    if (req.body.status === 'COMPLETED' && existing.motorId) {
       await prisma.motor.update({
         where: { id: existing.motorId },
         data: { status: 'ACTIVE' },
@@ -159,7 +166,7 @@ exports.updateMaintenance = async (req, res, next) => {
 exports.deleteMaintenance = async (req, res, next) => {
   try {
     const existing = await prisma.maintenanceRecord.findFirst({
-      where: { id: req.params.id, motor: { companyId: req.company.id } },
+      where: { id: req.params.id, user: { companyId: req.company.id } },
     });
     if (!existing) return error(res, 'Bakım kaydı bulunamadı.', 404);
     await prisma.maintenanceRecord.delete({ where: { id: req.params.id } });
