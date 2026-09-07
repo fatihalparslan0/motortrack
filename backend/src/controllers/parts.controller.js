@@ -199,13 +199,28 @@ exports.updatePart = async (req, res, next) => {
     });
     if (!existing) return error(res, 'Parça bulunamadı.', 404);
 
+    const {
+      motorId, partNumber, name, brand, category, quantity,
+      unit, minQuantity, purchasePrice, sellingPrice,
+      warehouseLocation, condition, notes,
+    } = req.body;
+
     const part = await prisma.part.update({
       where: { id: req.params.id },
       data: {
-        ...req.body,
-        quantity: req.body.quantity !== undefined ? parseInt(req.body.quantity) : undefined,
-        minQuantity: req.body.minQuantity !== undefined ? parseInt(req.body.minQuantity) : undefined,
-        purchasePrice: req.body.purchasePrice ? parseFloat(req.body.purchasePrice) : undefined,
+        motorId: motorId !== undefined ? motorId || null : undefined,
+        partNumber: partNumber !== undefined ? partNumber : undefined,
+        name: name !== undefined ? name : undefined,
+        brand: brand !== undefined ? brand : undefined,
+        category: category !== undefined ? category : undefined,
+        quantity: quantity !== undefined ? parseInt(quantity) : undefined,
+        unit: unit !== undefined ? unit : undefined,
+        minQuantity: minQuantity !== undefined ? parseInt(minQuantity) : undefined,
+        purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
+        sellingPrice: sellingPrice ? parseFloat(sellingPrice) : undefined,
+        warehouseLocation: warehouseLocation !== undefined ? warehouseLocation : undefined,
+        condition: condition !== undefined ? condition : undefined,
+        notes: notes !== undefined ? notes : undefined,
       },
     });
 

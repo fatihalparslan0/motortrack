@@ -140,11 +140,13 @@ exports.updateMaintenance = async (req, res, next) => {
       data: {
         ...(req.body.title && { title: req.body.title }),
         ...(req.body.description !== undefined && { description: req.body.description }),
-        ...(req.body.cost && { cost: parseFloat(req.body.cost) }),
+        ...(req.body.cost !== undefined && { cost: req.body.cost ? parseFloat(req.body.cost) : null }),
         ...(req.body.customerInfo !== undefined && { customerInfo: req.body.customerInfo }),
         ...(req.body.vehicleInfo !== undefined && { vehicleInfo: req.body.vehicleInfo }),
         ...(req.body.status && { status: req.body.status }),
-        ...(req.body.nextMaintenanceDate && { nextMaintenanceDate: new Date(req.body.nextMaintenanceDate) }),
+        ...(req.body.maintenanceType && { maintenanceType: req.body.maintenanceType }),
+        ...(req.body.performedAt !== undefined && { performedAt: req.body.performedAt ? new Date(req.body.performedAt) : null }),
+        ...(req.body.nextMaintenanceDate !== undefined && { nextMaintenanceDate: req.body.nextMaintenanceDate ? new Date(req.body.nextMaintenanceDate) : null }),
         ...(req.body.imageUrls && { imageUrls: req.body.imageUrls }),
       },
     });

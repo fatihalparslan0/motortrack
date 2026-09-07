@@ -156,6 +156,16 @@ export default function CreateMaintenanceScreen() {
   const handleSubmit = () => {
     if (!form.customerName) { Alert.alert('Hata', 'Lütfen Müşteri Adı girin.'); return; }
     if (!form.title) { Alert.alert('Hata', 'Başlık zorunludur.'); return; }
+    
+    if (form.performedAt && form.nextMaintenanceDate) {
+      const performed = new Date(form.performedAt);
+      const next = new Date(form.nextMaintenanceDate);
+      if (performed > next) {
+        Alert.alert('Tarih Hatası', 'Teslim edilecek tarih, alınan tarihten daha önce olamaz (veya alınan tarih teslimden sonra olamaz). Lütfen tarihleri kontrol edin.');
+        return;
+      }
+    }
+    
     mutation.mutate();
   };
 

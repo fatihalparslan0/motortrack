@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, RefreshControl,
+  TextInput, ActivityIndicator, RefreshControl, ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +10,8 @@ import { router } from 'expo-router';
 import { partsAPI } from '../../api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useAppTheme } from '../../hooks/useAppTheme';
+
+const CATEGORIES = ['Tümü', 'Filtre', 'Motor', 'Transmisyon', 'Fren', 'Elektrik', 'Soğutma', 'Yakıt', 'Diğer'];
 
 function PartCard({ part, onPress, theme }: any) {
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
@@ -48,12 +50,18 @@ function PartCard({ part, onPress, theme }: any) {
 export default function PartsScreen() {
   const [search, setSearch] = useState('');
   const [showLowStock, setShowLowStock] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('Tümü');
   const { colors: theme } = useAppTheme();
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['parts', search, showLowStock],
-    queryFn: () => partsAPI.getAll({ search, lowStock: showLowStock ? 'true' : undefined, limit: 100 }),
+    queryKey: ['parts', search, showLowStock, selectedCategory],
+    queryFn: () => partsAPI.getAll({ 
+      search, 
+      lowStock: showLowStock ? 'true' : undefined, 
+      category: selectedCategory === 'Tümü' ? undefined : selectedCategory,
+      limit: 100 
+    }),
     placeholderData: (prev) => prev,
   });
 
@@ -121,6 +129,28 @@ export default function PartsScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={{ marginBottom: Spacing.sm }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: Spacing.lg, gap: Spacing.sm }}>
+          {CATEGORIES.map(cat => (
+            <TouchableOpacity
+              key={cat}
+              style={[
+                dynamicStyles.categoryChip,
+                selectedCategory === cat && { backgroundColor: theme.primary, borderColor: theme.primary }
+              ]}
+              onPress={() => setSelectedCategory(cat)}
+            >
+              <Text style={[
+                dynamicStyles.categoryChipText,
+                selectedCategory === cat && { color: '#fff', fontWeight: 'bold' }
+              ]}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       {isLoading ? (
         <View style={dynamicStyles.loading}>
           <ActivityIndicator size="large" color={theme.primary} />
@@ -184,6 +214,13 @@ const styles = (theme: any) => StyleSheet.create({
   lowStockBtnActive: { backgroundColor: theme.danger + '20', borderColor: theme.danger },
   lowStockBtnText: { fontSize: Typography.fontSize.xs, color: theme.textSecondary },
   lowStockBtnTextActive: { color: theme.danger, fontWeight: '600' },
+
+  categoryChip: {
+    paddingHorizontal: Spacing.md, paddingVertical: 6,
+    borderRadius: BorderRadius.full, borderWidth: 1, borderColor: theme.border,
+    backgroundColor: theme.surface,
+  },
+  categoryChipText: { fontSize: Typography.fontSize.xs, color: theme.textSecondary },
 
   list: { padding: Spacing.lg, gap: Spacing.sm },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },

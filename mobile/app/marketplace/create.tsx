@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { listingsAPI, partsAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
@@ -20,12 +20,13 @@ const CONDITIONS = [
 
 export default function CreateListingScreen() {
   const queryClient = useQueryClient();
+  const { partId: initialPartId } = useLocalSearchParams<{ partId?: string }>();
   const { colors: theme } = useAppTheme();
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
 
   const [form, setForm] = useState({
     title: '', description: '', price: '',
-    quantity: '1', condition: 'USED', partId: '',
+    quantity: '1', condition: 'USED', partId: initialPartId || '',
   });
   const update = (field: string, value: string) => setForm(p => ({ ...p, [field]: value }));
 
@@ -34,6 +35,19 @@ export default function CreateListingScreen() {
     queryFn: () => partsAPI.getAll({ limit: 100 }),
   });
   const parts: any[] = (partsData as any)?.data || [];
+
+  React.useEffect(() => {
+    if (initialPartId && parts.length > 0) {
+      const p = parts.find(x => x.id === initialPartId);
+      if (p) {
+        setForm(prev => ({
+          ...prev,
+          title: prev.title || p.name,
+          price: prev.price || (p.sellingPrice ? p.sellingPrice.toString() : (p.purchasePrice ? p.purchasePrice.toString() : '')),
+        }));
+      }
+    }
+  }, [initialPartId, parts]);
 
   const mutation = useMutation({
     mutationFn: () => listingsAPI.create({
@@ -92,7 +106,7 @@ export default function CreateListingScreen() {
             </View>
             <View style={[dynamicStyles.row, { borderTopWidth: 1, borderTopColor: theme.border }]}>
               <View style={dynamicStyles.halfField}>
-                <Text style={dynamicStyles.inputLabel}>Fiyat (₺) *</Text>
+                <Text style={dynamicStyles.inputLabel}>Birim Fiyatı (₺) *</Text>
                 <TextInput style={dynamicStyles.input} value={form.price} onChangeText={v => update('price', v)} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={theme.textMuted} />
               </View>
               <View style={[dynamicStyles.halfField, dynamicStyles.fieldBorder]}>
@@ -135,8 +149,13 @@ export default function CreateListingScreen() {
                     style={[dynamicStyles.partOption, form.partId === p.id && { backgroundColor: theme.primary + '10' },
                       { borderTopWidth: 1, borderTopColor: theme.border }]}
                     onPress={() => {
-                      update('partId', form.partId === p.id ? '' : p.id);
-                      if (!form.title) update('title', p.name);
+                      const isDeselecting = form.partId === p.id;
+                      setForm(prev => ({
+                        ...prev,
+                        partId: isDeselecting ? '' : p.id,
+                        title: isDeselecting ? prev.title : p.name,
+                        price: isDeselecting ? prev.price : (p.sellingPrice ? p.sellingPrice.toString() : (p.purchasePrice ? p.purchasePrice.toString() : prev.price)),
+                      }));
                     }}
                   >
                     <Text style={[dynamicStyles.partOptionText, form.partId === p.id && { color: theme.primary }]}>

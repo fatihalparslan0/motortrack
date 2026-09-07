@@ -1302,3 +1302,222 @@ An operation failed because it depends on one or more records that were required
     at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
     at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
     at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)
+2026-09-07 20:25:06 [[32minfo[39m]: 🚀 MotorTrack API çalışıyor → http://localhost:3000
+2026-09-07 20:25:06 [[32minfo[39m]: 📋 Ortam: development
+2026-09-07 21:06:54 [[32minfo[39m]: 🚀 MotorTrack API çalışıyor → http://localhost:3000
+2026-09-07 21:06:54 [[32minfo[39m]: 📋 Ortam: development
+2026-09-07 21:18:22 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.refreshToken.delete()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:37
+
+  192 );
+  193 
+  194 // Eski token'ı sil, yenisini kaydet
+→ 195 await prisma.refreshToken.delete(
+An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)
+2026-09-07 21:18:22 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.refreshToken.delete()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:37
+
+  192 );
+  193 
+  194 // Eski token'ı sil, yenisini kaydet
+→ 195 await prisma.refreshToken.delete(
+An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)
+2026-09-07 21:18:22 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.refreshToken.delete()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:37
+
+  192 );
+  193 
+  194 // Eski token'ı sil, yenisini kaydet
+→ 195 await prisma.refreshToken.delete(
+An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)
+2026-09-07 21:18:22 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.refreshToken.delete()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:37
+
+  192 );
+  193 
+  194 // Eski token'ı sil, yenisini kaydet
+→ 195 await prisma.refreshToken.delete(
+An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)
+2026-09-07 21:18:22 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.refreshToken.delete()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:37
+
+  192 );
+  193 
+  194 // Eski token'ı sil, yenisini kaydet
+→ 195 await prisma.refreshToken.delete(
+An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)
+2026-09-07 21:18:23 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.refreshToken.delete()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:37
+
+  192 );
+  193 
+  194 // Eski token'ı sil, yenisini kaydet
+→ 195 await prisma.refreshToken.delete(
+An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)
+2026-09-07 21:18:23 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.refreshToken.delete()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:37
+
+  192 );
+  193 
+  194 // Eski token'ı sil, yenisini kaydet
+→ 195 await prisma.refreshToken.delete(
+An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)
+2026-09-07 22:33:56 [[31merror[39m]: PrismaClientValidationError: 
+Invalid `prisma.part.update()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/parts.controller.js:202:36
+
+  199 });
+  200 if (!existing) return error(res, 'Parça bulunamadı.', 404);
+  201 
+→ 202 const part = await prisma.part.update({
+        where: {
+          id: "a43c0798-6a72-46ab-a172-e804efe9aeb8"
+        },
+        data: {
+          name: "Motor Yağı",
+          vehicleType: "CAR",
+          ~~~~~~~~~~~
+          brand: "Volvo",
+          partNumber: "SPK-0043",
+          category: "Motor",
+          quantity: 13,
+          unit: "litre",
+          minQuantity: 4,
+          purchasePrice: 180,
+          warehouseLocation: "Raf A-2-12",
+          condition: "USED",
+          motorId: "e377e432-a977-421f-a929-00b0cc65c7de",
+          notes: "",
+      ?   id?: String | StringFieldUpdateOperationsInput,
+      ?   sellingPrice?: Decimal | NullableDecimalFieldUpdateOperationsInput | Null,
+      ?   imageUrls?: PartUpdateimageUrlsInput | String[],
+      ?   createdAt?: DateTime | DateTimeFieldUpdateOperationsInput,
+      ?   updatedAt?: DateTime | DateTimeFieldUpdateOperationsInput,
+      ?   company?: CompanyUpdateOneRequiredWithoutPartsNestedInput,
+      ?   motor?: MotorUpdateOneWithoutPartsNestedInput,
+      ?   movements?: PartMovementUpdateManyWithoutPartNestedInput,
+      ?   listings?: ListingUpdateManyWithoutPartNestedInput
+        }
+      })
+
+Unknown argument `vehicleType`. Available options are marked with ?.
+    at wn (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:29:1363)
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6958)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.updatePart (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/parts.controller.js:202:18)
+2026-09-07 22:37:25 [[32minfo[39m]: 🚀 MotorTrack API çalışıyor → http://localhost:3000
+2026-09-07 22:37:25 [[32minfo[39m]: 📋 Ortam: development
+2026-09-07 22:45:32 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.refreshToken.delete()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:37
+
+  192 );
+  193 
+  194 // Eski token'ı sil, yenisini kaydet
+→ 195 await prisma.refreshToken.delete(
+An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)
+2026-09-07 22:45:32 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.refreshToken.delete()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:37
+
+  192 );
+  193 
+  194 // Eski token'ı sil, yenisini kaydet
+→ 195 await prisma.refreshToken.delete(
+An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)
+2026-09-07 22:45:32 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.refreshToken.delete()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:37
+
+  192 );
+  193 
+  194 // Eski token'ı sil, yenisini kaydet
+→ 195 await prisma.refreshToken.delete(
+An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)
+2026-09-07 22:45:32 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.refreshToken.delete()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:37
+
+  192 );
+  193 
+  194 // Eski token'ı sil, yenisini kaydet
+→ 195 await prisma.refreshToken.delete(
+An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)
+2026-09-07 22:45:32 [[31merror[39m]: PrismaClientKnownRequestError: 
+Invalid `prisma.refreshToken.delete()` invocation in
+/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:37
+
+  192 );
+  193 
+  194 // Eski token'ı sil, yenisini kaydet
+→ 195 await prisma.refreshToken.delete(
+An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.
+    at $n.handleRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalparslan/Desktop/motortrack/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async exports.refreshToken (/Users/fatihalparslan/Desktop/motortrack/backend/src/controllers/auth.controller.js:195:5)

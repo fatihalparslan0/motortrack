@@ -21,39 +21,62 @@ const CONDITIONS = [
 
 const CATEGORIES = ['Filtre', 'Motor', 'Transmisyon', 'Fren', 'Elektrik', 'Soğutma', 'Yakıt', 'Diğer'];
 
-const VEHICLE_TYPES = [
-  { value: 'CAR', label: '🚗 Araba / Kamyon' },
-  { value: 'MOTOR', label: '🏍️ Motosiklet' },
+const UNITS = [
+  { id: 'adet', label: 'adet' },
+  { id: 'litre', label: 'litre' },
+  { id: 'takım', label: 'takım' },
+  { id: 'set', label: 'set' },
+  { id: 'kg', label: 'kg' },
+  { id: 'metre', label: 'metre' },
+  { id: 'kutu', label: 'kutu' },
 ];
 
-const CAR_BRANDS = [
-  { id: 'Volvo', label: 'Volvo' },
-  { id: 'Scania', label: 'Scania' },
-  { id: 'Mercedes-Benz', label: 'Mercedes-Benz' },
-  { id: 'MAN', label: 'MAN' },
-  { id: 'Ford', label: 'Ford' },
-  { id: 'Renault', label: 'Renault' },
-  { id: 'DAF', label: 'DAF' },
-  { id: 'Iveco', label: 'Iveco' },
-  { id: 'BMC', label: 'BMC' },
-  { id: 'Isuzu', label: 'Isuzu' },
-  { id: 'Fiat', label: 'Fiat' },
-  { id: 'Volkswagen', label: 'Volkswagen' },
-  { id: 'Mann', label: 'Mann' },
+const PART_BRANDS = [
   { id: 'Bosch', label: 'Bosch' },
+  { id: 'Valeo', label: 'Valeo' },
+  { id: 'Mann Filter', label: 'Mann Filter' },
+  { id: 'NGK', label: 'NGK' },
+  { id: 'Delphi', label: 'Delphi' },
+  { id: 'Brembo', label: 'Brembo' },
+  { id: 'LUK', label: 'LUK' },
+  { id: 'Sachs', label: 'Sachs' },
+  { id: 'Varta', label: 'Varta' },
+  { id: 'Mutlu Akü', label: 'Mutlu Akü' },
   { id: 'Gates', label: 'Gates' },
+  { id: 'Castrol', label: 'Castrol' },
+  { id: 'Motul', label: 'Motul' },
+  { id: 'Mobil 1', label: 'Mobil 1' },
+  { id: 'Mahle', label: 'Mahle' },
+  { id: 'Hella', label: 'Hella' },
+  { id: 'KYB', label: 'KYB' },
+  { id: 'Monroe', label: 'Monroe' },
+  { id: 'Aisin', label: 'Aisin' },
+  { id: 'Denso', label: 'Denso' },
 ];
 
-const MOTOR_BRANDS = [
-  { id: 'Yamaha', label: 'Yamaha' },
-  { id: 'Honda', label: 'Honda' },
-  { id: 'Suzuki', label: 'Suzuki' },
-  { id: 'Kawasaki', label: 'Kawasaki' },
-  { id: 'Ducati', label: 'Ducati' },
-  { id: 'BMW', label: 'BMW' },
-  { id: 'Triumph', label: 'Triumph' },
-  { id: 'KTM', label: 'KTM' },
-  { id: 'Harley-Davidson', label: 'Harley-Davidson' },
+const COMMON_PARTS = [
+  { id: 'Motor Yağı', label: 'Motor Yağı' },
+  { id: 'Yağ Filtresi', label: 'Yağ Filtresi' },
+  { id: 'Hava Filtresi', label: 'Hava Filtresi' },
+  { id: 'Polen Filtresi', label: 'Polen Filtresi' },
+  { id: 'Yakıt Filtresi', label: 'Yakıt Filtresi' },
+  { id: 'Fren Balatası', label: 'Fren Balatası' },
+  { id: 'Fren Diski', label: 'Fren Diski' },
+  { id: 'Silecek Süpürgesi', label: 'Silecek Süpürgesi' },
+  { id: 'Akü', label: 'Akü' },
+  { id: 'Buji', label: 'Buji' },
+  { id: 'Kızdırma Bujisi', label: 'Kızdırma Bujisi' },
+  { id: 'Triger Seti', label: 'Triger Seti' },
+  { id: 'V Kayışı', label: 'V Kayışı' },
+  { id: 'Su Pompası (Devirdaim)', label: 'Su Pompası (Devirdaim)' },
+  { id: 'Termostat', label: 'Termostat' },
+  { id: 'Radyatör', label: 'Radyatör' },
+  { id: 'Amortisör', label: 'Amortisör' },
+  { id: 'Debriyaj Seti', label: 'Debriyaj Seti' },
+  { id: 'Ateşleme Bobini', label: 'Ateşleme Bobini' },
+  { id: 'Şanzıman Yağı', label: 'Şanzıman Yağı' },
+  { id: 'Antifriz', label: 'Antifriz' },
+  { id: 'Far Ampulü', label: 'Far Ampulü' }
 ];
 
 export default function CreatePartScreen() {
@@ -64,7 +87,7 @@ export default function CreatePartScreen() {
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
 
   const [form, setForm] = useState({
-    name: '', vehicleType: 'CAR', brand: '', partNumber: '', category: '',
+    name: '', brand: '', partNumber: '', category: '',
     quantity: '1', unit: 'adet', minQuantity: '0',
     purchasePrice: '', warehouseLocation: '',
     condition: 'NEW', motorId: preselectedMotorId || '', notes: '',
@@ -87,7 +110,7 @@ export default function CreatePartScreen() {
     }));
   }, [motorsData]);
 
-  const brandOptions = form.vehicleType === 'CAR' ? CAR_BRANDS : MOTOR_BRANDS;
+
 
   const mutation = useMutation({
     mutationFn: () => partsAPI.create({
@@ -130,32 +153,21 @@ export default function CreatePartScreen() {
           {/* Temel Bilgiler */}
           <Text style={dynamicStyles.sectionLabel}>Parça Bilgileri</Text>
           <View style={dynamicStyles.card}>
-            <InputField label="Parça Adı *" value={form.name} onChangeText={v => update('name', v)} placeholder="Yağ Filtresi, V Kayışı..." theme={theme} dynamicStyles={dynamicStyles} />
-            
-            {/* Marka Türü Seçimi */}
-            <View style={dynamicStyles.typeToggleRow}>
-              {VEHICLE_TYPES.map(vt => (
-                <TouchableOpacity
-                  key={vt.value}
-                  style={[dynamicStyles.typeToggleBtn, form.vehicleType === vt.value && dynamicStyles.typeToggleBtnActive]}
-                  onPress={() => {
-                    update('vehicleType', vt.value);
-                    update('brand', '');
-                  }}
-                >
-                  <Text style={[dynamicStyles.typeToggleText, form.vehicleType === vt.value && dynamicStyles.typeToggleTextActive]}>
-                    {vt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
             <SearchableSelect
-              label="Marka"
+              label="Parça Adı *"
+              value={form.name}
+              options={COMMON_PARTS}
+              onChange={v => update('name', v)}
+              placeholder="Parça seçin veya yazın (Örn: Yağ Filtresi)"
+              allowCustomEntry
+            />
+            
+            <SearchableSelect
+              label="Parça Markası"
               value={form.brand}
-              options={brandOptions}
+              options={PART_BRANDS}
               onChange={v => update('brand', v)}
-              placeholder="Marka seçin veya yazın..."
+              placeholder="Marka seçin veya yazın (Örn: Orijinal BMW)"
               allowCustomEntry
             />
             
@@ -165,17 +177,15 @@ export default function CreatePartScreen() {
           {/* Kategori */}
           <Text style={dynamicStyles.sectionLabel}>Kategori</Text>
           <View style={dynamicStyles.card}>
-            <View style={dynamicStyles.categoriesGrid}>
-              {CATEGORIES.map(c => (
-                <TouchableOpacity
-                  key={c}
-                  style={[dynamicStyles.catBtn, form.category === c && dynamicStyles.catBtnActive]}
-                  onPress={() => update('category', form.category === c ? '' : c)}
-                >
-                  <Text style={[dynamicStyles.catText, form.category === c && dynamicStyles.catTextActive]}>{c}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <SearchableSelect
+              label="Kategori"
+              value={form.category}
+              options={CATEGORIES.map(c => ({ id: c, label: c }))}
+              onChange={v => update('category', v)}
+              placeholder="Filtre, Motor, vs..."
+              allowCustomEntry
+              last
+            />
           </View>
 
           {/* Stok */}
@@ -183,68 +193,30 @@ export default function CreatePartScreen() {
           <View style={dynamicStyles.card}>
             <View style={dynamicStyles.row}>
               <View style={dynamicStyles.halfField}>
-                <Text style={dynamicStyles.inputLabel}>Miktar *</Text>
-                <TextInput
-                  style={dynamicStyles.input}
-                  value={form.quantity}
-                  onChangeText={v => update('quantity', v)}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor={theme.textMuted}
-                />
+                <InputField label="Miktar *" value={form.quantity} onChangeText={v => update('quantity', v)} keyboardType="numeric" placeholder="0" last theme={theme} dynamicStyles={dynamicStyles} />
               </View>
               <View style={[dynamicStyles.halfField, dynamicStyles.fieldBorder]}>
-                <Text style={dynamicStyles.inputLabel}>Birim</Text>
-                <TextInput
-                  style={dynamicStyles.input}
-                  value={form.unit}
-                  onChangeText={v => update('unit', v)}
-                  placeholder="adet, kg, m..."
-                  placeholderTextColor={theme.textMuted}
-                />
+                <SearchableSelect label="Birim" value={form.unit} options={UNITS} onChange={v => update('unit', v)} placeholder="adet, kg..." allowCustomEntry last />
               </View>
             </View>
             <View style={[dynamicStyles.row, { borderTopWidth: 1, borderTopColor: theme.border }]}>
               <View style={dynamicStyles.halfField}>
-                <Text style={dynamicStyles.inputLabel}>Min. Stok Eşiği</Text>
-                <TextInput
-                  style={dynamicStyles.input}
-                  value={form.minQuantity}
-                  onChangeText={v => update('minQuantity', v)}
-                  keyboardType="numeric"
-                  placeholder="5"
-                  placeholderTextColor={theme.textMuted}
-                />
+                <InputField label="Min. Stok Eşiği" value={form.minQuantity} onChangeText={v => update('minQuantity', v)} keyboardType="numeric" placeholder="5" last theme={theme} dynamicStyles={dynamicStyles} />
               </View>
               <View style={[dynamicStyles.halfField, dynamicStyles.fieldBorder]}>
-                <Text style={dynamicStyles.inputLabel}>Alış Fiyatı (₺)</Text>
-                <TextInput
-                  style={dynamicStyles.input}
-                  value={form.purchasePrice}
-                  onChangeText={v => {
+                <InputField label="Alış Fiyatı (₺)" value={form.purchasePrice} onChangeText={v => {
                     let numeric = v.replace(/[^0-9,]/g, '');
                     const parts = numeric.split(',');
                     if (parts.length > 2) numeric = parts[0] + ',' + parts.slice(1).join('');
                     let [whole, decimal] = numeric.split(',');
                     whole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
                     update('purchasePrice', decimal !== undefined ? `${whole},${decimal}` : whole);
-                  }}
-                  keyboardType="decimal-pad"
-                  placeholder="0,00"
-                  placeholderTextColor={theme.textMuted}
-                />
+                  }} keyboardType="decimal-pad" placeholder="0,00" last theme={theme} dynamicStyles={dynamicStyles} />
               </View>
             </View>
             <View style={[dynamicStyles.row, { borderTopWidth: 1, borderTopColor: theme.border }]}>
-              <View style={{ flex: 1, padding: Spacing.md }}>
-                <Text style={dynamicStyles.inputLabel}>Depo Konumu</Text>
-                <TextInput
-                  style={dynamicStyles.input}
-                  value={form.warehouseLocation}
-                  onChangeText={v => update('warehouseLocation', v)}
-                  placeholder="A-Raf-3"
-                  placeholderTextColor={theme.textMuted}
-                />
+              <View style={dynamicStyles.halfField}>
+                <InputField label="Depo Konumu" value={form.warehouseLocation} onChangeText={v => update('warehouseLocation', v)} placeholder="A-Raf-3" last theme={theme} dynamicStyles={dynamicStyles} />
               </View>
             </View>
           </View>
@@ -321,7 +293,7 @@ const styles = (theme: any) => StyleSheet.create({
   inputLabel: { fontSize: Typography.fontSize.xs, color: theme.textMuted, marginBottom: 4 },
   input: { fontSize: Typography.fontSize.base, color: theme.textPrimary },
   row: { flexDirection: 'row' },
-  halfField: { flex: 1, padding: Spacing.md },
+  halfField: { flex: 1 },
   fieldBorder: { borderLeftWidth: 1, borderLeftColor: theme.border },
   
   typeToggleRow: { flexDirection: 'row', borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.border },

@@ -80,12 +80,17 @@ export function SearchableSelect({
         </TouchableOpacity>
       </View>
 
-      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+      <Modal 
+        visible={modalVisible} 
+        animationType="slide" 
+        presentationStyle="pageSheet"
+        onRequestClose={() => setModalVisible(false)}
+      >
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-          style={dynamicStyles.modalContainer}
+          style={{ flex: 1, backgroundColor: theme.background }}
         >
-          <SafeAreaView style={dynamicStyles.modalContent}>
+          <SafeAreaView style={{ flex: 1 }}>
             {/* Modal Header */}
             <View style={dynamicStyles.modalHeader}>
               <Text style={dynamicStyles.modalTitle}>{label} Seçin</Text>

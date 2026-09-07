@@ -191,8 +191,8 @@ export default function EditMaintenanceScreen() {
         maintenanceType: form.maintenanceType,
         status: form.status,
         cost: parsedCost,
-        performedAt: form.performedAt ? new Date(form.performedAt).toISOString() : undefined,
-        nextMaintenanceDate: form.nextMaintenanceDate ? new Date(form.nextMaintenanceDate).toISOString() : undefined,
+        performedAt: form.performedAt ? new Date(form.performedAt).toISOString() : null,
+        nextMaintenanceDate: form.nextMaintenanceDate ? new Date(form.nextMaintenanceDate).toISOString() : null,
       });
     },
     onSuccess: () => {
@@ -216,6 +216,16 @@ export default function EditMaintenanceScreen() {
       Alert.alert('Hata', 'Lütfen tamir başlığını giriniz.');
       return;
     }
+    
+    if (form.performedAt && form.nextMaintenanceDate) {
+      const performed = new Date(form.performedAt);
+      const next = new Date(form.nextMaintenanceDate);
+      if (performed > next) {
+        Alert.alert('Tarih Hatası', 'Teslim edilecek tarih, alınan tarihten daha önce olamaz (veya alınan tarih teslimden sonra olamaz). Lütfen tarihleri kontrol edin.');
+        return;
+      }
+    }
+    
     mutation.mutate();
   };
 

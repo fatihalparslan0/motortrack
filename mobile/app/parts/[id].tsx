@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Alert, ActivityIndicator,
+  Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +10,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { partsAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+
+const QUICK_NOTES_IN = ['📦 Yeni Sevkiyat', '♻️ İade Geldi', '📈 Sayım Fazlası'];
+const QUICK_NOTES_OUT = ['🔧 Tamirde Kullanıldı', '⚠️ Defolu / Hasarlı', '📉 Sayım Eksiği'];
 
 export default function PartDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,6 +30,38 @@ export default function PartDetailScreen() {
     queryKey: ['partMovements', id],
     queryFn: () => partsAPI.getMovements(id, { limit: 5 }),
   });
+
+  const [stockModalVisible, setStockModalVisible] = React.useState(false);
+  const [movementType, setMovementType] = React.useState<'IN'|'OUT'>('IN');
+  const [movementQty, setMovementQty] = React.useState('');
+  const [movementNotes, setMovementNotes] = React.useState('');
+
+  const movementMutation = useMutation({
+    mutationFn: () => partsAPI.addMovement(id, {
+      movementType,
+      quantity: parseInt(movementQty),
+      notes: movementNotes,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['part', id] });
+      queryClient.invalidateQueries({ queryKey: ['partMovements', id] });
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      setStockModalVisible(false);
+      setMovementQty('');
+      setMovementNotes('');
+      Alert.alert('Başarılı', 'Stok hareketi kaydedildi.');
+    },
+    onError: (err: any) => {
+      Alert.alert('Hata', err?.message || 'Stok kaydedilemedi.');
+    }
+  });
+
+  const handleOpenStockModal = (type: 'IN'|'OUT') => {
+    setMovementType(type);
+    setMovementQty('');
+    setMovementNotes('');
+    setStockModalVisible(true);
+  };
 
   const deleteMutation = useMutation({
     mutationFn: () => partsAPI.delete(id),
@@ -86,7 +121,7 @@ export default function PartDetailScreen() {
           <View style={dynamicStyles.headerActions}>
             <TouchableOpacity
               style={dynamicStyles.actionBtn}
-              onPress={() => router.push(`/(tabs)/parts/edit?id=${id}` as any)}
+              onPress={() => router.push(`/parts/edit?id=${id}` as any)}
             >
               <Text style={dynamicStyles.actionBtnText}>✏️ Düzenle</Text>
             </TouchableOpacity>
@@ -117,7 +152,7 @@ export default function PartDetailScreen() {
             {[
               { label: 'Marka', value: part.brand },
               { label: 'Kategori', value: part.category },
-              { label: 'Durum', value: part.condition },
+              { label: 'Durum', value: part.condition === 'NEW' ? '🟢 Sıfır' : part.condition === 'USED' ? '🟡 İkinci El' : part.condition === 'REFURBISHED' ? '🔵 Yenilenmiş' : part.condition },
               { label: 'Depo Konumu', value: part.warehouseLocation },
               { label: 'Minimum Stok', value: part.minQuantity > 0 ? part.minQuantity.toString() : 'Belirtilmemiş' },
               { label: 'Alış Fiyatı', value: part.purchasePrice ? `₺${parseFloat(part.purchasePrice).toLocaleString('tr-TR')}` : '—' },
@@ -148,9 +183,9 @@ export default function PartDetailScreen() {
           <Text style={dynamicStyles.sectionTitle}>İşlemler</Text>
           <View style={dynamicStyles.actionsGrid}>
             {[
-              { emoji: '➕', label: 'Stok Ekle', onPress: () => Alert.alert('Stok Ekle', 'Yakında eklenecek') },
-              { emoji: '➖', label: 'Stok Düş', onPress: () => Alert.alert('Stok Düş', 'Yakında eklenecek') },
-              { emoji: '📢', label: 'İlan Aç', onPress: () => router.push(`/(tabs)/marketplace/create?partId=${id}` as any) },
+              { emoji: '➕', label: 'Stok Ekle', onPress: () => handleOpenStockModal('IN') },
+              { emoji: '➖', label: 'Stok Düş', onPress: () => handleOpenStockModal('OUT') },
+              { emoji: '📢', label: 'İlan Aç', onPress: () => router.push(`/marketplace/create?partId=${id}` as any) },
             ].map((a) => (
               <TouchableOpacity key={a.label} style={dynamicStyles.actionCard} onPress={a.onPress} activeOpacity={0.8}>
                 <Text style={dynamicStyles.actionEmoji}>{a.emoji}</Text>
@@ -185,6 +220,73 @@ export default function PartDetailScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <Modal visible={stockModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setStockModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: theme.background }}>
+          <SafeAreaView style={{ flex: 1, padding: Spacing.lg }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.lg }}>
+              <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: 'bold', color: theme.textPrimary }}>
+                {movementType === 'IN' ? '➕ Stok Ekle' : '➖ Stok Düş'}
+              </Text>
+              <TouchableOpacity onPress={() => setStockModalVisible(false)}>
+                <Text style={{ color: theme.primary, fontWeight: 'bold', fontSize: Typography.fontSize.md }}>Kapat</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={{ color: theme.textMuted, marginBottom: 4, fontSize: Typography.fontSize.sm }}>Miktar *</Text>
+            <TextInput
+              style={{ backgroundColor: theme.surface, color: theme.textPrimary, padding: Spacing.md, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: theme.border, marginBottom: Spacing.md, fontSize: Typography.fontSize.base }}
+              keyboardType="numeric"
+              placeholder="Örn: 5"
+              placeholderTextColor={theme.textMuted}
+              value={movementQty}
+              onChangeText={setMovementQty}
+              autoFocus
+            />
+
+            <Text style={{ color: theme.textMuted, marginBottom: 4, fontSize: Typography.fontSize.sm }}>Hızlı Açıklama</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: Spacing.md }}>
+              {(movementType === 'IN' ? QUICK_NOTES_IN : QUICK_NOTES_OUT).map(note => (
+                <TouchableOpacity
+                  key={note}
+                  style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: movementNotes === note ? theme.primary : theme.surface, borderWidth: 1, borderColor: movementNotes === note ? theme.primary : theme.border }}
+                  onPress={() => setMovementNotes(note)}
+                >
+                  <Text style={{ color: movementNotes === note ? '#fff' : theme.textSecondary, fontSize: 13, fontWeight: movementNotes === note ? 'bold' : 'normal' }}>{note}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={{ color: theme.textMuted, marginBottom: 4, fontSize: Typography.fontSize.sm }}>Açıklama *</Text>
+            <TextInput
+              style={{ backgroundColor: theme.surface, color: theme.textPrimary, padding: Spacing.md, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: theme.border, marginBottom: Spacing.lg, height: 80, textAlignVertical: 'top', fontSize: Typography.fontSize.base }}
+              multiline
+              placeholder="Hızlı açıklama seçin veya kendi notunuzu yazın..."
+              placeholderTextColor={theme.textMuted}
+              value={movementNotes}
+              onChangeText={setMovementNotes}
+            />
+
+            <TouchableOpacity
+              style={[dynamicStyles.actionBtn, { backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center' }, movementMutation.isPending && { opacity: 0.7 }]}
+              onPress={() => {
+                if (!parseInt(movementQty) || parseInt(movementQty) <= 0) {
+                  Alert.alert('Hata', 'Lütfen geçerli bir miktar girin.');
+                  return;
+                }
+                if (!movementNotes.trim()) {
+                  Alert.alert('Hata', 'Lütfen stok işlemi için bir açıklama girin.');
+                  return;
+                }
+                movementMutation.mutate();
+              }}
+              disabled={movementMutation.isPending}
+            >
+              {movementMutation.isPending ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: Typography.fontSize.base }}>Kaydet</Text>}
+            </TouchableOpacity>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }

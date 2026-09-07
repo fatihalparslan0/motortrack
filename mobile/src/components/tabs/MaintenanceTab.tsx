@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl, ScrollView
+  View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl, ScrollView, TextInput
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import { maintenanceAPI } from '../../api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { Search } from 'lucide-react-native';
 
 function MaintenanceCard({ record, onPress, theme }: any) {
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
@@ -77,6 +78,7 @@ export default function MaintenanceScreen() {
   });
 
   const [filter, setFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const records = (data as any)?.data || [];
   const upcomingRecords = (upcoming as any)?.data || [];
@@ -89,10 +91,22 @@ export default function MaintenanceScreen() {
   ];
 
   const displayedRecords = useMemo(() => {
-    if (filter === 'UPCOMING') return upcomingRecords;
-    if (filter === 'ALL') return records;
-    return records.filter((r: any) => r.status === filter);
-  }, [filter, records, upcomingRecords]);
+    let result = records;
+    if (filter === 'UPCOMING') result = upcomingRecords;
+    else if (filter !== 'ALL') result = records.filter((r: any) => r.status === filter);
+    
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((r: any) => 
+        r.title?.toLowerCase().includes(q) ||
+        r.customerInfo?.toLowerCase().includes(q) ||
+        r.vehicleInfo?.toLowerCase().includes(q) ||
+        r.motor?.brand?.toLowerCase().includes(q) ||
+        r.motor?.model?.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [filter, searchQuery, records, upcomingRecords]);
 
   return (
     <SafeAreaView style={dynamicStyles.container} edges={['top']}>
@@ -109,6 +123,20 @@ export default function MaintenanceScreen() {
             <Text style={dynamicStyles.addBtnText}>+ Ekle</Text>
           </LinearGradient>
         </TouchableOpacity>
+      </View>
+
+      {/* Search Bar */}
+      <View style={dynamicStyles.searchContainer}>
+        <View style={dynamicStyles.searchInputWrapper}>
+          <Search size={20} color={theme.textMuted} style={dynamicStyles.searchIcon} />
+          <TextInput
+            style={[dynamicStyles.searchInput, { color: theme.textPrimary }]}
+            placeholder="Tamir, müşteri, plaka veya motor ara..."
+            placeholderTextColor={theme.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
       </View>
 
       {/* Status Filters */}
@@ -181,6 +209,15 @@ const styles = (theme: any) => StyleSheet.create({
   addBtn: { borderRadius: BorderRadius.md, overflow: 'hidden' },
   addBtnInner: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   addBtnText: { color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.sm },
+  searchContainer: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.md },
+  searchInputWrapper: { 
+    flexDirection: 'row', alignItems: 'center', 
+    backgroundColor: theme.surface, borderRadius: BorderRadius.md,
+    borderWidth: 1, borderColor: theme.border, paddingHorizontal: Spacing.md,
+    height: 44
+  },
+  searchIcon: { marginRight: Spacing.sm },
+  searchInput: { flex: 1, fontSize: Typography.fontSize.sm, paddingVertical: 0 },
   filtersContainer: { marginBottom: Spacing.md },
   filtersScroll: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
   filterBtn: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: BorderRadius.full, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border },
