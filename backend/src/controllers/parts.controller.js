@@ -3,38 +3,57 @@ const { success, error, paginated } = require('../utils/apiResponse');
 
 exports.getParts = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, search, category, condition, motorId, lowStock } = req.query;
+    const { page = 1, limit = 20, search, category, condition, motorId, lowStock, active } = req.query;
     const skip = (page - 1) * limit;
 
     const where = {
       companyId: req.company.id,
+      // Varsayılan olarak aktif ürünleri göster (active=false gelirse pasifler de dahil)
+      ...(active !== 'false' && { isActive: true }),
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
           { partNumber: { contains: search, mode: 'insensitive' } },
+          { sku: { contains: search, mode: 'insensitive' } },
+          { barcode: { contains: search, mode: 'insensitive' } },
+          { oemCode: { contains: search, mode: 'insensitive' } },
           { brand: { contains: search, mode: 'insensitive' } },
         ],
       }),
       ...(category && { category }),
       ...(condition && { condition }),
       ...(motorId && { motorId }),
-      ...(lowStock === 'true' && {
-        AND: [{ quantity: { lte: prisma.part.fields.minQuantity } }],
-      }),
     };
 
-    const [parts, total] = await Promise.all([
-      prisma.part.findMany({
-        where,
-        skip: parseInt(skip),
-        take: parseInt(limit),
-        orderBy: { name: 'asc' },
+    let parts, total;
+
+    if (lowStock === 'true') {
+      // Kritik stok filtreleme - JS tarafında yap
+      const allParts = await prisma.part.findMany({
+        where: { ...where, minQuantity: { gt: 0 } },
         include: {
           motor: { select: { id: true, brand: true, model: true, serialNumber: true } },
         },
-      }),
-      prisma.part.count({ where }),
-    ]);
+        orderBy: { name: 'asc' },
+      });
+      parts = allParts.filter(p => p.quantity <= p.minQuantity);
+      total = parts.length;
+      parts = parts.slice(skip, skip + parseInt(limit));
+    } else {
+      [parts, total] = await Promise.all([
+        prisma.part.findMany({
+          where,
+          skip: parseInt(skip),
+          take: parseInt(limit),
+          orderBy: { name: 'asc' },
+          include: {
+            motor: { select: { id: true, brand: true, model: true, serialNumber: true } },
+            warehouseStocks: { include: { warehouse: { select: { name: true } } } },
+          },
+        }),
+        prisma.part.count({ where }),
+      ]);
+    }
 
     return paginated(res, parts, total, page, limit, 'Parçalar listelendi.');
   } catch (err) {
@@ -105,6 +124,7 @@ exports.getPartById = async (req, res, next) => {
           take: 10,
           include: { user: { select: { fullName: true } } },
         },
+        warehouseStocks: { include: { warehouse: { select: { name: true } } } },
       },
     });
 
@@ -146,8 +166,9 @@ exports.getPartMovements = async (req, res, next) => {
 exports.createPart = async (req, res, next) => {
   try {
     const {
-      motorId, partNumber, name, brand, category, quantity,
-      unit, minQuantity, purchasePrice, sellingPrice,
+      motorId, partNumber, sku, barcode, oemCode,
+      name, brand, category, quantity,
+      unit, minQuantity, maxQuantity, purchasePrice, sellingPrice,
       warehouseLocation, condition, notes,
     } = req.body;
 
@@ -163,27 +184,45 @@ exports.createPart = async (req, res, next) => {
       data: {
         companyId: req.company.id,
         motorId: motorId || null,
-        partNumber, name, brand, category,
+        partNumber, sku, barcode, oemCode,
+        name, brand, category,
         quantity: parseInt(quantity) || 0,
         unit: unit || 'adet',
         minQuantity: parseInt(minQuantity) || 0,
+        maxQuantity: maxQuantity ? parseInt(maxQuantity) : null,
         purchasePrice: purchasePrice ? parseFloat(purchasePrice) : null,
         sellingPrice: sellingPrice ? parseFloat(sellingPrice) : null,
         warehouseLocation, condition: condition || 'NEW', notes,
+        isActive: true,
       },
     });
 
-    // Başlangıç stok hareketi kaydet
+    // Başlangıç stok hareketi kaydet ve depo stokunu güncelle
     if (parseInt(quantity) > 0) {
-      await prisma.partMovement.create({
-        data: {
-          partId: part.id,
-          userId: req.user.id,
-          movementType: 'IN',
-          quantity: parseInt(quantity),
-          notes: 'İlk stok girişi',
-        },
-      });
+      const warehouse = req.body.warehouseId
+        ? await prisma.warehouse.findFirst({ where: { id: req.body.warehouseId, companyId: req.company.id } })
+        : await prisma.warehouse.findFirst({ where: { isDefault: true, companyId: req.company.id } });
+      const wId = warehouse?.id;
+
+      await prisma.$transaction([
+        prisma.partMovement.create({
+          data: {
+            partId: part.id,
+            warehouseId: wId,
+            userId: req.user.id,
+            movementType: 'IN',
+            quantity: parseInt(quantity),
+            notes: 'İlk stok girişi',
+          },
+        }),
+        ...(wId ? [
+          prisma.warehouseStock.upsert({
+            where: { warehouseId_partId: { warehouseId: wId, partId: part.id } },
+            update: { quantity: { increment: parseInt(quantity) } },
+            create: { warehouseId: wId, partId: part.id, quantity: parseInt(quantity) }
+          })
+        ] : [])
+      ]);
     }
 
     return success(res, part, 'Parça başarıyla oluşturuldu.', 201);
@@ -200,9 +239,10 @@ exports.updatePart = async (req, res, next) => {
     if (!existing) return error(res, 'Parça bulunamadı.', 404);
 
     const {
-      motorId, partNumber, name, brand, category, quantity,
-      unit, minQuantity, purchasePrice, sellingPrice,
-      warehouseLocation, condition, notes,
+      motorId, partNumber, sku, barcode, oemCode,
+      name, brand, category, quantity,
+      unit, minQuantity, maxQuantity, purchasePrice, sellingPrice,
+      warehouseLocation, condition, notes, isActive,
     } = req.body;
 
     const part = await prisma.part.update({
@@ -210,17 +250,22 @@ exports.updatePart = async (req, res, next) => {
       data: {
         motorId: motorId !== undefined ? motorId || null : undefined,
         partNumber: partNumber !== undefined ? partNumber : undefined,
+        sku: sku !== undefined ? sku : undefined,
+        barcode: barcode !== undefined ? barcode : undefined,
+        oemCode: oemCode !== undefined ? oemCode : undefined,
         name: name !== undefined ? name : undefined,
         brand: brand !== undefined ? brand : undefined,
         category: category !== undefined ? category : undefined,
         quantity: quantity !== undefined ? parseInt(quantity) : undefined,
         unit: unit !== undefined ? unit : undefined,
         minQuantity: minQuantity !== undefined ? parseInt(minQuantity) : undefined,
-        purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
-        sellingPrice: sellingPrice ? parseFloat(sellingPrice) : undefined,
+        maxQuantity: maxQuantity !== undefined ? (maxQuantity ? parseInt(maxQuantity) : null) : undefined,
+        purchasePrice: purchasePrice !== undefined ? (purchasePrice ? parseFloat(purchasePrice) : null) : undefined,
+        sellingPrice: sellingPrice !== undefined ? (sellingPrice ? parseFloat(sellingPrice) : null) : undefined,
         warehouseLocation: warehouseLocation !== undefined ? warehouseLocation : undefined,
         condition: condition !== undefined ? condition : undefined,
         notes: notes !== undefined ? notes : undefined,
+        isActive: isActive !== undefined ? isActive : undefined,
       },
     });
 
@@ -236,8 +281,12 @@ exports.deletePart = async (req, res, next) => {
       where: { id: req.params.id, companyId: req.company.id },
     });
     if (!existing) return error(res, 'Parça bulunamadı.', 404);
-    await prisma.part.delete({ where: { id: req.params.id } });
-    return success(res, null, 'Parça silindi.');
+    // Silmek yerine pasifleştir (stok geçmişi korunsun)
+    await prisma.part.update({ 
+      where: { id: req.params.id },
+      data: { isActive: false },
+    });
+    return success(res, null, 'Parça pasifleştirildi.');
   } catch (err) {
     next(err);
   }
@@ -245,7 +294,7 @@ exports.deletePart = async (req, res, next) => {
 
 exports.addMovement = async (req, res, next) => {
   try {
-    const { movementType, quantity, motorId, notes } = req.body;
+    const { movementType, quantity, motorId, warehouseId, notes, unitCost, referenceType, referenceId } = req.body;
 
     const part = await prisma.part.findFirst({
       where: { id: req.params.id, companyId: req.company.id },
@@ -254,17 +303,29 @@ exports.addMovement = async (req, res, next) => {
 
     const qty = parseInt(quantity);
 
-    // Stok çıkışında yeterli stok kontrolü
-    if (['OUT', 'TRANSFER'].includes(movementType) && part.quantity < qty) {
-      return error(res, `Yetersiz stok. Mevcut: ${part.quantity} ${part.unit}`, 400);
+    // Çıkış türleri
+    const outTypes = ['OUT', 'TRANSFER', 'IS_EMRI_KULLANIMI', 'SATIS', 'FIRE'];
+    const inTypes = ['IN', 'RETURN', 'SATIN_ALMA', 'IADE'];
+
+    if (outTypes.includes(movementType)) {
+      const available = part.quantity - part.reservedQuantity;
+      if (available < qty) {
+        return error(
+          res,
+          `Yetersiz kullanılabilir stok. Kullanılabilir: ${available} ${part.unit} (Toplam: ${part.quantity}, Rezerve: ${part.reservedQuantity})`,
+          400
+        );
+      }
     }
 
-    // Stok güncelle
-    const quantityChange = movementType === 'IN' || movementType === 'RETURN'
-      ? qty
-      : movementType === 'OUT' || movementType === 'TRANSFER'
-        ? -qty
-        : qty; // ADJUSTMENT
+    // Stok değişiklik miktarı hesapla
+    const isOut = outTypes.includes(movementType);
+    const quantityChange = isOut ? -qty : qty;
+
+    const warehouse = warehouseId 
+      ? await prisma.warehouse.findFirst({ where: { id: warehouseId, companyId: req.company.id } }) 
+      : await prisma.warehouse.findFirst({ where: { isDefault: true, companyId: req.company.id } });
+    const wId = warehouse?.id;
 
     await prisma.$transaction([
       prisma.part.update({
@@ -274,16 +335,32 @@ exports.addMovement = async (req, res, next) => {
       prisma.partMovement.create({
         data: {
           partId: part.id,
+          warehouseId: wId,
           userId: req.user.id,
           motorId: motorId || null,
           movementType,
           quantity: qty,
+          unitCost: unitCost ? parseFloat(unitCost) : null,
+          referenceType: referenceType || null,
+          referenceId: referenceId || null,
           notes,
         },
       }),
+      ...(wId ? [
+        prisma.warehouseStock.upsert({
+          where: { warehouseId_partId: { warehouseId: wId, partId: part.id } },
+          update: { quantity: { increment: quantityChange } },
+          create: { warehouseId: wId, partId: part.id, quantity: Math.max(0, quantityChange) },
+        })
+      ] : [])
     ]);
 
-    const updatedPart = await prisma.part.findUnique({ where: { id: part.id } });
+    const updatedPart = await prisma.part.findUnique({ 
+      where: { id: part.id },
+      include: {
+        warehouseStocks: { include: { warehouse: { select: { name: true } } } },
+      }
+    });
     return success(res, updatedPart, 'Stok hareketi kaydedildi.');
   } catch (err) {
     next(err);

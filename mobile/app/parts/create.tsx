@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { partsAPI, motorsAPI } from '../../src/api/client';
+import { partsAPI, motorsAPI, warehouseAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 
@@ -87,9 +87,10 @@ export default function CreatePartScreen() {
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
 
   const [form, setForm] = useState({
-    name: '', brand: '', partNumber: '', category: '',
+    name: '', brand: '', partNumber: '', sku: '', barcode: '', oemCode: '',
+    category: '',
     quantity: '1', unit: 'adet', minQuantity: '0',
-    purchasePrice: '', warehouseLocation: '',
+    purchasePrice: '', sellingPrice: '', warehouseLocation: '', warehouseId: '',
     condition: 'NEW', motorId: preselectedMotorId || '', notes: '',
   });
 
@@ -99,6 +100,12 @@ export default function CreatePartScreen() {
     queryKey: ['motors'],
     queryFn: () => motorsAPI.getAll({ limit: 100 }),
   });
+
+  const { data: warehousesData } = useQuery({
+    queryKey: ['warehouses'],
+    queryFn: () => warehouseAPI.getAll(),
+  });
+  const warehouses: any[] = (warehousesData as any)?.data || [];
   
   const systemMotorsOptions: SelectOption[] = useMemo(() => {
     const data = (motorsData as any)?.data || [];
@@ -110,19 +117,23 @@ export default function CreatePartScreen() {
     }));
   }, [motorsData]);
 
-
-
   const mutation = useMutation({
     mutationFn: () => partsAPI.create({
       ...form,
       quantity: parseInt(form.quantity) || 0,
       minQuantity: parseInt(form.minQuantity) || 0,
       purchasePrice: form.purchasePrice ? parseFloat(form.purchasePrice.replace(/\./g, '').replace(',', '.')) : undefined,
+      sellingPrice: form.sellingPrice ? parseFloat(form.sellingPrice.replace(/\./g, '').replace(',', '.')) : undefined,
+      warehouseId: form.warehouseId || undefined,
       motorId: form.motorId || undefined,
+      sku: form.sku || undefined,
+      barcode: form.barcode || undefined,
+      oemCode: form.oemCode || undefined,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       queryClient.invalidateQueries({ queryKey: ['partStats'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouseStats'] });
       Alert.alert('Başarılı', 'Parça başarıyla eklendi!', [
         { text: 'Tamam', onPress: () => router.back() },
       ]);
@@ -171,7 +182,10 @@ export default function CreatePartScreen() {
               allowCustomEntry
             />
             
-            <InputField label="Parça Numarası (P/N)" value={form.partNumber} onChangeText={v => update('partNumber', v)} placeholder="P-00123" last theme={theme} dynamicStyles={dynamicStyles} />
+            <InputField label="Parça Numarası (P/N)" value={form.partNumber} onChangeText={v => update('partNumber', v)} placeholder="P-00123" theme={theme} dynamicStyles={dynamicStyles} />
+            <InputField label="Stok Kodu (SKU)" value={form.sku} onChangeText={v => update('sku', v)} placeholder="SKU-001" theme={theme} dynamicStyles={dynamicStyles} />
+            <InputField label="Barkod" value={form.barcode} onChangeText={v => update('barcode', v)} placeholder="8690000000000" keyboardType="number-pad" theme={theme} dynamicStyles={dynamicStyles} />
+            <InputField label="OEM Kodu" value={form.oemCode} onChangeText={v => update('oemCode', v)} placeholder="OEM-12345" last theme={theme} dynamicStyles={dynamicStyles} />
           </View>
 
           {/* Kategori */}
@@ -216,9 +230,56 @@ export default function CreatePartScreen() {
             </View>
             <View style={[dynamicStyles.row, { borderTopWidth: 1, borderTopColor: theme.border }]}>
               <View style={dynamicStyles.halfField}>
+                <InputField label="Satış Fiyatı (₺)" value={form.sellingPrice} onChangeText={v => {
+                    let numeric = v.replace(/[^0-9,]/g, '');
+                    const parts = numeric.split(',');
+                    if (parts.length > 2) numeric = parts[0] + ',' + parts.slice(1).join('');
+                    let [whole, decimal] = numeric.split(',');
+                    whole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                    update('sellingPrice', decimal !== undefined ? `${whole},${decimal}` : whole);
+                  }} keyboardType="decimal-pad" placeholder="0,00" last theme={theme} dynamicStyles={dynamicStyles} />
+              </View>
+              <View style={[dynamicStyles.halfField, dynamicStyles.fieldBorder]}>
                 <InputField label="Depo Konumu" value={form.warehouseLocation} onChangeText={v => update('warehouseLocation', v)} placeholder="A-Raf-3" last theme={theme} dynamicStyles={dynamicStyles} />
               </View>
             </View>
+
+            {/* Giriş Yapılacak Depo */}
+            {warehouses.length > 0 && (
+              <View style={{ padding: Spacing.md, borderTopWidth: 1, borderTopColor: theme.border }}>
+                <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 8, fontWeight: '700' }}>
+                  GİRİŞ YAPILACAK DEPO
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {warehouses.map((w: any) => {
+                    const isSelected = form.warehouseId === w.id || (!form.warehouseId && w.isDefault);
+                    return (
+                      <TouchableOpacity
+                        key={w.id}
+                        onPress={() => update('warehouseId', w.id)}
+                        style={{
+                          paddingHorizontal: Spacing.md,
+                          paddingVertical: 7,
+                          borderRadius: BorderRadius.full,
+                          borderWidth: 1,
+                          borderColor: isSelected ? theme.primary : theme.border,
+                          backgroundColor: isSelected ? theme.primary + '15' : theme.surface,
+                          marginRight: Spacing.sm
+                        }}
+                      >
+                        <Text style={{
+                          color: isSelected ? theme.primary : theme.textSecondary,
+                          fontSize: Typography.fontSize.sm,
+                          fontWeight: isSelected ? '700' : '400'
+                        }}>
+                          {w.name} {w.isDefault ? '⭐' : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
           </View>
 
           {/* Durum */}

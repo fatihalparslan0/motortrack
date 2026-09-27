@@ -191,10 +191,10 @@ exports.refreshToken = async (req, res, next) => {
       decoded.userId, decoded.companyId, decoded.role
     );
 
-    // Eski token'ı sil, yenisini kaydet
-    await prisma.refreshToken.delete({ where: { token: refreshToken } });
+    // Eski token'ı sil, yenisini kaydet (deleteMany P2025 hatası fırlatmaz)
+    await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(expiresAt.getDate() + 30);
     await prisma.refreshToken.create({
       data: { userId: decoded.userId, token: newRefreshToken, expiresAt },
     });

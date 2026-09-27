@@ -133,6 +133,56 @@ export default function LoginScreen() {
             <Text style={dynamicStyles.trialNote}>
               🎉 14 gün ücretsiz deneme — kredi kartı gerekmez
             </Text>
+
+            {/* Hızlı Demo Girişi */}
+            <View style={{ marginTop: Spacing.lg, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: theme.border }}>
+              <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, fontWeight: '700', textAlign: 'center', marginBottom: Spacing.sm, textTransform: 'uppercase' }}>
+                ⚡ Hızlı Demo Girişi
+              </Text>
+              <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                <TouchableOpacity
+                  style={{ flex: 1, backgroundColor: '#6366F115', borderWidth: 1, borderColor: '#6366F150', borderRadius: BorderRadius.md, paddingVertical: 10, alignItems: 'center' }}
+                  onPress={async () => {
+                    setEmail('admin@motortrack.com');
+                    setPassword('Demo1234!');
+                    setLoading(true);
+                    try {
+                      await login('admin@motortrack.com', 'Demo1234!');
+                      router.replace('/(tabs)');
+                    } catch (err: any) {
+                      Alert.alert('Giriş Hatası', err?.message || 'Giriş yapılamadı.');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  <Text style={{ color: '#6366F1', fontWeight: '700', fontSize: Typography.fontSize.xs }}>👨‍💼 Yönetici</Text>
+                  <Text style={{ color: theme.textMuted, fontSize: 10 }}>Fatih Alparslan</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{ flex: 1, backgroundColor: '#10B98115', borderWidth: 1, borderColor: '#10B98150', borderRadius: BorderRadius.md, paddingVertical: 10, alignItems: 'center' }}
+                  onPress={async () => {
+                    setEmail('teknisyen@motortrack.com');
+                    setPassword('Demo1234!');
+                    setLoading(true);
+                    try {
+                      await login('teknisyen@motortrack.com', 'Demo1234!');
+                      router.replace('/(tabs)');
+                    } catch (err: any) {
+                      Alert.alert('Giriş Hatası', err?.message || 'Giriş yapılamadı.');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  <Text style={{ color: '#10B981', fontWeight: '700', fontSize: Typography.fontSize.xs }}>🔧 Teknisyen</Text>
+                  <Text style={{ color: theme.textMuted, fontSize: 10 }}>Ahmet Yılmaz</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -16,7 +16,9 @@ const CATEGORIES = ['Tümü', 'Filtre', 'Motor', 'Transmisyon', 'Fren', 'Elektri
 function PartCard({ part, onPress, theme }: any) {
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
   const isLowStock = part.quantity <= part.minQuantity && part.minQuantity > 0;
-  const stockColor = isLowStock ? theme.danger : part.quantity === 0 ? theme.danger : theme.success;
+  const available = part.quantity - (part.reservedQuantity || 0);
+  const stockColor = part.quantity === 0 ? theme.danger : isLowStock ? '#F59E0B' : theme.success;
+  const showReserved = (part.reservedQuantity || 0) > 0;
 
   return (
     <TouchableOpacity style={dynamicStyles.card} onPress={onPress} activeOpacity={0.8}>
@@ -28,6 +30,7 @@ function PartCard({ part, onPress, theme }: any) {
           <Text style={dynamicStyles.partName}>{part.name}</Text>
           {part.brand && <Text style={dynamicStyles.brand}>{part.brand}</Text>}
           {part.partNumber && <Text style={dynamicStyles.partNumber}>P/N: {part.partNumber}</Text>}
+          {part.sku && <Text style={dynamicStyles.partNumber}>SKU: {part.sku}</Text>}
           {part.motor && <Text style={dynamicStyles.motor}>⚙️ {part.motor.brand} {part.motor.model}</Text>}
         </View>
         <View style={dynamicStyles.stockContainer}>
@@ -35,12 +38,29 @@ function PartCard({ part, onPress, theme }: any) {
             <Text style={[dynamicStyles.stockValue, { color: stockColor }]}>{part.quantity}</Text>
             <Text style={[dynamicStyles.stockUnit, { color: stockColor }]}>{part.unit}</Text>
           </View>
+          {showReserved && (
+            <Text style={{ fontSize: 10, color: '#F59E0B', textAlign: 'center', marginTop: 2 }}>
+              {part.reservedQuantity} rezerve
+            </Text>
+          )}
           {isLowStock && <Text style={dynamicStyles.lowStockWarning}>⚠️ Düşük</Text>}
         </View>
       </View>
       {part.category && (
         <View style={dynamicStyles.categoryBadge}>
           <Text style={dynamicStyles.categoryText}>{part.category}</Text>
+        </View>
+      )}
+      
+      {part.warehouseStocks && part.warehouseStocks.length > 0 && (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: Spacing.sm, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: theme.borderLight }}>
+          {part.warehouseStocks.filter((ws: any) => ws.quantity !== 0).map((ws: any) => (
+            <View key={ws.id} style={{ backgroundColor: theme.surfaceElevated, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+              <Text style={{ fontSize: 10, color: theme.textSecondary }}>
+                <Text style={{ fontWeight: '600' }}>{ws.warehouse?.name || 'Bilinmeyen Depo'}:</Text> {ws.quantity}
+              </Text>
+            </View>
+          ))}
         </View>
       )}
     </TouchableOpacity>

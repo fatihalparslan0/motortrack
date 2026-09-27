@@ -10,11 +10,11 @@ import { router } from 'expo-router';
 import { useAuthStore } from '../../store/auth.store';
 import { useThemeStore } from '../../store/theme.store';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { motorsAPI, partsAPI, maintenanceAPI, subscriptionsAPI } from '../../api/client';
+import { motorsAPI, partsAPI, workOrderAPI, subscriptionsAPI } from '../../api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useTabStore } from '../../store/tab.store';
 import { 
-  Settings, CheckCircle, Wrench, Package, Bell, 
+  Settings, CheckCircle, ClipboardList, Package, Bell, 
   PlusCircle, Megaphone, ScanLine, Moon, Sun, Palette
 } from 'lucide-react-native';
 
@@ -30,13 +30,15 @@ function StatCard({ Icon, label, value, color, onPress, theme }: any) {
   );
 }
 
-function AlertItem({ title, subtitle, type, theme }: any) {
+function AlertItem({ title, subtitle, type, theme, onPress }: any) {
   const colors: any = { danger: theme.danger, warning: theme.warning, info: theme.primary };
   return (
-    <View style={[styles(theme).alertItem, { borderLeftColor: colors[type] || theme.primary }]}>
-      <Text style={styles(theme).alertTitle}>{title}</Text>
-      <Text style={styles(theme).alertSubtitle}>{subtitle}</Text>
-    </View>
+    <TouchableOpacity onPress={onPress} disabled={!onPress} activeOpacity={0.8}>
+      <View style={[styles(theme).alertItem, { borderLeftColor: colors[type] || theme.primary }]}>
+        <Text style={styles(theme).alertTitle}>{title}</Text>
+        <Text style={styles(theme).alertSubtitle}>{subtitle}</Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -56,12 +58,17 @@ export default function Dashboard() {
     queryFn: () => partsAPI.getStats(),
   });
 
-  const { data: upcoming, isLoading: l3, refetch: r3 } = useQuery({
-    queryKey: ['upcomingMaintenance'],
-    queryFn: () => maintenanceAPI.getUpcoming(7),
+  const { data: woStatsData, isLoading: l3, refetch: r3 } = useQuery({
+    queryKey: ['workOrderStats'],
+    queryFn: () => workOrderAPI.getStats(),
   });
 
-  const { data: lowStock, isLoading: l4, refetch: r4 } = useQuery({
+  const { data: recData, isLoading: l4, refetch: r4 } = useQuery({
+    queryKey: ['receivables'],
+    queryFn: () => workOrderAPI.getReceivables(),
+  });
+
+  const { data: lowStock, isLoading: l5, refetch: r5 } = useQuery({
     queryKey: ['lowStock'],
     queryFn: () => partsAPI.getLowStock(),
   });
@@ -71,12 +78,13 @@ export default function Dashboard() {
     queryFn: () => subscriptionsAPI.getStatus(),
   });
 
-  const isLoading = l1 || l2 || l3 || l4;
-  const refetch = () => { r1(); r2(); r3(); r4(); };
+  const isLoading = l1 || l2 || l3 || l4 || l5;
+  const refetch = () => { r1(); r2(); r3(); r4(); r5(); };
 
   const ms = (motorStats as any)?.data;
   const ps = (partStats as any)?.data;
-  const upcomingList = (upcoming as any)?.data || [];
+  const woStats = (woStatsData as any)?.data;
+  const receivables = (recData as any)?.data;
   const lowStockList = (lowStock as any)?.data || [];
   const sub = (subscription as any)?.data;
 
@@ -144,8 +152,8 @@ export default function Dashboard() {
           <Text style={dynamicStyles.sectionTitle}>Genel Durum</Text>
           <View style={dynamicStyles.statsGrid}>
             <StatCard
-              Icon={Wrench} label="Tamirde" value={ms?.maintenanceMotors}
-              color={theme.warning} onPress={() => setActiveTab(1)}
+              Icon={ClipboardList} label="Açık İş Emri" value={woStats?.openCount}
+              color={theme.primary} onPress={() => setActiveTab(1)}
               theme={theme}
             />
             <StatCard
@@ -157,10 +165,19 @@ export default function Dashboard() {
         </View>
 
         {/* Alerts */}
-        {(lowStockList.length > 0 || upcomingList.length > 0) && (
+        {(lowStockList.length > 0 || (receivables?.totalReceivables > 0)) && (
           <View style={dynamicStyles.section}>
             <Text style={dynamicStyles.sectionTitle}>⚠️ Dikkat Gerektiren Durumlar</Text>
             <View style={dynamicStyles.alertsContainer}>
+              {receivables?.totalReceivables > 0 && (
+                <AlertItem
+                  title={`📒 Açık Hesap & Veresiye: ₺${receivables.totalReceivables.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`}
+                  subtitle={`${receivables.debtorOrdersCount} müşteriden tahsilat bekleyen alacak mevcut.`}
+                  type="warning"
+                  theme={theme}
+                  onPress={() => router.push('/work-orders/receivables' as any)}
+                />
+              )}
               {lowStockList.slice(0, 3).map((part: any) => (
                 <AlertItem
                   key={part.id}
@@ -168,15 +185,7 @@ export default function Dashboard() {
                   subtitle={`Mevcut: ${part.quantity} ${part.unit} (Min: ${part.min_quantity})`}
                   type="danger"
                   theme={theme}
-                />
-              ))}
-              {upcomingList.slice(0, 3).map((m: any) => (
-                <AlertItem
-                  key={m.id}
-                  title={`Planlı Tamir`}
-                  subtitle={`${m.title} — ${new Date(m.nextMaintenanceDate).toLocaleDateString('tr-TR')}`}
-                  type="warning"
-                  theme={theme}
+                  onPress={() => router.push(`/parts/${part.id}` as any)}
                 />
               ))}
             </View>
@@ -188,7 +197,7 @@ export default function Dashboard() {
           <Text style={dynamicStyles.sectionTitle}>Hızlı İşlemler</Text>
           <View style={dynamicStyles.quickActions}>
             {[
-              { Icon: Wrench, label: 'Tamir Ekle', path: '/maintenance/create' },
+              { Icon: ClipboardList, label: 'Yeni İş Emri', path: '/work-orders/create' },
               { Icon: Package, label: 'Parça Ekle', path: '/parts/create' },
               { Icon: Megaphone, label: 'İlan Ver', path: '/marketplace/create' },
             ].map((action) => (

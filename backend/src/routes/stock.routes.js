@@ -1,0 +1,44 @@
+const express = require('express');
+const { body } = require('express-validator');
+const router = express.Router();
+const ctrl = require('../controllers/stock.controller');
+const { authenticate, requireSubscription } = require('../middleware/auth.middleware');
+const validate = require('../middleware/validate.middleware');
+
+router.use(authenticate, requireSubscription);
+
+// Stok girişi (satın alma)
+router.post('/purchase', [
+  body('partId').notEmpty().withMessage('Parça ID zorunludur.'),
+  body('quantity').isInt({ min: 1 }).withMessage('Miktar en az 1 olmalı.'),
+  body('unitCost').isFloat({ min: 0 }).withMessage('Alış fiyatı 0 veya daha fazla olmalı.'),
+], validate, ctrl.purchaseStock);
+
+// Manuel stok çıkışı
+router.post('/out', [
+  body('partId').notEmpty().withMessage('Parça ID zorunludur.'),
+  body('quantity').isInt({ min: 1 }).withMessage('Miktar en az 1 olmalı.'),
+  body('reason').isIn(['FIRE', 'SATIS', 'DUZELTME']).withMessage('Geçerli bir sebep seçin.'),
+], validate, ctrl.stockOut);
+
+// Depolar arası transfer
+router.post('/transfer', [
+  body('partId').notEmpty().withMessage('Parça seçilmelidir.'),
+  body('fromWarehouseId').notEmpty().withMessage('Kaynak depo zorunludur.'),
+  body('toWarehouseId').notEmpty().withMessage('Hedef depo zorunludur.'),
+  body('quantity').isInt({ min: 1 }).withMessage('Miktar en az 1 olmalı.'),
+], validate, ctrl.transferStock);
+
+// Depo stoklarını doğrudan düzenleme / sayım
+router.post('/adjust-warehouses', [
+  body('partId').notEmpty().withMessage('Parça ID zorunludur.'),
+  body('warehouseStocks').isArray().withMessage('Depo stok listesi zorunludur.'),
+], validate, ctrl.adjustWarehouseStocks);
+
+// Stok hareketleri listesi
+router.get('/movements', ctrl.getMovements);
+
+// Barkod / SKU ile ürün ara
+router.get('/barcode/:barcode', ctrl.findByBarcode);
+
+module.exports = router;

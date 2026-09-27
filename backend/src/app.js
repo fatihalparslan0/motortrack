@@ -15,6 +15,13 @@ const maintenanceRoutes = require('./routes/maintenance.routes');
 const subscriptionRoutes = require('./routes/subscriptions.routes');
 const companyRoutes = require('./routes/companies.routes');
 const webhookRoutes = require('./routes/webhooks.routes');
+const warehouseRoutes = require('./routes/warehouse.routes');
+const supplierRoutes = require('./routes/supplier.routes');
+const workorderRoutes = require('./routes/workorder.routes');
+const stockRoutes = require('./routes/stock.routes');
+
+const path = require('path');
+const uploadRoutes = require('./routes/upload.routes');
 
 const { errorHandler } = require('./middleware/error.middleware');
 const logger = require('./utils/logger');
@@ -25,7 +32,8 @@ const app = express();
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
 
 // ─── Global Middleware ────────────────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(compression());
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
@@ -62,6 +70,11 @@ app.use('/api/listings', listingRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/companies', companyRoutes);
+app.use('/api/warehouses', warehouseRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/work-orders', workorderRoutes);
+app.use('/api/stock', stockRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {

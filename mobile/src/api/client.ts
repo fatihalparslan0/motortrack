@@ -23,6 +23,23 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (err: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token!);
+    }
+  });
+  failedQueue = [];
+};
+
 // Response interceptor — token yenile
 apiClient.interceptors.response.use(
   (response) => response.data,
@@ -31,11 +48,24 @@ apiClient.interceptors.response.use(
 
     // Only attempt token refresh on actual 401 responses
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
         if (!refreshToken) {
+          processQueue(error, null);
           await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
           return Promise.reject(error);
         }
@@ -46,11 +76,15 @@ apiClient.interceptors.response.use(
         await AsyncStorage.setItem('accessToken', accessToken);
         await AsyncStorage.setItem('refreshToken', newRefreshToken);
 
+        processQueue(null, accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
-      } catch {
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
         return Promise.reject(error);
+      } finally {
+        isRefreshing = false;
       }
     }
 
@@ -126,4 +160,61 @@ export const companiesAPI = {
   getUsers: () => apiClient.get('/companies/users'),
   inviteUser: (data: any) => apiClient.post('/companies/users', data),
   updateUser: (id: string, data: any) => apiClient.put(`/companies/users/${id}`, data),
+};
+
+export const warehouseAPI = {
+  getAll: () => apiClient.get('/warehouses'),
+  getStats: () => apiClient.get('/warehouses/stats'),
+  getCriticalStock: () => apiClient.get('/warehouses/critical-stock'),
+  create: (data: any) => apiClient.post('/warehouses', data),
+  update: (id: string, data: any) => apiClient.put(`/warehouses/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/warehouses/${id}`),
+};
+
+export const supplierAPI = {
+  getAll: (params?: any) => apiClient.get('/suppliers', { params }),
+  getById: (id: string) => apiClient.get(`/suppliers/${id}`),
+  create: (data: any) => apiClient.post('/suppliers', data),
+  update: (id: string, data: any) => apiClient.put(`/suppliers/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/suppliers/${id}`),
+};
+
+export const workOrderAPI = {
+  getAll: (params?: any) => apiClient.get('/work-orders', { params }),
+  getById: (id: string) => apiClient.get(`/work-orders/${id}`),
+  getStats: () => apiClient.get('/work-orders/stats'),
+  getPlateHistory: (plate: string) => apiClient.get('/work-orders/plate-history', { params: { plate } }),
+  getReceivables: (params?: any) => apiClient.get('/work-orders/receivables', { params }),
+  create: (data: any) => apiClient.post('/work-orders', data),
+  update: (id: string, data: any) => apiClient.put(`/work-orders/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/work-orders/${id}`),
+  updatePayment: (id: string, data: { paymentStatus?: string; paidAmount?: number; paymentMethod?: string; paymentNotes?: string }) =>
+    apiClient.patch(`/work-orders/${id}/payment`, data),
+  addPhoto: (id: string, data: { type: 'before' | 'after'; imageUrl: string }) =>
+    apiClient.post(`/work-orders/${id}/photos`, data),
+  removePhoto: (id: string, data: { type: 'before' | 'after'; imageUrl: string }) =>
+    apiClient.delete(`/work-orders/${id}/photos`, { data }),
+  addItem: (orderId: string, data: any) => apiClient.post(`/work-orders/${orderId}/items`, data),
+  updateItemStatus: (orderId: string, itemId: string, status: string) =>
+    apiClient.patch(`/work-orders/${orderId}/items/${itemId}/status`, { status }),
+  removeItem: (orderId: string, itemId: string) =>
+    apiClient.delete(`/work-orders/${orderId}/items/${itemId}`),
+};
+
+export const uploadAPI = {
+  uploadImage: (formData: FormData) =>
+    apiClient.post('/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  uploadBase64: (data: { base64: string; filename?: string }) =>
+    apiClient.post('/upload/base64', data),
+};
+
+export const stockAPI = {
+  purchase: (data: any) => apiClient.post('/stock/purchase', data),
+  out: (data: any) => apiClient.post('/stock/out', data),
+  transfer: (data: any) => apiClient.post('/stock/transfer', data),
+  adjustWarehouses: (data: any) => apiClient.post('/stock/adjust-warehouses', data),
+  findByBarcode: (barcode: string) => apiClient.get(`/stock/barcode/${barcode}`),
+  getMovements: (params?: any) => apiClient.get('/stock/movements', { params }),
 };

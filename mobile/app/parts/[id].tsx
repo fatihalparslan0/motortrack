@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform
@@ -7,9 +7,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { partsAPI } from '../../src/api/client';
+import { partsAPI, warehouseAPI, stockAPI, supplierAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { openWhatsApp, generateSupplierInquiryMessage } from '../../src/utils/whatsapp';
 
 const QUICK_NOTES_IN = ['📦 Yeni Sevkiyat', '♻️ İade Geldi', '📈 Sayım Fazlası'];
 const QUICK_NOTES_OUT = ['🔧 Tamirde Kullanıldı', '⚠️ Defolu / Hasarlı', '📉 Sayım Eksiği'];
@@ -31,21 +32,34 @@ export default function PartDetailScreen() {
     queryFn: () => partsAPI.getMovements(id, { limit: 5 }),
   });
 
-  const [stockModalVisible, setStockModalVisible] = React.useState(false);
-  const [movementType, setMovementType] = React.useState<'IN'|'OUT'>('IN');
-  const [movementQty, setMovementQty] = React.useState('');
-  const [movementNotes, setMovementNotes] = React.useState('');
+  const { data: warehousesData } = useQuery({
+    queryKey: ['warehouses'],
+    queryFn: () => warehouseAPI.getAll(),
+  });
+  const warehouses: any[] = (warehousesData as any)?.data || [];
+
+  const [stockModalVisible, setStockModalVisible] = useState(false);
+  const [movementType, setMovementType] = useState<'IN'|'OUT'>('IN');
+  const [movementQty, setMovementQty] = useState('');
+  const [movementNotes, setMovementNotes] = useState('');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
+
+  // Depo Sayım / Düzenleme Modalı
+  const [adjustModalVisible, setAdjustModalVisible] = useState(false);
+  const [warehouseQuantities, setWarehouseQuantities] = useState<{ [id: string]: string }>({});
 
   const movementMutation = useMutation({
     mutationFn: () => partsAPI.addMovement(id, {
       movementType,
       quantity: parseInt(movementQty),
+      warehouseId: selectedWarehouseId || undefined,
       notes: movementNotes,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['part', id] });
       queryClient.invalidateQueries({ queryKey: ['partMovements', id] });
       queryClient.invalidateQueries({ queryKey: ['parts'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouseStats'] });
       setStockModalVisible(false);
       setMovementQty('');
       setMovementNotes('');
@@ -60,8 +74,41 @@ export default function PartDetailScreen() {
     setMovementType(type);
     setMovementQty('');
     setMovementNotes('');
+    const defW = warehouses.find(w => w.isDefault);
+    setSelectedWarehouseId(defW ? defW.id : (warehouses[0]?.id || ''));
     setStockModalVisible(true);
   };
+
+  const handleOpenAdjustModal = () => {
+    const partData = (data as any)?.data;
+    const initial: { [id: string]: string } = {};
+    warehouses.forEach(w => {
+      const existingWs = partData?.warehouseStocks?.find((ws: any) => ws.warehouseId === w.id);
+      initial[w.id] = existingWs ? String(existingWs.quantity) : '0';
+    });
+    setWarehouseQuantities(initial);
+    setAdjustModalVisible(true);
+  };
+
+  const adjustMutation = useMutation({
+    mutationFn: () => stockAPI.adjustWarehouses({
+      partId: id,
+      warehouseStocks: Object.entries(warehouseQuantities).map(([wId, qty]) => ({
+        warehouseId: wId,
+        quantity: parseInt(qty) || 0,
+      })),
+    }),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['part', id] });
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouseStats'] });
+      setAdjustModalVisible(false);
+      Alert.alert('✅ Başarılı', res?.message || 'Depo stokları güncellendi.');
+    },
+    onError: (err: any) => {
+      Alert.alert('Hata', err?.message || 'Depo stokları güncellenemedi.');
+    }
+  });
 
   const deleteMutation = useMutation({
     mutationFn: () => partsAPI.delete(id),
@@ -73,6 +120,44 @@ export default function PartDetailScreen() {
 
   const part: any = (data as any)?.data;
   const movements: any[] = (movementsData as any)?.data || [];
+
+  const { data: suppliersData } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: () => supplierAPI.getAll(),
+  });
+  const suppliers: any[] = (suppliersData as any)?.data || [];
+
+  const handleAskSupplier = () => {
+    if (!suppliers || suppliers.length === 0) {
+      Alert.alert(
+        'Tedarikçi Bulunamadı',
+        'Kayıtlı yedek parçacı bulunmuyor. Depo > Tedarikçiler bölümünden parça tedarikçisi ekleyebilirsiniz.'
+      );
+      return;
+    }
+
+    if (suppliers.length === 1) {
+      const s = suppliers[0];
+      const msg = generateSupplierInquiryMessage(part, 1);
+      openWhatsApp(s.phone, msg);
+      return;
+    }
+
+    Alert.alert(
+      '💬 Parçacıya WhatsApp İle Sor',
+      `"${part?.name}" parçası için hangi tedarikçiye sormak istersiniz?`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        ...suppliers.slice(0, 5).map((s: any) => ({
+          text: `🏭 ${s.name}`,
+          onPress: () => {
+            const msg = generateSupplierInquiryMessage(part, 1);
+            openWhatsApp(s.phone, msg);
+          },
+        })),
+      ]
+    );
+  };
 
   const handleDelete = () => {
     Alert.alert(
@@ -107,8 +192,9 @@ export default function PartDetailScreen() {
     );
   }
 
-  const isLowStock = part.quantity <= part.minQuantity && part.minQuantity > 0;
-  const stockColor = isLowStock ? theme.danger : part.quantity === 0 ? theme.danger : theme.success;
+  const available = part.quantity - (part.reservedQuantity || 0);
+  const isLowStock = available <= part.minQuantity && part.minQuantity > 0;
+  const stockColor = part.quantity === 0 ? theme.danger : isLowStock ? '#F59E0B' : theme.success;
 
   return (
     <SafeAreaView style={dynamicStyles.container} edges={['top']}>
@@ -143,6 +229,34 @@ export default function PartDetailScreen() {
               Stok: {part.quantity} {part.unit}
             </Text>
           </View>
+          {(part.reservedQuantity || 0) > 0 && (
+            <Text style={{ color: '#F59E0B', fontSize: Typography.fontSize.xs, marginTop: 4 }}>
+              ⚠️ {part.reservedQuantity} {part.unit} rezerve — Kullanılabilir: {available} {part.unit}
+            </Text>
+          )}
+
+          {/* Depo Bazlı Stoklar */}
+          <View style={{ marginTop: Spacing.md, width: '100%', backgroundColor: theme.background, borderRadius: BorderRadius.md, padding: Spacing.sm, borderWidth: 1, borderColor: theme.border }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textMuted, textTransform: 'uppercase' }}>Depo Bazlı Stok</Text>
+              <TouchableOpacity onPress={handleOpenAdjustModal}>
+                <Text style={{ fontSize: Typography.fontSize.xs, color: theme.primary, fontWeight: '700' }}>✏️ Miktarları Düzenle</Text>
+              </TouchableOpacity>
+            </View>
+
+            {part.warehouseStocks && part.warehouseStocks.length > 0 ? (
+              part.warehouseStocks.filter((ws: any) => ws.quantity !== 0).map((ws: any, idx: number) => (
+                <View key={ws.id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderTopWidth: idx > 0 ? 1 : 0, borderTopColor: theme.borderLight }}>
+                  <Text style={{ color: theme.textSecondary, fontSize: Typography.fontSize.sm }}>{ws.warehouse?.name || 'Bilinmeyen Depo'}</Text>
+                  <Text style={{ color: theme.textPrimary, fontSize: Typography.fontSize.sm, fontWeight: '700' }}>{ws.quantity} {part.unit}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, fontStyle: 'italic', paddingVertical: 4 }}>
+                Depo dağılımı girilmemiş. "Miktarları Düzenle" ile ekleyebilirsiniz.
+              </Text>
+            )}
+          </View>
         </View>
 
         {/* Detay Bilgiler */}
@@ -151,13 +265,17 @@ export default function PartDetailScreen() {
           <View style={dynamicStyles.detailsCard}>
             {[
               { label: 'Marka', value: part.brand },
+              { label: 'SKU', value: part.sku },
+              { label: 'Barkod', value: part.barcode },
+              { label: 'OEM Kodu', value: part.oemCode },
               { label: 'Kategori', value: part.category },
               { label: 'Durum', value: part.condition === 'NEW' ? '🟢 Sıfır' : part.condition === 'USED' ? '🟡 İkinci El' : part.condition === 'REFURBISHED' ? '🔵 Yenilenmiş' : part.condition },
               { label: 'Depo Konumu', value: part.warehouseLocation },
+              { label: 'Rezerve', value: (part.reservedQuantity || 0) > 0 ? `${part.reservedQuantity} ${part.unit}` : null },
               { label: 'Minimum Stok', value: part.minQuantity > 0 ? part.minQuantity.toString() : 'Belirtilmemiş' },
               { label: 'Alış Fiyatı', value: part.purchasePrice ? `₺${parseFloat(part.purchasePrice).toLocaleString('tr-TR')}` : '—' },
               { label: 'Satış Fiyatı', value: part.sellingPrice ? `₺${parseFloat(part.sellingPrice).toLocaleString('tr-TR')}` : '—' },
-            ].map((item, i) => (
+            ].filter(i => i.value).map((item, i) => (
               <View key={i} style={[dynamicStyles.detailRow, i > 0 && dynamicStyles.detailRowBorder]}>
                 <Text style={dynamicStyles.detailLabel}>{item.label}</Text>
                 <Text style={dynamicStyles.detailValue}>{item.value || '—'}</Text>
@@ -185,6 +303,8 @@ export default function PartDetailScreen() {
             {[
               { emoji: '➕', label: 'Stok Ekle', onPress: () => handleOpenStockModal('IN') },
               { emoji: '➖', label: 'Stok Düş', onPress: () => handleOpenStockModal('OUT') },
+              { emoji: '💬', label: 'Parçacıya Sor', onPress: handleAskSupplier },
+              { emoji: '🏢', label: 'Depo Sayım', onPress: handleOpenAdjustModal },
               { emoji: '📢', label: 'İlan Aç', onPress: () => router.push(`/marketplace/create?partId=${id}` as any) },
             ].map((a) => (
               <TouchableOpacity key={a.label} style={dynamicStyles.actionCard} onPress={a.onPress} activeOpacity={0.8}>
@@ -221,6 +341,7 @@ export default function PartDetailScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
+      {/* Stok Giriş/Çıkış Modalı */}
       <Modal visible={stockModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setStockModalVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: theme.background }}>
           <SafeAreaView style={{ flex: 1, padding: Spacing.lg }}>
@@ -232,6 +353,34 @@ export default function PartDetailScreen() {
                 <Text style={{ color: theme.primary, fontWeight: 'bold', fontSize: Typography.fontSize.md }}>Kapat</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Depo Seçimi */}
+            <Text style={{ color: theme.textMuted, marginBottom: 6, fontSize: Typography.fontSize.sm }}>Depo Seçimi *</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md, maxHeight: 44 }}>
+              {warehouses.map((w: any) => (
+                <TouchableOpacity
+                  key={w.id}
+                  onPress={() => setSelectedWarehouseId(w.id)}
+                  style={{
+                    paddingHorizontal: Spacing.md,
+                    paddingVertical: 8,
+                    borderRadius: BorderRadius.full,
+                    borderWidth: 1,
+                    borderColor: selectedWarehouseId === w.id ? theme.primary : theme.border,
+                    backgroundColor: selectedWarehouseId === w.id ? theme.primary + '15' : theme.surface,
+                    marginRight: Spacing.sm
+                  }}
+                >
+                  <Text style={{
+                    color: selectedWarehouseId === w.id ? theme.primary : theme.textSecondary,
+                    fontSize: Typography.fontSize.sm,
+                    fontWeight: selectedWarehouseId === w.id ? '700' : '400'
+                  }}>
+                    {w.name} {w.isDefault ? '⭐' : ''}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
             
             <Text style={{ color: theme.textMuted, marginBottom: 4, fontSize: Typography.fontSize.sm }}>Miktar *</Text>
             <TextInput
@@ -284,6 +433,109 @@ export default function PartDetailScreen() {
             >
               {movementMutation.isPending ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: Typography.fontSize.base }}>Kaydet</Text>}
             </TouchableOpacity>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Depo Miktarlarını Düzenle / Sayım Modalı */}
+      <Modal visible={adjustModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setAdjustModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: theme.background }}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+              <View>
+                <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '700', color: theme.textPrimary }}>🏢 Depo Stok Dağılımı</Text>
+                <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, marginTop: 2 }}>{part.name}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setAdjustModalVisible(false)}>
+                <Text style={{ color: theme.primary, fontWeight: '600' }}>İptal</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={{ padding: Spacing.lg }} showsVerticalScrollIndicator={false}>
+              <Text style={{ color: theme.textSecondary, fontSize: Typography.fontSize.sm, marginBottom: Spacing.md }}>
+                Her deponun içindeki miktarını doğrudan girin. Toplam stok bu değerlerin toplamı olacaktır.
+              </Text>
+
+              {warehouses.map((w: any) => (
+                <View
+                  key={w.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: theme.surface,
+                    borderRadius: BorderRadius.md,
+                    padding: Spacing.md,
+                    marginBottom: Spacing.sm,
+                    borderWidth: 1,
+                    borderColor: theme.border
+                  }}
+                >
+                  <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+                    <Text style={{ color: theme.textPrimary, fontWeight: '700', fontSize: Typography.fontSize.sm }}>
+                      {w.name} {w.isDefault ? '⭐' : ''}
+                    </Text>
+                    {w.address && (
+                      <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginTop: 2 }}>
+                        {w.address}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <TextInput
+                      style={{
+                        backgroundColor: theme.background,
+                        borderWidth: 1,
+                        borderColor: theme.border,
+                        borderRadius: BorderRadius.sm,
+                        width: 80,
+                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                        textAlign: 'center',
+                        color: theme.textPrimary,
+                        fontSize: Typography.fontSize.md,
+                        fontWeight: '700'
+                      }}
+                      keyboardType="numeric"
+                      value={warehouseQuantities[w.id] !== undefined ? warehouseQuantities[w.id] : '0'}
+                      onChangeText={(val) => {
+                        const sanitized = val.replace(/[^0-9]/g, '');
+                        setWarehouseQuantities(prev => ({ ...prev, [w.id]: sanitized }));
+                      }}
+                    />
+                    <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.sm }}>{part.unit}</Text>
+                  </View>
+                </View>
+              ))}
+
+              {/* Toplam Özeti */}
+              <View style={{ backgroundColor: theme.primary + '15', borderRadius: BorderRadius.md, padding: Spacing.md, borderWidth: 1, borderColor: theme.primary + '40', marginTop: Spacing.md, marginBottom: Spacing.lg, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: theme.primary, fontWeight: '700', fontSize: Typography.fontSize.base }}>📦 Yeni Toplam Stok</Text>
+                <Text style={{ color: theme.primary, fontWeight: '800', fontSize: Typography.fontSize.xl }}>
+                  {Object.values(warehouseQuantities).reduce((acc, v) => acc + (parseInt(v) || 0), 0)} {part.unit}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={{
+                  backgroundColor: theme.primary,
+                  borderRadius: BorderRadius.md,
+                  padding: Spacing.md,
+                  alignItems: 'center',
+                  opacity: adjustMutation.isPending ? 0.7 : 1
+                }}
+                onPress={() => adjustMutation.mutate()}
+                disabled={adjustMutation.isPending}
+              >
+                {adjustMutation.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.base }}>
+                    💾 Depo Miktarlarını Kaydet
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
           </SafeAreaView>
         </KeyboardAvoidingView>
       </Modal>
