@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { workOrderAPI, partsAPI, uploadAPI } from '../../src/api/client';
+import { workOrderAPI, partsAPI, uploadAPI, warehouseAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import {
@@ -77,31 +77,544 @@ function resolveImageUrl(url: string | undefined): string {
   return `${baseUrl}${url}`;
 }
 
+// ─── Atölye Sarf Malzemesi Ekle Modalı ───────────────────────────────────────
+const CONSUMABLE_PRESETS = [
+  { name: 'Genel Atölye Sarf Paketi (Balata Spreyi, Tiner, Zımpara, Sarfiyat)', price: '250', icon: '🧰' },
+  { name: 'Balata Spreyi (1 Kutu)', price: '150', icon: '🧪' },
+  { name: 'Sıvı Conta & Yapıştırıcı Silikon', price: '100', icon: '🧴' },
+  { name: 'Pas Sökücü & Yağlayıcı Sprey (WD-40)', price: '120', icon: '⚙️' },
+  { name: 'Karter / Şanzıman Yağ Temizleme & Tiner', price: '150', icon: '🛢️' },
+];
+
+function WorkshopConsumableModal({
+  visible,
+  orderId,
+  onClose,
+  theme,
+}: {
+  visible: boolean;
+  orderId: string;
+  onClose: () => void;
+  theme: any;
+}) {
+  const queryClient = useQueryClient();
+  const [selectedPreset, setSelectedPreset] = useState<any>(CONSUMABLE_PRESETS[0]);
+  const [customName, setCustomName] = useState('');
+  const [customPrice, setCustomPrice] = useState('');
+  const [quantity, setQuantity] = useState('1');
+  const [isCustom, setIsCustom] = useState(false);
+
+  const addConsumableMutation = useMutation({
+    mutationFn: async () => {
+      const name = isCustom ? customName.trim() : selectedPreset.name;
+      const price = parseFloat((isCustom ? customPrice : selectedPreset.price).replace(',', '.')) || 0;
+      const qty = parseInt(quantity) || 1;
+
+      if (!name) throw new Error('Lütfen sarfiyat adını belirtin.');
+
+      // 1. Önce bu isimde parça var mı kontrol et
+      const existingRes = await partsAPI.getAll({ search: name, limit: 5 });
+      const found = existingRes.data?.data?.find(
+        (p: any) => p.name.toLowerCase() === name.toLowerCase()
+      );
+
+      let partId = found?.id;
+
+      if (!partId) {
+        // Yeni sarf parçası oluştur
+        const newPartRes = await partsAPI.create({
+          name,
+          category: 'Sarf Malzeme',
+          quantity: 99,
+          unit: 'adet',
+          purchasePrice: price * 0.6,
+          sellingPrice: price,
+          notes: 'Otomatik atölye sarf malzemesi kaydı',
+        });
+        const created = newPartRes.data?.data || newPartRes.data;
+        partId = created.id;
+      }
+
+      // 2. İş emrine ekle
+      return await workOrderAPI.addItem(orderId, {
+        partId,
+        quantity: qty,
+        unitPrice: price,
+        notes: 'Atölye Sarfiyatı',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['work-order', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      Alert.alert('✅ Eklendi', 'Atölye sarf malzemesi iş emrine başarıyla eklendi.');
+      onClose();
+    },
+    onError: (err: any) => {
+      Alert.alert('Hata', err?.response?.data?.error || err?.message || 'Sarf malzemesi eklenemedi.');
+    },
+  });
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: theme.background }}>
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+            <View>
+              <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: theme.textPrimary }}>
+                🧰 Atölye Sarfiyatı Ekle
+              </Text>
+              <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary, marginTop: 2 }}>
+                Balata spreyi, sıvı conta ve genel sarfları hızlıca ekleyin
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={{ color: theme.primary, fontWeight: '700' }}>Kapat</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md }}>
+            <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, textTransform: 'uppercase' }}>
+              Hızlı Sarf Paketi Seçin
+            </Text>
+
+            {CONSUMABLE_PRESETS.map((preset, idx) => {
+              const isSelected = !isCustom && selectedPreset?.name === preset.name;
+              return (
+                <TouchableOpacity
+                  key={idx}
+                  onPress={() => {
+                    setSelectedPreset(preset);
+                    setIsCustom(false);
+                  }}
+                  style={{
+                    backgroundColor: isSelected ? theme.primary + '15' : theme.surface,
+                    borderColor: isSelected ? theme.primary : theme.border,
+                    borderWidth: 1.5,
+                    borderRadius: BorderRadius.md,
+                    padding: Spacing.md,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 }}>
+                    <Text style={{ fontSize: 24 }}>{preset.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: '700', color: theme.textPrimary }}>
+                        {preset.name}
+                      </Text>
+                      <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, marginTop: 2 }}>
+                        Önerilen Yansıtma Tutarı
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: Typography.fontSize.base, fontWeight: '800', color: theme.primary }}>
+                    ₺{preset.price}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Özel Sarf Girişi */}
+            <TouchableOpacity
+              onPress={() => setIsCustom(true)}
+              style={{
+                backgroundColor: isCustom ? theme.primary + '15' : theme.surface,
+                borderColor: isCustom ? theme.primary : theme.border,
+                borderWidth: 1.5,
+                borderRadius: BorderRadius.md,
+                padding: Spacing.md,
+              }}
+            >
+              <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: '700', color: theme.textPrimary, marginBottom: Spacing.xs }}>
+                ✏️ Özel Sarf Malzemesi Gir
+              </Text>
+              {isCustom && (
+                <View style={{ gap: Spacing.sm, marginTop: Spacing.xs }}>
+                  <TextInput
+                    style={{
+                      backgroundColor: theme.background,
+                      borderWidth: 1,
+                      borderColor: theme.border,
+                      borderRadius: BorderRadius.sm,
+                      padding: Spacing.sm,
+                      color: theme.textPrimary,
+                      fontSize: Typography.fontSize.sm,
+                    }}
+                    placeholder="Sarf malzemesi adı (örn: Tiner, Zımpara)"
+                    placeholderTextColor={theme.textMuted}
+                    value={customName}
+                    onChangeText={setCustomName}
+                  />
+                  <TextInput
+                    style={{
+                      backgroundColor: theme.background,
+                      borderWidth: 1,
+                      borderColor: theme.border,
+                      borderRadius: BorderRadius.sm,
+                      padding: Spacing.sm,
+                      color: theme.textPrimary,
+                      fontSize: Typography.fontSize.sm,
+                    }}
+                    placeholder="Müşteriye Yansıtılacak Fiyat (₺)"
+                    placeholderTextColor={theme.textMuted}
+                    value={customPrice}
+                    onChangeText={setCustomPrice}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Miktar */}
+            <View style={{ marginTop: Spacing.xs }}>
+              <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 4 }}>
+                MİKTAR (ADET)
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: theme.surface,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  borderRadius: BorderRadius.md,
+                  padding: Spacing.md,
+                  color: theme.textPrimary,
+                  fontSize: Typography.fontSize.base,
+                  fontWeight: '700',
+                }}
+                value={quantity}
+                onChangeText={setQuantity}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.primary,
+                borderRadius: BorderRadius.md,
+                paddingVertical: Spacing.md,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: Spacing.sm,
+                ...Shadows.sm,
+              }}
+              onPress={() => addConsumableMutation.mutate()}
+              disabled={addConsumableMutation.isPending}
+            >
+              {addConsumableMutation.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={{ color: '#fff', fontSize: Typography.fontSize.base, fontWeight: '800' }}>
+                  + İş Emrine Sarfiyatı Ekle
+                </Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+// ─── Çıkma Parça Envantere Alma Modalı ────────────────────────────────────────
+function SalvagePartModal({
+  visible,
+  order,
+  onClose,
+  theme,
+}: {
+  visible: boolean;
+  order: any;
+  onClose: () => void;
+  theme: any;
+}) {
+  const queryClient = useQueryClient();
+  const [partName, setPartName] = useState('');
+  const [category, setCategory] = useState('Motor');
+  const [warehouseId, setWarehouseId] = useState('');
+  const [quantity, setQuantity] = useState('1');
+  const [sellingPrice, setSellingPrice] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const { data: warehousesData } = useQuery({
+    queryKey: ['warehouses'],
+    queryFn: () => warehouseAPI.getAll(),
+    enabled: visible,
+  });
+  const warehouses: any[] = (warehousesData as any)?.data?.data || (warehousesData as any)?.data || [];
+
+  React.useEffect(() => {
+    if (visible && order) {
+      const vInfo = order.vehicleInfo ? ` (${order.vehicleInfo})` : '';
+      setPartName(`Çıkma Parça${vInfo}`);
+      setNotes(`${order.vehicleInfo || order.title} nolu araçtan sağlam olarak sökülmüştür.`);
+      if (warehouses.length > 0 && !warehouseId) {
+        const def = warehouses.find((w: any) => w.isDefault) || warehouses[0];
+        setWarehouseId(def.id);
+      }
+    }
+  }, [visible, order, warehouses]);
+
+  const salvageMutation = useMutation({
+    mutationFn: async () => {
+      if (!partName.trim()) throw new Error('Lütfen parça adını girin.');
+      const qty = parseInt(quantity) || 1;
+      const sPrice = sellingPrice ? parseFloat(sellingPrice.replace(',', '.')) : 0;
+
+      return await partsAPI.create({
+        name: partName.trim(),
+        condition: 'USED', // ÇIKMA PARÇA
+        category: category || 'Çıkma / İkinci El',
+        quantity: qty,
+        unit: 'adet',
+        purchasePrice: 0, // Araçtan söküldü, maliyeti 0 TL
+        sellingPrice: sPrice,
+        warehouseId: warehouseId || undefined,
+        notes: notes.trim(),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouseStats'] });
+      queryClient.invalidateQueries({ queryKey: ['parts-search-wo'] });
+      Alert.alert(
+        '♻️ Çıkma Parça Kaydedildi',
+        'Araçtan sökülen parça "Çıkma (İkinci El)" olarak depo envanterinize eklendi.'
+      );
+      onClose();
+    },
+    onError: (err: any) => {
+      Alert.alert('Hata', err?.response?.data?.error || err?.message || 'Çıkma parça kaydedilemedi.');
+    },
+  });
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: theme.background }}>
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+            <View>
+              <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: theme.textPrimary }}>
+                ♻️ Çıkma Parça Envantere Al
+              </Text>
+              <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary, marginTop: 2 }}>
+                Araçtan sökülen sağlam parçayı ikinci el stoğunuza kaydedin
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={{ color: theme.primary, fontWeight: '700' }}>Kapat</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md }}>
+            <View
+              style={{
+                backgroundColor: '#ECFDF5',
+                borderColor: '#A7F3D0',
+                borderWidth: 1,
+                borderRadius: BorderRadius.md,
+                padding: Spacing.md,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: Spacing.sm,
+              }}
+            >
+              <Text style={{ fontSize: 24 }}>💡</Text>
+              <Text style={{ fontSize: Typography.fontSize.xs, color: '#065F46', flex: 1 }}>
+                Sökülen alternatör, marş motoru, kaliper vb. parçaları 0 TL maliyetle "Çıkma / İkinci El" olarak kaydedip ileride başka müşterilere satabilirsiniz.
+              </Text>
+            </View>
+
+            <View>
+              <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 4 }}>
+                PARÇA ADI *
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: theme.surface,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  borderRadius: BorderRadius.md,
+                  padding: Spacing.md,
+                  color: theme.textPrimary,
+                  fontSize: Typography.fontSize.sm,
+                }}
+                placeholder="Örn: Çıkma Marş Motoru (Honda PCX)"
+                placeholderTextColor={theme.textMuted}
+                value={partName}
+                onChangeText={setPartName}
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: Spacing.md }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 4 }}>
+                  ADET
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                    borderRadius: BorderRadius.md,
+                    padding: Spacing.md,
+                    color: theme.textPrimary,
+                    fontSize: Typography.fontSize.sm,
+                  }}
+                  value={quantity}
+                  onChangeText={setQuantity}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 4 }}>
+                  TAHMİNİ SATIŞ FİYATI (₺)
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                    borderRadius: BorderRadius.md,
+                    padding: Spacing.md,
+                    color: theme.textPrimary,
+                    fontSize: Typography.fontSize.sm,
+                  }}
+                  placeholder="0,00"
+                  placeholderTextColor={theme.textMuted}
+                  value={sellingPrice}
+                  onChangeText={setSellingPrice}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+
+            {/* Depo Seçimi */}
+            {warehouses.length > 0 && (
+              <View>
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 4 }}>
+                  HEDEF DEPO / RAF
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {warehouses.map((w: any) => {
+                    const isSel = warehouseId === w.id;
+                    return (
+                      <TouchableOpacity
+                        key={w.id}
+                        onPress={() => setWarehouseId(w.id)}
+                        style={{
+                          backgroundColor: isSel ? theme.primary : theme.surface,
+                          borderColor: isSel ? theme.primary : theme.border,
+                          borderWidth: 1,
+                          borderRadius: BorderRadius.md,
+                          paddingHorizontal: Spacing.md,
+                          paddingVertical: 8,
+                        }}
+                      >
+                        <Text style={{ color: isSel ? '#fff' : theme.textPrimary, fontWeight: '700', fontSize: Typography.fontSize.xs }}>
+                          🏢 {w.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
+            <View>
+              <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 4 }}>
+                SÖKÜM VE DURUM NOTU
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: theme.surface,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  borderRadius: BorderRadius.md,
+                  padding: Spacing.md,
+                  color: theme.textPrimary,
+                  fontSize: Typography.fontSize.sm,
+                  minHeight: 60,
+                }}
+                multiline
+                placeholder="Parçanın durumu, revizyon ihtiyacı vb."
+                placeholderTextColor={theme.textMuted}
+                value={notes}
+                onChangeText={setNotes}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#059669',
+                borderRadius: BorderRadius.md,
+                paddingVertical: Spacing.md,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: Spacing.sm,
+                ...Shadows.sm,
+              }}
+              onPress={() => salvageMutation.mutate()}
+              disabled={salvageMutation.isPending}
+            >
+              {salvageMutation.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={{ color: '#fff', fontSize: Typography.fontSize.base, fontWeight: '800' }}>
+                  ♻️ Çıkma Parçayı Depoya Kaydet
+                </Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ─── Parça Ekle Modal ─────────────────────────────────────────────────────────
 function AddPartModal({ visible, orderId, onClose, theme }: any) {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'LIST' | 'CREATE'>('LIST');
   const [partSearch, setPartSearch] = useState('');
   const [selectedPart, setSelectedPart] = useState<any>(null);
   const [quantity, setQuantity] = useState('1');
   const [unitPrice, setUnitPrice] = useState('');
 
-  const { data: partsData } = useQuery({
+  // Hızlı Yeni Parça Formu State
+  const [newPart, setNewPart] = useState({
+    name: '',
+    brand: '',
+    category: 'Motor',
+    quantity: '1',
+    unit: 'adet',
+    purchasePrice: '',
+    sellingPrice: '',
+    partNumber: '',
+  });
+
+  const { data: partsData, isLoading: isPartsLoading } = useQuery({
     queryKey: ['parts-search-wo', partSearch],
-    queryFn: () => partsAPI.getAll({ search: partSearch, limit: 10 }),
-    enabled: partSearch.length >= 2,
+    queryFn: () => partsAPI.getAll({ search: partSearch.trim() || undefined, limit: 100 }),
+    enabled: visible,
   });
 
   const parts: any[] = (partsData as any)?.data || [];
 
-  const mutation = useMutation({
+  // Mevcut parçayı iş emrine ekleme mutasyonu
+  const addExistingMutation = useMutation({
     mutationFn: () =>
       workOrderAPI.addItem(orderId, {
         partId: selectedPart.id,
-        quantity: parseInt(quantity),
-        unitPrice: unitPrice ? parseFloat(unitPrice) : undefined,
+        quantity: parseInt(quantity) || 1,
+        unitPrice: unitPrice ? parseFloat(unitPrice.replace(',', '.')) : undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['work-order', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      queryClient.invalidateQueries({ queryKey: ['parts-search-wo'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouseStats'] });
       setSelectedPart(null);
       setPartSearch('');
       setQuantity('1');
@@ -111,7 +624,67 @@ function AddPartModal({ visible, orderId, onClose, theme }: any) {
     onError: (err: any) => Alert.alert('Hata', err?.message || 'Parça eklenemedi.'),
   });
 
-  const handleAdd = () => {
+  // Yeni parça oluşturup doğrudan iş emrine ekleme mutasyonu
+  const quickCreateMutation = useMutation({
+    mutationFn: async () => {
+      const qty = parseInt(newPart.quantity) || 1;
+      const purchasePrice = newPart.purchasePrice ? parseFloat(newPart.purchasePrice.replace(',', '.')) : undefined;
+      const sellingPrice = newPart.sellingPrice ? parseFloat(newPart.sellingPrice.replace(',', '.')) : undefined;
+
+      // 1. Yeni parçayı oluştur
+      const createdRes: any = await partsAPI.create({
+        name: newPart.name.trim(),
+        brand: newPart.brand.trim() || undefined,
+        partNumber: newPart.partNumber.trim() || undefined,
+        category: newPart.category || 'Motor',
+        quantity: qty,
+        unit: newPart.unit || 'adet',
+        purchasePrice,
+        sellingPrice,
+      });
+
+      const createdPart = createdRes?.data || createdRes;
+      if (!createdPart?.id) {
+        throw new Error('Parça oluşturulamadı.');
+      }
+
+      // 2. Parçayı iş emrine ekle
+      return await workOrderAPI.addItem(orderId, {
+        partId: createdPart.id,
+        quantity: qty,
+        unitPrice: sellingPrice,
+        unitCost: purchasePrice,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['work-order', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      queryClient.invalidateQueries({ queryKey: ['parts-search-wo'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouseStats'] });
+      queryClient.invalidateQueries({ queryKey: ['partStats'] });
+      Alert.alert('✅ Başarılı', `${newPart.name} oluşturuldu ve iş emrine eklendi.`);
+      // Formu sıfırla
+      setNewPart({
+        name: '',
+        brand: '',
+        category: 'Motor',
+        quantity: '1',
+        unit: 'adet',
+        purchasePrice: '',
+        sellingPrice: '',
+        partNumber: '',
+      });
+      setSelectedPart(null);
+      setPartSearch('');
+      setActiveTab('LIST');
+      onClose();
+    },
+    onError: (err: any) => {
+      Alert.alert('Hata', err?.message || 'Yeni parça oluşturulup eklenirken bir hata oluştu.');
+    },
+  });
+
+  const handleAddExisting = () => {
     if (!selectedPart) {
       Alert.alert('Hata', 'Lütfen bir parça seçin.');
       return;
@@ -120,105 +693,382 @@ function AddPartModal({ visible, orderId, onClose, theme }: any) {
       Alert.alert('Hata', 'Miktar en az 1 olmalı.');
       return;
     }
-    mutation.mutate();
+    addExistingMutation.mutate();
   };
+
+  const handleQuickCreate = () => {
+    if (!newPart.name.trim()) {
+      Alert.alert('Hata', 'Lütfen parça adını girin.');
+      return;
+    }
+    if (!newPart.sellingPrice || parseFloat(newPart.sellingPrice.replace(',', '.')) <= 0) {
+      Alert.alert('Hata', 'Lütfen müşteriye yansıtılacak satış fiyatını girin.');
+      return;
+    }
+    quickCreateMutation.mutate();
+  };
+
+  const isPending = addExistingMutation.isPending || quickCreateMutation.isPending;
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: theme.background }}>
         <SafeAreaView style={{ flex: 1 }}>
+          {/* Header */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: theme.border }}>
             <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '700', color: theme.textPrimary }}>🔩 Parça Ekle</Text>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity onPress={onClose} disabled={isPending}>
               <Text style={{ color: theme.primary, fontWeight: '600' }}>İptal</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Sekme Seçici: Listeden Seç vs. Hızlı Parça Tanımla */}
+          <View style={{ flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, gap: Spacing.sm }}>
+            <TouchableOpacity
+              onPress={() => setActiveTab('LIST')}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                alignItems: 'center',
+                borderRadius: BorderRadius.md,
+                backgroundColor: activeTab === 'LIST' ? theme.primary : theme.surface,
+                borderWidth: 1,
+                borderColor: activeTab === 'LIST' ? theme.primary : theme.border,
+              }}
+            >
+              <Text style={{ color: activeTab === 'LIST' ? '#fff' : theme.textSecondary, fontWeight: '700', fontSize: Typography.fontSize.sm }}>
+                📋 Listeden Seç
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                if (partSearch.trim() && !newPart.name) {
+                  setNewPart(prev => ({ ...prev, name: partSearch.trim() }));
+                }
+                setActiveTab('CREATE');
+              }}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                alignItems: 'center',
+                borderRadius: BorderRadius.md,
+                backgroundColor: activeTab === 'CREATE' ? theme.primary : theme.surface,
+                borderWidth: 1,
+                borderColor: activeTab === 'CREATE' ? theme.primary : theme.border,
+              }}
+            >
+              <Text style={{ color: activeTab === 'CREATE' ? '#fff' : theme.textSecondary, fontWeight: '700', fontSize: Typography.fontSize.sm }}>
+                ➕ Hızlı Yeni Parça
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <ScrollView contentContainerStyle={{ padding: Spacing.lg }}>
-            {selectedPart ? (
-              <TouchableOpacity
-                onPress={() => setSelectedPart(null)}
-                style={{ backgroundColor: theme.primary + '15', borderRadius: BorderRadius.md, padding: Spacing.md, borderWidth: 1, borderColor: theme.primary, marginBottom: Spacing.md, flexDirection: 'row', justifyContent: 'space-between' }}
-              >
-                <View>
-                  <Text style={{ color: theme.primary, fontWeight: '700', fontSize: Typography.fontSize.base }}>{selectedPart.name}</Text>
-                  <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs }}>
-                    Mevcut: {selectedPart.quantity - (selectedPart.reservedQuantity || 0)} {selectedPart.unit} kullanılabilir
-                  </Text>
-                  {selectedPart.sellingPrice && (
-                    <Text style={{ color: theme.success, fontSize: Typography.fontSize.xs }}>
-                      Satış: ₺{parseFloat(selectedPart.sellingPrice).toLocaleString('tr-TR')}
-                    </Text>
-                  )}
-                </View>
-                <Text style={{ color: theme.textMuted }}>✕</Text>
-              </TouchableOpacity>
-            ) : (
+            {activeTab === 'LIST' ? (
+              /* ─── TAB 1: MEVCUT PARÇALARDAN SEÇ ─── */
               <>
+                {selectedPart ? (
+                  <TouchableOpacity
+                    onPress={() => setSelectedPart(null)}
+                    style={{
+                      backgroundColor: theme.primary + '15',
+                      borderRadius: BorderRadius.md,
+                      padding: Spacing.md,
+                      borderWidth: 1,
+                      borderColor: theme.primary + '40',
+                      marginBottom: Spacing.md,
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: theme.primary, fontWeight: '700', fontSize: Typography.fontSize.base }}>{selectedPart.name}</Text>
+                      {selectedPart.brand && (
+                        <Text style={{ color: theme.textSecondary, fontSize: Typography.fontSize.xs }}>Marka: {selectedPart.brand}</Text>
+                      )}
+                      <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginTop: 2 }}>
+                        Mevcut Stok: {selectedPart.quantity - (selectedPart.reservedQuantity || 0)} {selectedPart.unit}
+                      </Text>
+                      {selectedPart.sellingPrice && (
+                        <Text style={{ color: theme.success, fontSize: Typography.fontSize.xs, fontWeight: '600' }}>
+                          Katalog Satış Fiyatı: ₺{parseFloat(selectedPart.sellingPrice).toLocaleString('tr-TR')}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={{ backgroundColor: theme.primary + '25', paddingHorizontal: 10, paddingVertical: 5, borderRadius: BorderRadius.sm }}>
+                      <Text style={{ color: theme.primary, fontWeight: '700', fontSize: Typography.fontSize.xs }}>✕ Değiştir</Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : (
+                  <>
+                    <TextInput
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderWidth: 1,
+                        borderColor: theme.border,
+                        borderRadius: BorderRadius.md,
+                        padding: Spacing.md,
+                        color: theme.textPrimary,
+                        marginBottom: Spacing.xs,
+                      }}
+                      placeholder="🔍 Parça ara veya listeden kaydırarak seçin..."
+                      placeholderTextColor={theme.textMuted}
+                      value={partSearch}
+                      onChangeText={setPartSearch}
+                    />
+
+                    {/* Hızlı Parça Ekleme Kısayol Linki */}
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (partSearch.trim()) {
+                          setNewPart(prev => ({ ...prev, name: partSearch.trim() }));
+                        }
+                        setActiveTab('CREATE');
+                      }}
+                      style={{ alignSelf: 'flex-end', marginBottom: Spacing.sm }}
+                    >
+                      <Text style={{ color: theme.primary, fontSize: Typography.fontSize.xs, fontWeight: '600' }}>
+                        Listede bulamadınız mı? ➕ Yeni Parça Tanımla
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Kayan Parça Listesi */}
+                    <ScrollView nestedScrollEnabled style={{ maxHeight: 220, marginBottom: Spacing.md }} showsVerticalScrollIndicator={true}>
+                      {isPartsLoading ? (
+                        <ActivityIndicator color={theme.primary} style={{ paddingVertical: 20 }} />
+                      ) : parts.length > 0 ? (
+                        parts.map((p: any) => {
+                          const available = p.quantity - (p.reservedQuantity || 0);
+                          const isAvailable = available > 0;
+                          return (
+                            <TouchableOpacity
+                              key={p.id}
+                              onPress={() => {
+                                setSelectedPart(p);
+                                setUnitPrice(p.sellingPrice ? String(parseFloat(p.sellingPrice)) : '');
+                              }}
+                              style={{
+                                backgroundColor: theme.surface,
+                                borderWidth: 1,
+                                borderColor: theme.border,
+                                borderRadius: BorderRadius.md,
+                                padding: Spacing.md,
+                                marginBottom: 6,
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <View style={{ flex: 1, marginRight: Spacing.sm }}>
+                                <Text style={{ color: theme.textPrimary, fontWeight: '600' }}>{p.name}</Text>
+                                <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
+                                  {p.brand && <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs }}>{p.brand}</Text>}
+                                  {p.partNumber && <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs }}>Kod: {p.partNumber}</Text>}
+                                </View>
+                              </View>
+                              <View style={{ alignItems: 'flex-end' }}>
+                                <Text style={{ color: isAvailable ? theme.success : theme.danger, fontSize: Typography.fontSize.xs, fontWeight: '700' }}>
+                                  {available} {p.unit}
+                                </Text>
+                                {p.sellingPrice && (
+                                  <Text style={{ color: theme.textSecondary, fontSize: Typography.fontSize.xs, fontWeight: '600', marginTop: 2 }}>
+                                    ₺{parseFloat(p.sellingPrice).toLocaleString('tr-TR')}
+                                  </Text>
+                                )}
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })
+                      ) : (
+                        <View style={{ paddingVertical: Spacing.lg, alignItems: 'center' }}>
+                          <Text style={{ color: theme.textMuted, marginBottom: Spacing.sm }}>
+                            {partSearch.trim() ? `"${partSearch}" ile eşleşen parça bulunamadı.` : 'Kayıtlı parça bulunamadı.'}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => {
+                              if (partSearch.trim()) {
+                                setNewPart(prev => ({ ...prev, name: partSearch.trim() }));
+                              }
+                              setActiveTab('CREATE');
+                            }}
+                            style={{
+                              backgroundColor: theme.primary + '15',
+                              paddingHorizontal: Spacing.md,
+                              paddingVertical: 8,
+                              borderRadius: BorderRadius.md,
+                              borderWidth: 1,
+                              borderColor: theme.primary + '40',
+                            }}
+                          >
+                            <Text style={{ color: theme.primary, fontWeight: '700', fontSize: Typography.fontSize.sm }}>
+                              ➕ {partSearch.trim() ? `"${partSearch}" Olarak Hızlıca Tanımla` : 'Yeni Parça Oluştur'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </ScrollView>
+                  </>
+                )}
+
+                {/* Miktar ve Fiyat Alanları (Seçilen Parça İçin) */}
+                <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>Miktar *</Text>
+                    <TextInput
+                      style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary }}
+                      keyboardType="numeric"
+                      placeholder="1"
+                      placeholderTextColor={theme.textMuted}
+                      value={quantity}
+                      onChangeText={setQuantity}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>Satış Fiyatı (₺)</Text>
+                    <TextInput
+                      style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary }}
+                      keyboardType="decimal-pad"
+                      placeholder="Otomatik"
+                      placeholderTextColor={theme.textMuted}
+                      value={unitPrice}
+                      onChangeText={setUnitPrice}
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={{ backgroundColor: theme.primary, borderRadius: BorderRadius.md, padding: Spacing.md, alignItems: 'center', opacity: isPending ? 0.7 : 1 }}
+                  onPress={handleAddExisting}
+                  disabled={isPending}
+                >
+                  {addExistingMutation.isPending ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.base }}>🔩 Parçayı İş Emrine Ekle</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            ) : (
+              /* ─── TAB 2: HIZLI YENİ PARÇA OLUŞTUR VE EKLE ─── */
+              <>
+                <View style={{ backgroundColor: theme.surface, borderRadius: BorderRadius.md, padding: Spacing.md, borderWidth: 1, borderColor: theme.border, marginBottom: Spacing.md }}>
+                  <Text style={{ color: theme.textPrimary, fontWeight: '700', fontSize: Typography.fontSize.base, marginBottom: 2 }}>
+                    ✨ Hızlı Parça Tanımlama
+                  </Text>
+                  <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs }}>
+                    WhatsApp'tan veya kuryeden gelen yeni parçayı kaydedip anında bu iş emrine ekleyin.
+                  </Text>
+                </View>
+
+                {/* Parça Adı */}
+                <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>Parça Adı *</Text>
                 <TextInput
                   style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary, marginBottom: Spacing.sm }}
-                  placeholder="Parça ara... (en az 2 karakter)"
+                  placeholder="Örn: Silindir Kapak Conta Takımı"
                   placeholderTextColor={theme.textMuted}
-                  value={partSearch}
-                  onChangeText={setPartSearch}
+                  value={newPart.name}
+                  onChangeText={(val) => setNewPart(p => ({ ...p, name: val }))}
                   autoFocus
                 />
-                {parts.map((p: any) => (
-                  <TouchableOpacity
-                    key={p.id}
-                    onPress={() => {
-                      setSelectedPart(p);
-                      setUnitPrice(p.sellingPrice ? String(parseFloat(p.sellingPrice)) : '');
-                    }}
-                    style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, marginBottom: Spacing.sm }}
-                  >
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={{ color: theme.textPrimary, fontWeight: '600', flex: 1 }}>{p.name}</Text>
-                      <Text style={{ color: p.quantity - (p.reservedQuantity || 0) > 0 ? theme.success : theme.danger, fontSize: Typography.fontSize.sm }}>
-                        {p.quantity - (p.reservedQuantity || 0)} {p.unit}
+
+                {/* Marka ve OEM Kodu */}
+                <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>Marka</Text>
+                    <TextInput
+                      style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary }}
+                      placeholder="Örn: Victor Reinz"
+                      placeholderTextColor={theme.textMuted}
+                      value={newPart.brand}
+                      onChangeText={(val) => setNewPart(p => ({ ...p, brand: val }))}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>Parça / OEM Kodu</Text>
+                    <TextInput
+                      style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary }}
+                      placeholder="Örn: 04L 103 383"
+                      placeholderTextColor={theme.textMuted}
+                      value={newPart.partNumber}
+                      onChangeText={(val) => setNewPart(p => ({ ...p, partNumber: val }))}
+                    />
+                  </View>
+                </View>
+
+                {/* Birim Seçimi */}
+                <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>Birim</Text>
+                <View style={{ flexDirection: 'row', gap: Spacing.xs, marginBottom: Spacing.sm }}>
+                  {['adet', 'takım', 'set', 'litre'].map((u) => (
+                    <TouchableOpacity
+                      key={u}
+                      onPress={() => setNewPart(p => ({ ...p, unit: u }))}
+                      style={{
+                        paddingHorizontal: Spacing.md,
+                        paddingVertical: 6,
+                        borderRadius: BorderRadius.sm,
+                        borderWidth: 1,
+                        borderColor: newPart.unit === u ? theme.primary : theme.border,
+                        backgroundColor: newPart.unit === u ? theme.primary + '15' : theme.surface,
+                      }}
+                    >
+                      <Text style={{ color: newPart.unit === u ? theme.primary : theme.textSecondary, fontSize: Typography.fontSize.xs, fontWeight: '600' }}>
+                        {u}
                       </Text>
-                    </View>
-                    {p.sellingPrice && (
-                      <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs }}>
-                        Satış fiyatı: ₺{parseFloat(p.sellingPrice).toLocaleString('tr-TR')}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Miktar, Alış ve Satış Fiyatı */}
+                <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>Miktar *</Text>
+                    <TextInput
+                      style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary }}
+                      keyboardType="numeric"
+                      placeholder="1"
+                      placeholderTextColor={theme.textMuted}
+                      value={newPart.quantity}
+                      onChangeText={(val) => setNewPart(p => ({ ...p, quantity: val }))}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>Alış Fiyatı (₺)</Text>
+                    <TextInput
+                      style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary }}
+                      keyboardType="decimal-pad"
+                      placeholder="0.00"
+                      placeholderTextColor={theme.textMuted}
+                      value={newPart.purchasePrice}
+                      onChangeText={(val) => setNewPart(p => ({ ...p, purchasePrice: val }))}
+                    />
+                  </View>
+                  <View style={{ flex: 1.2 }}>
+                    <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>Satış Fiyatı (₺) *</Text>
+                    <TextInput
+                      style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary }}
+                      keyboardType="decimal-pad"
+                      placeholder="0.00"
+                      placeholderTextColor={theme.textMuted}
+                      value={newPart.sellingPrice}
+                      onChangeText={(val) => setNewPart(p => ({ ...p, sellingPrice: val }))}
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={{ backgroundColor: '#10B981', borderRadius: BorderRadius.md, padding: Spacing.md, alignItems: 'center', opacity: isPending ? 0.7 : 1 }}
+                  onPress={handleQuickCreate}
+                  disabled={isPending}
+                >
+                  {quickCreateMutation.isPending ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.base }}>✨ Parçayı Oluştur ve İş Emrine Ekle</Text>
+                  )}
+                </TouchableOpacity>
               </>
             )}
-
-            <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>Miktar *</Text>
-                <TextInput
-                  style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary }}
-                  keyboardType="numeric"
-                  placeholder="1"
-                  placeholderTextColor={theme.textMuted}
-                  value={quantity}
-                  onChangeText={setQuantity}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>Satış Fiyatı (₺)</Text>
-                <TextInput
-                  style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary }}
-                  keyboardType="decimal-pad"
-                  placeholder="Otomatik"
-                  placeholderTextColor={theme.textMuted}
-                  value={unitPrice}
-                  onChangeText={setUnitPrice}
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={{ backgroundColor: theme.primary, borderRadius: BorderRadius.md, padding: Spacing.md, alignItems: 'center', opacity: mutation.isPending ? 0.7 : 1 }}
-              onPress={handleAdd}
-              disabled={mutation.isPending}
-            >
-              {mutation.isPending ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.base }}>🔩 Parçayı Ekle</Text>}
-            </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
       </KeyboardAvoidingView>
@@ -227,21 +1077,45 @@ function AddPartModal({ visible, orderId, onClose, theme }: any) {
 }
 
 // ─── Ödeme & Tahsilat Güncelle Modal ──────────────────────────────────────────
+// ─── Ödeme & Tahsilat Girişi ve Düzeltme Modalı ──────────────────────────────
 function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
   const queryClient = useQueryClient();
-  const [payAmount, setPayAmount] = useState(String(order?.paidAmount || 0));
-  const [payStatus, setPayStatus] = useState(order?.paymentStatus || 'BEKLIYOR');
-  const [payMethod, setPayMethod] = useState(order?.paymentMethod || 'NAKIT');
-  const [payNotes, setPayNotes] = useState(order?.paymentNotes || '');
+  const total = parseFloat(order?.totalAmount || 0);
+  const paid = parseFloat(order?.paidAmount || 0);
+  const remaining = Math.max(0, total - paid);
+
+  // Active Tab: 'collect' (Yeni Tahsilat Al) or 'edit' (Kaydı Düzelt / Sıfırla)
+  const [activeTab, setActiveTab] = useState<'collect' | 'edit'>('collect');
+
+  // Tab 1 (Tahsilat Al) state
+  const [collectAmount, setCollectAmount] = useState(String(remaining > 0 ? remaining : ''));
+  const [collectMethod, setCollectMethod] = useState(order?.paymentMethod || 'NAKIT');
+  const [collectNotes, setCollectNotes] = useState('');
+
+  // Tab 2 (Kaydı Düzelt) state
+  const [editPaidAmount, setEditPaidAmount] = useState(String(order?.paidAmount || 0));
+  const [editStatus, setEditStatus] = useState(order?.paymentStatus || 'BEKLIYOR');
+  const [editMethod, setEditMethod] = useState(order?.paymentMethod || 'NAKIT');
+  const [editNotes, setEditNotes] = useState(order?.paymentNotes || '');
 
   React.useEffect(() => {
     if (order) {
-      setPayAmount(String(order.paidAmount || 0));
-      setPayStatus(order.paymentStatus || 'BEKLIYOR');
-      setPayMethod(order.paymentMethod || 'NAKIT');
-      setPayNotes(order.paymentNotes || '');
+      const curTotal = parseFloat(order.totalAmount || 0);
+      const curPaid = parseFloat(order.paidAmount || 0);
+      const curRemaining = Math.max(0, curTotal - curPaid);
+
+      setCollectAmount(curRemaining > 0 ? String(curRemaining) : '');
+      setCollectMethod(order.paymentMethod || 'NAKIT');
+      setCollectNotes('');
+
+      setEditPaidAmount(String(curPaid));
+      setEditStatus(order.paymentStatus || 'BEKLIYOR');
+      setEditMethod(order.paymentMethod || 'NAKIT');
+      setEditNotes(order.paymentNotes || '');
+
+      setActiveTab('collect');
     }
-  }, [order]);
+  }, [order, visible]);
 
   const mutation = useMutation({
     mutationFn: (data: any) => workOrderAPI.updatePayment(order.id, data),
@@ -249,174 +1123,463 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
       queryClient.invalidateQueries({ queryKey: ['work-order', order.id] });
       queryClient.invalidateQueries({ queryKey: ['work-orders'] });
       queryClient.invalidateQueries({ queryKey: ['receivables'] });
+      queryClient.invalidateQueries({ queryKey: ['cashDaily'] });
       onClose();
-      Alert.alert('Başarılı', 'Ödeme ve veresiye durumu güncellendi! ✅');
+      Alert.alert('Başarılı', 'Ödeme ve kasa kaydı güncellendi! ✅');
     },
     onError: (err: any) => Alert.alert('Hata', err?.response?.data?.error || err?.message || 'Ödeme güncellenemedi.'),
   });
 
-  const handleSave = () => {
-    const numericPaid = parseFloat(payAmount);
-    if (isNaN(numericPaid) || numericPaid < 0) {
-      Alert.alert('Hata', 'Lütfen geçerli bir tutar giriniz.');
+  // Handle Tab 1: Yeni Tahsilat Al
+  const handleCollect = () => {
+    const numAmount = parseFloat(collectAmount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      Alert.alert('Geçersiz Tutar', 'Lütfen tahsil edilecek tutarı 0\'dan büyük olarak giriniz.');
       return;
     }
+
     mutation.mutate({
-      paidAmount: numericPaid,
-      paymentStatus: payStatus,
-      paymentMethod: payMethod,
-      paymentNotes: payNotes.trim() || undefined,
+      amountCollected: numAmount,
+      paymentMethod: collectMethod,
+      paymentNotes: collectNotes.trim() || undefined,
     });
   };
 
-  const total = parseFloat(order?.totalAmount || 0);
+  // Handle Tab 2: Kaydı Düzelt
+  const handleEditRecord = () => {
+    const numPaid = parseFloat(editPaidAmount);
+    if (isNaN(numPaid) || numPaid < 0) {
+      Alert.alert('Geçersiz Tutar', 'Lütfen geçerli bir toplam ödeme tutarı giriniz.');
+      return;
+    }
+
+    mutation.mutate({
+      paidAmount: numPaid,
+      paymentStatus: editStatus,
+      paymentMethod: editMethod,
+      paymentNotes: editNotes.trim() || undefined,
+    });
+  };
+
+  const parsedCollect = parseFloat(collectAmount) || 0;
+  const projectedPaid = paid + parsedCollect;
+  const projectedRemaining = Math.max(0, remaining - parsedCollect);
+
+  const parsedEditPaid = parseFloat(editPaidAmount) || 0;
+  const projectedEditRemaining = Math.max(0, total - parsedEditPaid);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: theme.background, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, maxHeight: '90%' }}>
+        <View style={{ backgroundColor: theme.background, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, maxHeight: '92%' }}>
+          
+          {/* Header */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: theme.border }}>
-            <View>
-              <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: theme.textPrimary }}>💳 Ödeme & Tahsilat Girişi</Text>
-              <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, marginTop: 2 }}>{order?.customerName} — {order?.vehicleInfo}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: theme.textPrimary }}>
+                💳 Ödeme & Tahsilat Yönetimi
+              </Text>
+              <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, marginTop: 2 }}>
+                {order?.customerName} — {order?.vehicleInfo}
+              </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
-              <Text style={{ fontSize: 18, color: theme.textMuted }}>✕</Text>
+              <Text style={{ fontSize: 20, color: theme.textMuted }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Mode Switcher Tabs */}
+          <View style={{ flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, gap: Spacing.sm }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: Spacing.sm,
+                alignItems: 'center',
+                borderBottomWidth: 3,
+                borderBottomColor: activeTab === 'collect' ? theme.primary : 'transparent',
+              }}
+              onPress={() => setActiveTab('collect')}
+            >
+              <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: activeTab === 'collect' ? '800' : '600', color: activeTab === 'collect' ? theme.primary : theme.textMuted }}>
+                💰 Yeni Tahsilat Al
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: Spacing.sm,
+                alignItems: 'center',
+                borderBottomWidth: 3,
+                borderBottomColor: activeTab === 'edit' ? '#F59E0B' : 'transparent',
+              }}
+              onPress={() => setActiveTab('edit')}
+            >
+              <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: activeTab === 'edit' ? '800' : '600', color: activeTab === 'edit' ? '#F59E0B' : theme.textMuted }}>
+                ✏️ Kaydı Düzelt / Sıfırla
+              </Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView contentContainerStyle={{ padding: Spacing.lg }}>
-            {/* Top Balance Summary */}
+            {/* Top Balance Summary 3-Card Header */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', backgroundColor: theme.surface, borderRadius: BorderRadius.md, padding: Spacing.md, borderWidth: 1, borderColor: theme.border, marginBottom: Spacing.md }}>
               <View>
-                <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted }}>Toplam Servis Tutarı</Text>
-                <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: theme.textPrimary, marginTop: 2 }}>
+                <Text style={{ fontSize: 10, color: theme.textMuted, textTransform: 'uppercase', fontWeight: '700' }}>İş Emri Tutarı</Text>
+                <Text style={{ fontSize: Typography.fontSize.base, fontWeight: '800', color: theme.textPrimary, marginTop: 2 }}>
                   ₺{total.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
                 </Text>
               </View>
+              <View>
+                <Text style={{ fontSize: 10, color: theme.textMuted, textTransform: 'uppercase', fontWeight: '700' }}>Şu Ana Kadar Alınan</Text>
+                <Text style={{ fontSize: Typography.fontSize.base, fontWeight: '800', color: theme.success, marginTop: 2 }}>
+                  ₺{paid.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                </Text>
+              </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted }}>Kalan Bakiye</Text>
-                <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: theme.danger, marginTop: 2 }}>
-                  ₺{Math.max(0, total - (parseFloat(payAmount) || 0)).toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                <Text style={{ fontSize: 10, color: theme.textMuted, textTransform: 'uppercase', fontWeight: '700' }}>Kalan Müşteri Borcu</Text>
+                <Text style={{ fontSize: Typography.fontSize.base, fontWeight: '800', color: remaining > 0 ? theme.danger : theme.success, marginTop: 2 }}>
+                  ₺{remaining.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
                 </Text>
               </View>
             </View>
 
-            {/* Paid Amount */}
-            <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Tahsil Edilen Tutar (₺) *</Text>
-            <TextInput
-              style={{ backgroundColor: theme.surface, borderRadius: BorderRadius.md, borderWidth: 2, borderColor: theme.success, padding: Spacing.md, fontSize: Typography.fontSize.xl, fontWeight: '800', color: theme.textPrimary, textAlign: 'center' }}
-              keyboardType="decimal-pad"
-              value={payAmount}
-              onChangeText={setPayAmount}
-            />
+            {/* TAB 1: YENİ TAHSİLAT AL */}
+            {activeTab === 'collect' && (
+              <View>
+                {remaining <= 0 ? (
+                  <View style={{ backgroundColor: theme.success + '15', borderWidth: 1.5, borderColor: theme.success, borderRadius: BorderRadius.lg, padding: Spacing.lg, alignItems: 'center', marginBottom: Spacing.md }}>
+                    <Text style={{ fontSize: 36, marginBottom: Spacing.xs }}>🎉</Text>
+                    <Text style={{ fontSize: Typography.fontSize.base, fontWeight: '800', color: theme.success, textAlign: 'center' }}>
+                      MÜŞTERİNİN BORCU YOKTUR
+                    </Text>
+                    <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary, textAlign: 'center', marginTop: 4, lineHeight: 18 }}>
+                      Bu iş emrinin tüm bedeli (₺{total.toLocaleString('tr-TR')}) eksiksiz tahsil edilmiştir. Açık hesap borcu bulunmamaktadır.
+                    </Text>
 
-            {/* Quick shortcuts */}
-            <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: 6, marginBottom: Spacing.md }}>
-              <TouchableOpacity
-                style={{ flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.sm, paddingVertical: 6, alignItems: 'center' }}
-                onPress={() => {
-                  setPayAmount(String(total));
-                  setPayStatus('ODENDI');
-                }}
-              >
-                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.success }}>Tamamını Öde (₺{total})</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.sm, paddingVertical: 6, alignItems: 'center' }}
-                onPress={() => {
-                  setPayAmount('0');
-                  setPayStatus('VERESIYE');
-                  setPayMethod('VERESIYE');
-                }}
-              >
-                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.danger }}>Veresiye / Açık Hesap</Text>
-              </TouchableOpacity>
-            </View>
+                    <View style={{ height: 1, backgroundColor: theme.border, width: '100%', marginVertical: Spacing.md }} />
 
-            {/* Status Selector */}
-            <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Ödeme Durumu</Text>
-            <View style={{ flexDirection: 'row', gap: Spacing.xs, marginBottom: Spacing.md }}>
-              {[
-                { id: 'ODENDI', label: '✅ Ödendi', color: theme.success },
-                { id: 'KISMI', label: '🟡 Kısmi', color: '#F59E0B' },
-                { id: 'VERESIYE', label: '🔴 Veresiye', color: theme.danger },
-                { id: 'BEKLIYOR', label: '⏳ Bekliyor', color: theme.textMuted },
-              ].map((s) => (
-                <TouchableOpacity
-                  key={s.id}
-                  style={{
-                    flex: 1,
-                    backgroundColor: payStatus === s.id ? s.color + '20' : theme.surface,
-                    borderWidth: 1,
-                    borderColor: payStatus === s.id ? s.color : theme.border,
-                    borderRadius: BorderRadius.md,
-                    paddingVertical: Spacing.sm,
-                    alignItems: 'center',
-                  }}
-                  onPress={() => setPayStatus(s.id)}
-                >
-                  <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: payStatus === s.id ? '800' : '600', color: payStatus === s.id ? s.color : theme.textSecondary }}>
-                    {s.label}
+                    <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, textAlign: 'center', marginBottom: Spacing.sm }}>
+                      Geçmişte yanlış tutar girdiyseniz veya borcu sıfırlamak istiyorsanız:
+                    </Text>
+
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#F59E0B20', borderWidth: 1, borderColor: '#F59E0B', borderRadius: BorderRadius.md, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}
+                      onPress={() => setActiveTab('edit')}
+                    >
+                      <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: '#D97706' }}>
+                        ✏️ Ödeme Kaydını Düzelt Sekmesine Geç
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <>
+                    {/* Tahsilat Input */}
+                    <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>
+                      Şimdi Alınan Tahsilat Tutarı (₺) *
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderRadius: BorderRadius.md,
+                        borderWidth: 2,
+                        borderColor: theme.success,
+                        padding: Spacing.md,
+                        fontSize: Typography.fontSize.xl,
+                        fontWeight: '800',
+                        color: theme.textPrimary,
+                        textAlign: 'center',
+                      }}
+                      keyboardType="decimal-pad"
+                      value={collectAmount}
+                      onChangeText={setCollectAmount}
+                      placeholder="0"
+                      placeholderTextColor={theme.textMuted}
+                    />
+
+                    {/* Quick shortcuts */}
+                    <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: 6, marginBottom: Spacing.md }}>
+                      <TouchableOpacity
+                        style={{ flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.sm, paddingVertical: 8, alignItems: 'center' }}
+                        onPress={() => setCollectAmount(String(remaining))}
+                      >
+                        <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.success }}>
+                          Borcun Tamamı (₺{remaining.toLocaleString('tr-TR')})
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.sm, paddingVertical: 8, alignItems: 'center' }}
+                        onPress={() => setCollectAmount(String(Math.round(remaining / 2)))}
+                      >
+                        <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.primary }}>
+                          Yarısı (₺{Math.round(remaining / 2).toLocaleString('tr-TR')})
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Projected calculation preview box */}
+                    {parsedCollect > 0 && (
+                      <View style={{ backgroundColor: theme.primary + '10', borderWidth: 1, borderColor: theme.primary + '30', borderRadius: BorderRadius.md, padding: Spacing.sm + 2, marginBottom: Spacing.md }}>
+                        <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.primary, marginBottom: 4 }}>
+                          ⚡ İşlem Sonrası Durum Özeti:
+                        </Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+                          <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary }}>Kasaya Girecek:</Text>
+                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.success }}>+₺{parsedCollect.toLocaleString('tr-TR')}</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+                          <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary }}>Yeni Toplam Tahsilat:</Text>
+                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary }}>₺{projectedPaid.toLocaleString('tr-TR')}</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+                          <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary }}>Kalan Son Borç:</Text>
+                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: projectedRemaining === 0 ? theme.success : theme.danger }}>
+                            ₺{projectedRemaining.toLocaleString('tr-TR')} {projectedRemaining === 0 ? '(Borç Kapanıyor ✅)' : '(Kısmi Bakiye 🟡)'}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Payment Method */}
+                    <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Ödeme Şekli</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginBottom: Spacing.md }}>
+                      {[
+                        { id: 'NAKIT', label: '💵 Nakit' },
+                        { id: 'KREDI_KARTI', label: '💳 Kredi Kartı' },
+                        { id: 'HAVALE', label: '🏦 Havale/EFT' },
+                      ].map((m) => (
+                        <TouchableOpacity
+                          key={m.id}
+                          style={{
+                            flex: 1,
+                            backgroundColor: collectMethod === m.id ? theme.primary + '15' : theme.surface,
+                            borderWidth: 1,
+                            borderColor: collectMethod === m.id ? theme.primary : theme.border,
+                            borderRadius: BorderRadius.md,
+                            paddingVertical: Spacing.sm,
+                            alignItems: 'center',
+                          }}
+                          onPress={() => setCollectMethod(m.id)}
+                        >
+                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: collectMethod === m.id ? '800' : '600', color: collectMethod === m.id ? theme.primary : theme.textSecondary }}>
+                            {m.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    {/* Payment Notes */}
+                    <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Tahsilat Notu</Text>
+                    <TextInput
+                      style={{ backgroundColor: theme.surface, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: theme.border, padding: Spacing.md, color: theme.textPrimary, fontSize: Typography.fontSize.sm, minHeight: 50, textAlignVertical: 'top', marginBottom: Spacing.lg }}
+                      placeholder="Örn: Elden teslim alındı..."
+                      placeholderTextColor={theme.textMuted}
+                      value={collectNotes}
+                      onChangeText={setCollectNotes}
+                    />
+
+                    {/* Collect Button */}
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: theme.success,
+                        borderRadius: BorderRadius.md,
+                        paddingVertical: Spacing.md,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: Spacing.xs,
+                        ...Shadows.sm,
+                        opacity: mutation.isPending || parsedCollect <= 0 ? 0.6 : 1,
+                      }}
+                      onPress={handleCollect}
+                      disabled={mutation.isPending || parsedCollect <= 0}
+                    >
+                      {mutation.isPending ? <ActivityIndicator color="#fff" /> : (
+                        <>
+                          <Check size={18} color="#fff" />
+                          <Text style={{ color: '#fff', fontSize: Typography.fontSize.base, fontWeight: '800' }}>
+                            {parsedCollect > 0 ? `₺${parsedCollect.toLocaleString('tr-TR')} Tahsil Et ve Kasaya Kaydet` : 'Tahsilat Tutarı Giriniz'}
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            )}
+
+            {/* TAB 2: KAYDI DÜZELT / SIFIRLA */}
+            {activeTab === 'edit' && (
+              <View>
+                <View style={{ backgroundColor: '#F59E0B15', borderWidth: 1, borderColor: '#F59E0B50', borderRadius: BorderRadius.md, padding: Spacing.md, marginBottom: Spacing.md }}>
+                  <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: '#D97706', marginBottom: 2 }}>
+                    ⚠️ Manuel Kayıt Düzeltme Modu
                   </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Payment Method */}
-            <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Ödeme Yöntemi</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginBottom: Spacing.md }}>
-              {[
-                { id: 'NAKIT', label: '💵 Nakit' },
-                { id: 'KREDI_KARTI', label: '💳 Kredi Kartı' },
-                { id: 'HAVALE', label: '🏦 Havale/EFT' },
-                { id: 'VERESIYE', label: '🔴 Açık Hesap' },
-              ].map((m) => (
-                <TouchableOpacity
-                  key={m.id}
-                  style={{
-                    flex: 1,
-                    minWidth: '45%',
-                    backgroundColor: payMethod === m.id ? theme.primary + '15' : theme.surface,
-                    borderWidth: 1,
-                    borderColor: payMethod === m.id ? theme.primary : theme.border,
-                    borderRadius: BorderRadius.md,
-                    paddingVertical: Spacing.sm,
-                    alignItems: 'center',
-                  }}
-                  onPress={() => setPayMethod(m.id)}
-                >
-                  <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: payMethod === m.id ? '800' : '600', color: payMethod === m.id ? theme.primary : theme.textSecondary }}>
-                    {m.label}
+                  <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary, lineHeight: 16 }}>
+                    Bu alan geçmişte sisteme yanlış girilmiş toplam ödeme kaydını doğrudan düzeltmek içindir. Burada girilen tutar doğrudan "toplam ödenen" olarak kaydedilir.
                   </Text>
+                </View>
+
+                {/* Direct Paid Amount Input */}
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>
+                  Sistemde Kayıtlı Toplam Ödenen Tutar (₺) *
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderRadius: BorderRadius.md,
+                    borderWidth: 2,
+                    borderColor: '#F59E0B',
+                    padding: Spacing.md,
+                    fontSize: Typography.fontSize.xl,
+                    fontWeight: '800',
+                    color: theme.textPrimary,
+                    textAlign: 'center',
+                  }}
+                  keyboardType="decimal-pad"
+                  value={editPaidAmount}
+                  onChangeText={(val) => {
+                    setEditPaidAmount(val);
+                    const n = parseFloat(val) || 0;
+                    if (n >= total - 0.01 && total > 0) setEditStatus('ODENDI');
+                    else if (n > 0) setEditStatus('KISMI');
+                    else setEditStatus('VERESIYE');
+                  }}
+                />
+
+                {/* Edit Shortcuts */}
+                <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: 6, marginBottom: Spacing.md }}>
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.sm, paddingVertical: 8, alignItems: 'center' }}
+                    onPress={() => {
+                      setEditPaidAmount(String(total));
+                      setEditStatus('ODENDI');
+                    }}
+                  >
+                    <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.success }}>
+                      Tamamen Ödendi Yap (₺{total})
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.sm, paddingVertical: 8, alignItems: 'center' }}
+                    onPress={() => {
+                      setEditPaidAmount('0');
+                      setEditStatus('VERESIYE');
+                      setEditMethod('VERESIYE');
+                    }}
+                  >
+                    <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.danger }}>
+                      Sıfırla / Tamamı Veresiye
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Dynamic Preview for Edit */}
+                <View style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.sm + 2, marginBottom: Spacing.md, flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted }}>Kayıt Sonrası Kalan Borç:</Text>
+                  <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: projectedEditRemaining > 0 ? theme.danger : theme.success }}>
+                    ₺{projectedEditRemaining.toLocaleString('tr-TR')}
+                  </Text>
+                </View>
+
+                {/* Status Selector */}
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Ödeme Durumu</Text>
+                <View style={{ flexDirection: 'row', gap: Spacing.xs, marginBottom: Spacing.md }}>
+                  {[
+                    { id: 'ODENDI', label: '✅ Ödendi', color: theme.success },
+                    { id: 'KISMI', label: '🟡 Kısmi', color: '#F59E0B' },
+                    { id: 'VERESIYE', label: '🔴 Veresiye', color: theme.danger },
+                    { id: 'BEKLIYOR', label: '⏳ Bekliyor', color: theme.textMuted },
+                  ].map((s) => (
+                    <TouchableOpacity
+                      key={s.id}
+                      style={{
+                        flex: 1,
+                        backgroundColor: editStatus === s.id ? s.color + '20' : theme.surface,
+                        borderWidth: 1,
+                        borderColor: editStatus === s.id ? s.color : theme.border,
+                        borderRadius: BorderRadius.md,
+                        paddingVertical: Spacing.sm,
+                        alignItems: 'center',
+                      }}
+                      onPress={() => setEditStatus(s.id)}
+                    >
+                      <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: editStatus === s.id ? '800' : '600', color: editStatus === s.id ? s.color : theme.textSecondary }}>
+                        {s.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Payment Method */}
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Ödeme Yöntemi</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginBottom: Spacing.md }}>
+                  {[
+                    { id: 'NAKIT', label: '💵 Nakit' },
+                    { id: 'KREDI_KARTI', label: '💳 Kredi Kartı' },
+                    { id: 'HAVALE', label: '🏦 Havale/EFT' },
+                    { id: 'VERESIYE', label: '🔴 Açık Hesap' },
+                  ].map((m) => (
+                    <TouchableOpacity
+                      key={m.id}
+                      style={{
+                        flex: 1,
+                        minWidth: '45%',
+                        backgroundColor: editMethod === m.id ? '#F59E0B15' : theme.surface,
+                        borderWidth: 1,
+                        borderColor: editMethod === m.id ? '#F59E0B' : theme.border,
+                        borderRadius: BorderRadius.md,
+                        paddingVertical: Spacing.sm,
+                        alignItems: 'center',
+                      }}
+                      onPress={() => setEditMethod(m.id)}
+                    >
+                      <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: editMethod === m.id ? '800' : '600', color: editMethod === m.id ? '#D97706' : theme.textSecondary }}>
+                        {m.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Payment Notes */}
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Düzeltme / Açıklama Notu</Text>
+                <TextInput
+                  style={{ backgroundColor: theme.surface, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: theme.border, padding: Spacing.md, color: theme.textPrimary, fontSize: Typography.fontSize.sm, minHeight: 60, textAlignVertical: 'top', marginBottom: Spacing.lg }}
+                  placeholder="Düzeltme sebebi veya not..."
+                  placeholderTextColor={theme.textMuted}
+                  value={editNotes}
+                  onChangeText={setEditNotes}
+                  multiline
+                />
+
+                {/* Save Edit Button */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#D97706',
+                    borderRadius: BorderRadius.md,
+                    paddingVertical: Spacing.md,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: Spacing.xs,
+                    ...Shadows.sm,
+                    opacity: mutation.isPending ? 0.7 : 1,
+                  }}
+                  onPress={handleEditRecord}
+                  disabled={mutation.isPending}
+                >
+                  {mutation.isPending ? <ActivityIndicator color="#fff" /> : (
+                    <>
+                      <Check size={18} color="#fff" />
+                      <Text style={{ color: '#fff', fontSize: Typography.fontSize.base, fontWeight: '800' }}>
+                        Ödeme Kaydını Güncelle
+                      </Text>
+                    </>
+                  )}
                 </TouchableOpacity>
-              ))}
-            </View>
+              </View>
+            )}
 
-            {/* Payment Notes */}
-            <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Ödeme / Vade Notu</Text>
-            <TextInput
-              style={{ backgroundColor: theme.surface, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: theme.border, padding: Spacing.md, color: theme.textPrimary, fontSize: Typography.fontSize.sm, minHeight: 60, textAlignVertical: 'top', marginBottom: Spacing.lg }}
-              placeholder="Örn: 2.000 TL nakit alındı, kalan cuma günü ödenecek..."
-              placeholderTextColor={theme.textMuted}
-              value={payNotes}
-              onChangeText={setPayNotes}
-              multiline
-            />
-
-            {/* Save Button */}
-            <TouchableOpacity
-              style={{ backgroundColor: theme.success, borderRadius: BorderRadius.md, paddingVertical: Spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, ...Shadows.sm, opacity: mutation.isPending ? 0.7 : 1 }}
-              onPress={handleSave}
-              disabled={mutation.isPending}
-            >
-              {mutation.isPending ? <ActivityIndicator color="#fff" /> : (
-                <>
-                  <Check size={18} color="#fff" />
-                  <Text style={{ color: '#fff', fontSize: Typography.fontSize.base, fontWeight: '800' }}>Ödeme Bilgilerini Kaydet</Text>
-                </>
-              )}
-            </TouchableOpacity>
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -717,6 +1880,8 @@ export default function WorkOrderDetailScreen() {
 
   const [showAddPart, setShowAddPart] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showConsumablesModal, setShowConsumablesModal] = useState(false);
+  const [showSalvageModal, setShowSalvageModal] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['work-order', id],
@@ -940,11 +2105,13 @@ export default function WorkOrderDetailScreen() {
             {/* Action buttons */}
             <View style={{ flexDirection: 'row', gap: Spacing.xs, marginTop: Spacing.sm }}>
               <TouchableOpacity
-                style={[dynamicStyles.paymentActionBtn, { backgroundColor: theme.primary }]}
+                style={[dynamicStyles.paymentActionBtn, { backgroundColor: remaining > 0 ? theme.primary : theme.success }]}
                 onPress={() => setShowPaymentModal(true)}
               >
                 <CreditCard size={14} color="#fff" />
-                <Text style={dynamicStyles.paymentActionBtnText}>Ödeme / Tahsilat Al</Text>
+                <Text style={dynamicStyles.paymentActionBtnText}>
+                  {remaining > 0 ? '💰 Tahsilat Al' : '✅ Tahsilat Tamamlandı (Yönet)'}
+                </Text>
               </TouchableOpacity>
 
               {remaining > 0 && order.customerPhone && (
@@ -1012,20 +2179,69 @@ export default function WorkOrderDetailScreen() {
           </View>
         )}
 
-        {/* Parçalar */}
+        {/* Parçalar & Sanayi Hızlı Aksiyonları */}
         <View style={dynamicStyles.section}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm }}>
             <Text style={dynamicStyles.sectionTitle}>🔩 Kullanılan Parçalar</Text>
             {order.status !== 'TAMAMLANDI' && order.status !== 'IPTAL' && (
               <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.primary + '15', borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, paddingVertical: 8, borderWidth: 1, borderColor: theme.primary }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.primary, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, paddingVertical: 8 }}
                 onPress={() => setShowAddPart(true)}
               >
-                <Plus size={14} color={theme.primary} />
-                <Text style={{ color: theme.primary, fontWeight: '700', fontSize: Typography.fontSize.sm }}>PARÇA EKLE</Text>
+                <Plus size={14} color="#fff" />
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.sm }}>PARÇA EKLE</Text>
               </TouchableOpacity>
             )}
           </View>
+
+          {/* Hızlı Sanayi Butonları (Sarf Malzemesi & Çıkma Parça) */}
+          {order.status !== 'TAMAMLANDI' && order.status !== 'IPTAL' && (
+            <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: '#FEF3C7',
+                  borderColor: '#FCD34D',
+                  borderWidth: 1,
+                  borderRadius: BorderRadius.md,
+                  paddingVertical: 9,
+                  paddingHorizontal: Spacing.sm,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+                onPress={() => setShowConsumablesModal(true)}
+              >
+                <Text style={{ fontSize: 16 }}>🧰</Text>
+                <Text style={{ color: '#92400E', fontWeight: '800', fontSize: Typography.fontSize.xs }}>
+                  + Sarf Malzemesi
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: '#ECFDF5',
+                  borderColor: '#A7F3D0',
+                  borderWidth: 1,
+                  borderRadius: BorderRadius.md,
+                  paddingVertical: 9,
+                  paddingHorizontal: Spacing.sm,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+                onPress={() => setShowSalvageModal(true)}
+              >
+                <Text style={{ fontSize: 16 }}>♻️</Text>
+                <Text style={{ color: '#065F46', fontWeight: '800', fontSize: Typography.fontSize.xs }}>
+                  Çıkma Parça Kaydet
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {order.items?.length === 0 ? (
             <TouchableOpacity
@@ -1101,6 +2317,8 @@ export default function WorkOrderDetailScreen() {
 
       <AddPartModal visible={showAddPart} orderId={id} onClose={() => setShowAddPart(false)} theme={theme} />
       <PaymentUpdateModal visible={showPaymentModal} order={order} onClose={() => setShowPaymentModal(false)} theme={theme} />
+      <WorkshopConsumableModal visible={showConsumablesModal} orderId={id} onClose={() => setShowConsumablesModal(false)} theme={theme} />
+      <SalvagePartModal visible={showSalvageModal} order={order} onClose={() => setShowSalvageModal(false)} theme={theme} />
     </SafeAreaView>
   );
 }

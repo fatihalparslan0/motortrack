@@ -7,8 +7,11 @@ const validate = require('../middleware/validate.middleware');
 
 router.use(authenticate, requireSubscription);
 
+router.get('/summary', ctrl.getSuppliersSummary);
 router.get('/', ctrl.getSuppliers);
 router.get('/:id', ctrl.getSupplierById);
+router.get('/:id/transactions', ctrl.getSupplierTransactions);
+router.post('/:id/payments', ctrl.recordSupplierPayment);
 
 router.post('/', [
   body('name').notEmpty().withMessage('Tedarikçi adı zorunludur.'),

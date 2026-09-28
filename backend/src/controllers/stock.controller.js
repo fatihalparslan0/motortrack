@@ -4,7 +4,7 @@ const { success, error } = require('../utils/apiResponse');
 // ─── Stok Girişi (Satın Alma) ─────────────────────────────────────────────────
 exports.purchaseStock = async (req, res, next) => {
   try {
-    const { partId, quantity, unitCost, supplierId, warehouseId, notes } = req.body;
+    const { partId, quantity, unitCost, supplierId, warehouseId, invoiceNumber, notes } = req.body;
 
     const part = await prisma.part.findFirst({
       where: { id: partId, companyId: req.company.id },
@@ -18,8 +18,9 @@ exports.purchaseStock = async (req, res, next) => {
     if (isNaN(cost) || cost < 0) return error(res, 'Geçerli bir alış fiyatı girin.', 400);
 
     // Tedarikçi kontrolü
+    let supplier = null;
     if (supplierId) {
-      const supplier = await prisma.supplier.findFirst({
+      supplier = await prisma.supplier.findFirst({
         where: { id: supplierId, companyId: req.company.id },
       });
       if (!supplier) return error(res, 'Tedarikçi bulunamadı.', 404);
@@ -32,8 +33,8 @@ exports.purchaseStock = async (req, res, next) => {
       : await prisma.warehouse.findFirst({ where: { isDefault: true, companyId: req.company.id } });
     const wId = warehouse?.id;
 
-    // Transaction: stok artır + hareket kaydet + satın alma kaydı oluştur + depo stoku
-    const [updatedPart, movement, purchase, wStock] = await prisma.$transaction([
+    // Transaction: stok artır + hareket kaydet + satın alma kaydı oluştur + depo stoku + tedarikçi carisi
+    const [updatedPart, movement, purchase] = await prisma.$transaction([
       prisma.part.update({
         where: { id: partId },
         data: {
@@ -50,7 +51,8 @@ exports.purchaseStock = async (req, res, next) => {
           quantity: qty,
           unitCost: cost,
           referenceType: 'PURCHASE',
-          notes: notes || `${qty} adet satın alındı${supplierId ? ' (tedarikçiden)' : ''}`,
+          documentNo: invoiceNumber || null,
+          notes: notes || `${qty} adet satın alındı${supplier ? ` (${supplier.name})` : ''}`,
         },
       }),
       prisma.purchaseRecord.create({
@@ -62,15 +64,36 @@ exports.purchaseStock = async (req, res, next) => {
           quantity: qty,
           unitCost: cost,
           totalCost,
+          invoiceNumber: invoiceNumber || null,
           notes,
         },
       }),
       // Depo stokunu güncelle
-      wId ? prisma.warehouseStock.upsert({
-        where: { warehouseId_partId: { warehouseId: wId, partId } },
-        update: { quantity: { increment: qty } },
-        create: { warehouseId: wId, partId, quantity: qty }
-      }) : prisma.part.findUnique({ where: { id: partId } })
+      ...(wId ? [
+        prisma.warehouseStock.upsert({
+          where: { warehouseId_partId: { warehouseId: wId, partId } },
+          update: { quantity: { increment: qty } },
+          create: { warehouseId: wId, partId, quantity: qty }
+        })
+      ] : []),
+      // Tedarikçi cari borcunu artır & cari hareket yaz
+      ...(supplierId ? [
+        prisma.supplier.update({
+          where: { id: supplierId },
+          data: { balance: { increment: totalCost } },
+        }),
+        prisma.supplierTransaction.create({
+          data: {
+            companyId: req.company.id,
+            supplierId,
+            userId: req.user.id,
+            type: 'ALIS',
+            amount: totalCost,
+            documentNo: invoiceNumber || null,
+            notes: notes || `${part.name} - ${qty} ${part.unit} alımı`,
+          },
+        }),
+      ] : [])
     ]);
 
     return success(res, {
@@ -86,7 +109,7 @@ exports.purchaseStock = async (req, res, next) => {
 // ─── Manuel Stok Çıkışı ───────────────────────────────────────────────────────
 exports.stockOut = async (req, res, next) => {
   try {
-    const { partId, quantity, reason, warehouseId, notes } = req.body;
+    const { partId, quantity, reason, warehouseId, notes, supplierId, documentNo } = req.body;
 
     const part = await prisma.part.findFirst({
       where: { id: partId, companyId: req.company.id },
@@ -106,18 +129,42 @@ exports.stockOut = async (req, res, next) => {
       );
     }
 
+    // Tedarikçi bilgisi (varsa)
+    let supplier = null;
+    if (supplierId) {
+      supplier = await prisma.supplier.findFirst({
+        where: { id: supplierId, companyId: req.company.id },
+      });
+    }
+
     // Hareket tipi belirleme
     const movementTypeMap = {
       FIRE: 'FIRE',
       SATIS: 'SATIS',
       DUZELTME: 'DUZELTME',
+      IADE: 'IADE',
+      TEDARIKCIYE_IADE: 'IADE',
+      ATOLYE_SARFI: 'ATOLYE_SARFI',
+      SARF: 'ATOLYE_SARFI',
     };
+    const isSupplierReturn = reason === 'IADE' || reason === 'TEDARIKCIYE_IADE';
+    const isWorkshopConsumable = reason === 'ATOLYE_SARFI' || reason === 'SARF';
     const movementType = movementTypeMap[reason] || 'OUT';
 
     const warehouse = warehouseId 
       ? await prisma.warehouse.findFirst({ where: { id: warehouseId, companyId: req.company.id } }) 
       : await prisma.warehouse.findFirst({ where: { isDefault: true, companyId: req.company.id } });
     const wId = warehouse?.id;
+
+    const defaultNotes = isSupplierReturn
+      ? (supplier ? `Tedarikçiye İade: ${supplier.name}` : 'Parçacıya İade Edildi')
+      : isWorkshopConsumable
+      ? 'Atölye Sarf Malzemesi Çıkışı (Balata Spreyi, Sıvı Conta vb.)'
+      : `Manuel stok çıkışı: ${reason}`;
+
+    const returnAmount = isSupplierReturn
+      ? (part.purchasePrice ? parseFloat(part.purchasePrice) * qty : 0)
+      : 0;
 
     const [updatedPart, movement] = await prisma.$transaction([
       prisma.part.update({
@@ -131,7 +178,10 @@ exports.stockOut = async (req, res, next) => {
           userId: req.user.id,
           movementType,
           quantity: qty,
-          notes: notes || `Manuel stok çıkışı: ${reason}`,
+          referenceType: isSupplierReturn ? 'SUPPLIER_RETURN' : isWorkshopConsumable ? 'WORKSHOP_CONSUMPTION' : null,
+          referenceId: supplierId || null,
+          documentNo: documentNo || null,
+          notes: notes || defaultNotes,
         },
       }),
       ...(wId ? [
@@ -140,6 +190,24 @@ exports.stockOut = async (req, res, next) => {
           update: { quantity: { decrement: qty } },
           create: { warehouseId: wId, partId, quantity: 0 }
         })
+      ] : []),
+      // Parçacıya iade ise parçacı carisinden düş ve iade hareketi yaz
+      ...(supplierId && returnAmount > 0 ? [
+        prisma.supplier.update({
+          where: { id: supplierId },
+          data: { balance: { decrement: returnAmount } },
+        }),
+        prisma.supplierTransaction.create({
+          data: {
+            companyId: req.company.id,
+            supplierId,
+            userId: req.user.id,
+            type: 'IADE',
+            amount: returnAmount,
+            documentNo: documentNo || null,
+            notes: notes || `${part.name} - ${qty} ${part.unit} parçacıya iade edildi`,
+          },
+        }),
       ] : [])
     ]);
 

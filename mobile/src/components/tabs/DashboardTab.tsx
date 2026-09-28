@@ -15,7 +15,8 @@ import { Typography, Spacing, BorderRadius, Shadows } from '../../constants/them
 import { useTabStore } from '../../store/tab.store';
 import { 
   Settings, CheckCircle, ClipboardList, Package, Bell, 
-  PlusCircle, Megaphone, ScanLine, Moon, Sun, Palette
+  PlusCircle, Warehouse, ScanLine, Moon, Sun, Palette,
+  DollarSign, ChevronRight
 } from 'lucide-react-native';
 
 function StatCard({ Icon, label, value, color, onPress, theme }: any) {
@@ -192,6 +193,40 @@ export default function Dashboard() {
           </View>
         )}
 
+        {/* Atölye Kasası & Z-Raporu Banner */}
+        <View style={dynamicStyles.section}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={() => router.push('/cash' as any)}
+            style={dynamicStyles.cashBanner}
+          >
+            <LinearGradient
+              colors={themeMode === 'light' ? ['#0D9488', '#115E59'] : ['#134E4A', '#042F2E']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={dynamicStyles.cashBannerInner}
+            >
+              <View style={dynamicStyles.cashBannerLeft}>
+                <View style={dynamicStyles.cashIconBg}>
+                  <DollarSign size={22} color="#5EEAD4" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={dynamicStyles.cashBannerTitle}>Atölye Kasası & Z-Raporu</Text>
+                    <View style={dynamicStyles.cashBadge}>
+                      <Text style={dynamicStyles.cashBadgeText}>GÜN SONU</Text>
+                    </View>
+                  </View>
+                  <Text style={dynamicStyles.cashBannerSubtitle}>
+                    Nakit / POS tahsilatları, parça ve çırak masrafları
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={20} color="#5EEAD4" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
         {/* Quick Actions */}
         <View style={dynamicStyles.section}>
           <Text style={dynamicStyles.sectionTitle}>Hızlı İşlemler</Text>
@@ -199,7 +234,8 @@ export default function Dashboard() {
             {[
               { Icon: ClipboardList, label: 'Yeni İş Emri', path: '/work-orders/create' },
               { Icon: Package, label: 'Parça Ekle', path: '/parts/create' },
-              { Icon: Megaphone, label: 'İlan Ver', path: '/marketplace/create' },
+              { Icon: Warehouse, label: 'Depo Durumu', path: '/warehouse/list' },
+              { Icon: DollarSign, label: 'Atölye Kasası', path: '/cash' },
             ].map((action) => (
               <TouchableOpacity
                 key={action.label}
@@ -275,6 +311,56 @@ const styles = (theme: any) => StyleSheet.create({
   },
   alertTitle: { color: theme.textPrimary, fontWeight: '600', fontSize: Typography.fontSize.sm },
   alertSubtitle: { color: theme.textSecondary, fontSize: Typography.fontSize.xs, marginTop: 4 },
+
+  cashBanner: {
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    ...Shadows.sm,
+  },
+  cashBannerInner: {
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: BorderRadius.lg,
+  },
+  cashBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  cashIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cashBannerTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: '800',
+    color: '#F0FDFA',
+  },
+  cashBadge: {
+    backgroundColor: 'rgba(94, 234, 212, 0.25)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  cashBadgeText: {
+    color: '#5EEAD4',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  cashBannerSubtitle: {
+    fontSize: Typography.fontSize.xs,
+    color: '#CCFBF1',
+    marginTop: 2,
+  },
 
   quickActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   quickAction: { flex: 1, minWidth: '45%', borderRadius: BorderRadius.md, overflow: 'hidden', ...Shadows.sm },

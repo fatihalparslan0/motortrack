@@ -222,6 +222,31 @@ exports.updateWorkOrder = async (req, res, next) => {
       },
     });
 
+    if (paidAmount !== undefined) {
+      const prevPaid = parseFloat(existing.paidAmount || 0);
+      const newPaid = parseFloat(paidAmount || 0);
+      const diff = newPaid - prevPaid;
+      if (diff > 0) {
+        try {
+          await prisma.cashTransaction.create({
+            data: {
+              companyId: req.company.id,
+              userId: req.user.id,
+              type: 'IN',
+              category: 'IS_EMRI_TAHSILAT',
+              amount: diff,
+              paymentMethod: paymentMethod || existing.paymentMethod || 'NAKIT',
+              documentNo: existing.id,
+              description: `İş Emri Tahsilatı: ${existing.customerName ? existing.customerName + ' - ' : ''}${existing.title}`,
+              date: new Date(),
+            },
+          });
+        } catch (cashErr) {
+          console.error('Kasa kaydı oluşturulurken hata:', cashErr);
+        }
+      }
+    }
+
     return success(res, order, 'İş emri güncellendi.');
   } catch (err) {
     next(err);
@@ -259,7 +284,7 @@ exports.deleteWorkOrder = async (req, res, next) => {
 // ─── İş Emrine Parça Ekle ────────────────────────────────────────────────────
 exports.addWorkOrderItem = async (req, res, next) => {
   try {
-    const { partId, quantity, unitPrice, unitCost, notes } = req.body;
+    const { partId, quantity, unitPrice, unitCost, warehouseId, notes } = req.body;
 
     const order = await prisma.workOrder.findFirst({
       where: { id: req.params.id, companyId: req.company.id },
@@ -281,10 +306,16 @@ exports.addWorkOrderItem = async (req, res, next) => {
       ? (part.sellingPrice ? parseFloat(part.sellingPrice) : 0) 
       : price;
 
+    const warehouse = warehouseId
+      ? await prisma.warehouse.findFirst({ where: { id: warehouseId, companyId: req.company.id } })
+      : await prisma.warehouse.findFirst({ where: { isDefault: true, companyId: req.company.id } });
+    const wId = warehouse?.id;
+
     const item = await prisma.workOrderItem.create({
       data: {
         workOrderId: req.params.id,
         partId,
+        warehouseId: wId || null,
         quantity: qty,
         unitPrice: salePrice,
         unitCost: cost,
@@ -320,9 +351,9 @@ exports.updateWorkOrderItemStatus = async (req, res, next) => {
     const part = item.part;
     const prevStatus = item.status;
 
-    // Durum geçişi kuralları
+    // Durum geçişi kuralları (sanayide bekleyen parça doğrudan lifte takılıp kullanıldıya çekilebilir)
     const allowed = {
-      BEKLIYOR: ['REZERVE', 'IPTAL'],
+      BEKLIYOR: ['REZERVE', 'KULLANILDI', 'IPTAL'],
       REZERVE: ['KULLANILDI', 'IPTAL'],
       KULLANILDI: [],
       IPTAL: [],
@@ -332,7 +363,11 @@ exports.updateWorkOrderItemStatus = async (req, res, next) => {
       return error(res, `${prevStatus} durumundan ${status} durumuna geçiş yapılamaz.`, 400);
     }
 
-    let updatedItem;
+    let wId = item.warehouseId;
+    if (!wId) {
+      const defW = await prisma.warehouse.findFirst({ where: { isDefault: true, companyId: req.company.id } });
+      wId = defW?.id;
+    }
 
     if (status === 'REZERVE' && prevStatus === 'BEKLIYOR') {
       // Kullanılabilir stok kontrolü
@@ -357,7 +392,7 @@ exports.updateWorkOrderItemStatus = async (req, res, next) => {
       ]);
 
     } else if (status === 'KULLANILDI' && prevStatus === 'REZERVE') {
-      // Fiziksel stoktan düş + stok hareketi oluştur
+      // Fiziksel stoktan düş + rezerveyi sıfırla + stok hareketi oluştur + depo stoku düş
       if (part.quantity < item.quantity) {
         return error(res, `Yetersiz fiziksel stok. Mevcut: ${part.quantity} ${part.unit}`, 400);
       }
@@ -377,6 +412,7 @@ exports.updateWorkOrderItemStatus = async (req, res, next) => {
         prisma.partMovement.create({
           data: {
             partId: part.id,
+            warehouseId: wId || null,
             userId: req.user.id,
             movementType: 'IS_EMRI_KULLANIMI',
             quantity: item.quantity,
@@ -386,6 +422,52 @@ exports.updateWorkOrderItemStatus = async (req, res, next) => {
             notes: `İş Emri: ${item.workOrder.title}`,
           },
         }),
+        ...(wId ? [
+          prisma.warehouseStock.upsert({
+            where: { warehouseId_partId: { warehouseId: wId, partId: part.id } },
+            update: { quantity: { decrement: item.quantity } },
+            create: { warehouseId: wId, partId: part.id, quantity: 0 }
+          })
+        ] : []),
+      ]);
+
+    } else if (status === 'KULLANILDI' && prevStatus === 'BEKLIYOR') {
+      // Doğrudan kullanım (rezerve edilmeden direkt araca montaj) + depo stoku düş
+      if (part.quantity < item.quantity) {
+        return error(res, `Yetersiz fiziksel stok. Mevcut: ${part.quantity} ${part.unit}`, 400);
+      }
+
+      await prisma.$transaction([
+        prisma.workOrderItem.update({
+          where: { id: itemId },
+          data: { status: 'KULLANILDI' },
+        }),
+        prisma.part.update({
+          where: { id: part.id },
+          data: {
+            quantity: { decrement: item.quantity },
+          },
+        }),
+        prisma.partMovement.create({
+          data: {
+            partId: part.id,
+            warehouseId: wId || null,
+            userId: req.user.id,
+            movementType: 'IS_EMRI_KULLANIMI',
+            quantity: item.quantity,
+            unitCost: item.unitCost,
+            referenceType: 'WORK_ORDER',
+            referenceId: item.workOrderId,
+            notes: `İş Emri: ${item.workOrder.title}`,
+          },
+        }),
+        ...(wId ? [
+          prisma.warehouseStock.upsert({
+            where: { warehouseId_partId: { warehouseId: wId, partId: part.id } },
+            update: { quantity: { decrement: item.quantity } },
+            create: { warehouseId: wId, partId: part.id, quantity: 0 }
+          })
+        ] : []),
       ]);
 
     } else if (status === 'IPTAL') {
@@ -611,7 +693,7 @@ exports.getPlateHistory = async (req, res, next) => {
 exports.updateWorkOrderPayment = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { paymentStatus, paidAmount, paymentMethod, paymentNotes } = req.body;
+    const { amountCollected, paidAmount, paymentStatus, paymentMethod, paymentNotes } = req.body;
 
     const order = await prisma.workOrder.findFirst({
       where: { id, companyId: req.company.id },
@@ -629,13 +711,34 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
     }, 0);
     const totalAmount = partsTotal + parseFloat(order.laborCost || 0);
 
-    const numericPaid = paidAmount !== undefined ? parseFloat(paidAmount) : parseFloat(order.paidAmount || 0);
+    const prevPaid = parseFloat(order.paidAmount || 0);
+    let numericPaid = prevPaid;
+    let cashIncrement = 0;
+
+    if (amountCollected !== undefined) {
+      // YENİ TAHSİLAT AL MODU: Alınan yeni tahsilat tutarı eklenir
+      cashIncrement = parseFloat(amountCollected || 0);
+      numericPaid = prevPaid + cashIncrement;
+    } else if (paidAmount !== undefined) {
+      // TOPLAMI DÜZELT MODU: Toplam tahsilat doğrudan güncellenir
+      numericPaid = parseFloat(paidAmount || 0);
+      cashIncrement = numericPaid - prevPaid;
+    }
 
     let calculatedStatus = paymentStatus;
-    if (!paymentStatus) {
-      if (numericPaid >= totalAmount && totalAmount > 0) {
+    if (amountCollected !== undefined) {
+      // YENİ TAHSİLAT AL MODU: Tahsilat sonrasındaki toplam ödemeye göre durum kesinleştirilir
+      if (numericPaid >= totalAmount - 0.01 && totalAmount > 0) {
         calculatedStatus = 'ODENDI';
-      } else if (numericPaid > 0 && numericPaid < totalAmount) {
+      } else if (numericPaid > 0 && numericPaid < totalAmount - 0.01) {
+        calculatedStatus = 'KISMI';
+      } else if (numericPaid <= 0) {
+        calculatedStatus = order.paymentStatus || 'VERESIYE';
+      }
+    } else if (!paymentStatus) {
+      if (numericPaid >= totalAmount - 0.01 && totalAmount > 0) {
+        calculatedStatus = 'ODENDI';
+      } else if (numericPaid > 0 && numericPaid < totalAmount - 0.01) {
         calculatedStatus = 'KISMI';
       } else if (numericPaid === 0 && order.paymentStatus === 'VERESIYE') {
         calculatedStatus = 'VERESIYE';
@@ -661,6 +764,27 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
         },
       },
     });
+
+    // Atölye kasasına tahsilat hareketi olarak kaydet
+    if (cashIncrement > 0) {
+      try {
+        await prisma.cashTransaction.create({
+          data: {
+            companyId: req.company.id,
+            userId: req.user.id,
+            type: 'IN',
+            category: 'IS_EMRI_TAHSILAT',
+            amount: cashIncrement,
+            paymentMethod: paymentMethod || order.paymentMethod || 'NAKIT',
+            documentNo: order.id,
+            description: `İş Emri Tahsilatı: ${order.customerName ? order.customerName + ' - ' : ''}${order.title}`,
+            date: new Date(),
+          },
+        });
+      } catch (cashErr) {
+        console.error('Kasa kaydı oluşturulurken hata:', cashErr);
+      }
+    }
 
     const remainingAmount = Math.max(0, totalAmount - numericPaid);
 

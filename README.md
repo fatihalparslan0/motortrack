@@ -1,7 +1,7 @@
 
 # MotorTrack — Motor & Parça Yönetim Sistemi
 
-> **SaaS** platformu: Motor takibi, parça envanteri, B2B pazar yeri ve aylık abonelik sistemi.
+> **SaaS** platformu: Motor takibi, parça envanteri, depo yönetimi ve iş emirleri sistemi.
 
 ## 🏗️ Mimari
 
@@ -115,15 +115,6 @@ docker exec motortrack_backend node prisma/seed.js
 | POST | `/api/parts` | Parça oluştur |
 | POST | `/api/parts/:id/movement` | Stok hareketi |
 
-### B2B Pazar Yeri
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| GET | `/api/listings/marketplace` | Tüm ilanlar |
-| GET | `/api/listings/my` | Kendi ilanlarım |
-| POST | `/api/listings` | İlan oluştur |
-| GET | `/api/listings/:id/messages` | Mesajlar |
-| POST | `/api/listings/:id/messages` | Mesaj gönder |
-
 ### Abonelik
 | Method | Endpoint | Açıklama |
 |--------|----------|----------|
@@ -136,11 +127,11 @@ docker exec motortrack_backend node prisma/seed.js
 
 ## 💳 Abonelik Planları
 
-| Plan | Fiyat/Ay | Motor | Kullanıcı | İlan |
-|------|----------|-------|-----------|------|
-| **Starter** | ₺299 | 10 | 3 | 5 |
-| **Pro** | ₺699 | 50 | 10 | 25 |
-| **Enterprise** | ₺1.499 | ∞ | ∞ | ∞ |
+| Plan | Fiyat/Ay | Motor | Kullanıcı |
+|------|----------|-------|-----------|
+| **Starter** | ₺299 | 10 | 3 |
+| **Pro** | ₺699 | 50 | 10 |
+| **Enterprise** | ₺1.499 | ∞ | ∞ |
 
 > Tüm planlar 14 gün ücretsiz deneme ile başlar.
 
@@ -155,8 +146,6 @@ Ana tablolar:
 - `parts` — Parça envanteri (stok takibi)
 - `part_movements` — Stok hareketleri (giriş/çıkış/transfer)
 - `maintenance_records` — Bakım kayıtları
-- `listings` — B2B ilan pazar yeri
-- `listing_messages` — İlan mesajlaşma
 - `subscriptions` — Stripe abonelikleri
 - `subscription_plans` — Abonelik planları
 
@@ -202,9 +191,10 @@ eas build --platform all
 2. **Motorlar** — Motor listesi, QR tarama, filtreler
 3. **Motor Detayı** — Bağlı parçalar, bakım geçmişi
 4. **Parça Envanteri** — Stok takibi, düşük stok uyarıları, hareket geçmişi
-5. **B2B Pazar Yeri** — İlan listesi, mesajlaşma, kendi ilanlarım
-6. **Bakım Takibi** — Geçmiş ve planlanan bakımlar
-7. **Abonelik** — Plan seçimi, Stripe ödeme
+5. **Depo & Sevkiyat** — Depo listesi, kritik stoklar, stok hareketleri
+6. **İş Emirleri & Alacaklar** — İş emri oluşturma, plaka geçmişi, cari alacak takibi
+7. **Bakım Takibi** — Geçmiş ve planlanan bakımlar
+8. **Abonelik** — Plan seçimi, Stripe ödeme
 
 ---
 

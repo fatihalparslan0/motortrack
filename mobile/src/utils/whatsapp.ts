@@ -146,3 +146,53 @@ Aşağıdaki parça için stok ve güncel fiyat bilgisi alabilir miyiz?
 Teşekkürler,
 *${companyName}*`;
 }
+
+/**
+ * Parçacıya / Tedarikçiye Toplu Kritik Parça Siparişi WhatsApp metni
+ */
+export function generateBatchOrderMessage(items: any[], companyName: string = 'MotorTrack Servis'): string {
+  const dateStr = new Date().toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  const itemsList = items.map((item, idx) => {
+    const missing = Math.max(1, (item.minQuantity || 1) - (item.quantity || 0));
+    const code = item.partNumber || item.oemCode || '';
+    const codeStr = code ? ` [${code}]` : '';
+    const brandStr = item.brand ? ` (${item.brand})` : '';
+    return `${idx + 1}. *${item.name}*${brandStr}${codeStr} — 🔢 *${missing} ${item.unit || 'adet'}*`;
+  }).join('\n');
+
+  return `Selamlar, hayırlı işler! 🛠️
+*${companyName}* adına tükenen kritik parçalarımız için sipariş geçmek istiyoruz:
+📅 Tarih: ${dateStr}
+
+📦 *SİPARİŞ LİSTESİ:*
+${itemsList}
+
+Müsaitlik ve fiyat teyidi ile birlikte kurye/servis ile göndermenizi rica ederiz.
+Kolay gelsin, bereketli kazançlar!`;
+}
+
+/**
+ * Parçacıya / Tedarikçiye Uymayan Parça İadesi Bildirim Metni
+ */
+export function generateReturnSupplierMessage(
+  part: any, 
+  qty: number = 1, 
+  reason: string = 'Araca uymadı / yanlış parça',
+  companyName: string = 'MotorTrack Servis'
+): string {
+  const code = part.partNumber || part.oemCode ? `\n• Kod: ${part.partNumber || part.oemCode}` : '';
+  const brand = part.brand ? ` (${part.brand})` : '';
+
+  return `Selamlar, hayırlı işler!
+Aşağıda bilgileri bulunan parçayı iadeye gönderiyoruz:
+
+📦 *${part.name}*${brand}${code}
+🔢 *İade Miktarı:* ${qty} ${part.unit || 'adet'}
+📝 *İade Sebebi:* ${reason}
+
+Lütfen cari hesabımıza iade olarak işleyiniz.
+Teşekkür eder, iyi çalışmalar dileriz.
+*${companyName}*`;
+}
+

@@ -9,8 +9,6 @@ async function main() {
   console.log('🗑️  Mevcut veriler temizleniyor...');
 
   // Mevcut verileri temizle (sıralı, foreign key'e dikkat)
-  await prisma.listingMessage.deleteMany();
-  await prisma.listing.deleteMany();
   await prisma.partMovement.deleteMany();
   await prisma.maintenanceRecord.deleteMany();
   await prisma.part.deleteMany();
@@ -32,10 +30,9 @@ async function main() {
         priceYearly: 2990,
         maxMotors: 10,
         maxUsers: 3,
-        maxListings: 5,
         features: {
           motorTracking: true, partsInventory: true, maintenanceRecords: true,
-          marketplace: true, qrScanning: false, advancedReports: false, apiAccess: false,
+          qrScanning: false, advancedReports: false, apiAccess: false,
         },
       },
     }),
@@ -47,10 +44,9 @@ async function main() {
         priceYearly: 6990,
         maxMotors: 50,
         maxUsers: 10,
-        maxListings: 25,
         features: {
           motorTracking: true, partsInventory: true, maintenanceRecords: true,
-          marketplace: true, qrScanning: true, advancedReports: true, apiAccess: false,
+          qrScanning: true, advancedReports: true, apiAccess: false,
         },
       },
     }),
@@ -60,10 +56,10 @@ async function main() {
         name: 'Enterprise',
         priceMonthly: 1499,
         priceYearly: 14990,
-        maxMotors: null, maxUsers: null, maxListings: null,
+        maxMotors: null, maxUsers: null,
         features: {
           motorTracking: true, partsInventory: true, maintenanceRecords: true,
-          marketplace: true, qrScanning: true, advancedReports: true, apiAccess: true,
+          qrScanning: true, advancedReports: true, apiAccess: true,
           dedicatedSupport: true, customIntegrations: true,
         },
       },
@@ -467,45 +463,8 @@ async function main() {
     prisma.partMovement.create({ data: { partId: parts[10].id, userId: adminUser.id, movementType: 'IN', quantity: 4, notes: 'DID zincir seti girişi', createdAt: new Date(now.getTime() - 55 * 24 * 60 * 60 * 1000) } }),
   ]);
 
-  // ─── Şirket 1 İlanları ─────────────────────────────────────────────────
-  console.log('🏪 Şirket 1 ilanları oluşturuluyor...');
-  const listings1 = await Promise.all([
-    prisma.listing.create({
-      data: {
-        companyId: company1.id, userId: adminUser.id, partId: parts[9].id,
-        title: 'Garrett Turbo Şarj — MAN D2676 Uyumlu',
-        description: 'MAN D2676 motordan sökülen Garrett turbo şarj. Çalışır durumda, 120.000 km kullanılmış. Ultrasonik temizlik yapılmıştır. Test raporuyla birlikte teslim.',
-        price: 12000.00, quantity: 1, condition: 'USED', status: 'ACTIVE', viewsCount: 47,
-      },
-    }),
-    prisma.listing.create({
-      data: {
-        companyId: company1.id, userId: adminUser.id,
-        title: 'Volvo D13 Enjektör Takımı (6lı)',
-        description: 'Orijinal Volvo D13 enjektör takımı. 2020 model motordan söküldü, profesyonel revize yapılmıştır. 6 ay garanti.',
-        price: 18500.00, quantity: 1, condition: 'REFURBISHED', status: 'ACTIVE', viewsCount: 31,
-      },
-    }),
-    prisma.listing.create({
-      data: {
-        companyId: company1.id, userId: managerUser.id,
-        title: 'Brembo Fren Balata Seti — Ağır Ticari',
-        description: 'Orijinal Brembo fren balata setleri. Kamyon ve ağır ticari araç uyumlu. Toptan fiyat.',
-        price: 2400.00, quantity: 5, condition: 'NEW', status: 'ACTIVE', viewsCount: 15,
-      },
-    }),
-    prisma.listing.create({
-      data: {
-        companyId: company1.id, userId: adminUser.id,
-        title: 'Caterpillar C15 Silindir Kapağı',
-        description: 'CAT C15 ACERT motor için yedek silindir kapağı. Az kullanılmış, çatlak yok.',
-        price: 25000.00, quantity: 1, condition: 'USED', status: 'ACTIVE', viewsCount: 9,
-      },
-    }),
-  ]);
-
   // ═══════════════════════════════════════════════════════════════════════
-  // ŞİRKET 2 — Anadolu Motor Ltd. (Pazar yeri için)
+  // ŞİRKET 2 — Anadolu Motor Ltd. (Demo Şirket)
   // ═══════════════════════════════════════════════════════════════════════
   console.log('🏢 Şirket 2: Anadolu Motor Ltd. oluşturuluyor...');
   const company2 = await prisma.company.create({
@@ -530,61 +489,8 @@ async function main() {
     data: { companyId: company2.id, planId: 'plan-starter', status: 'ACTIVE' },
   });
 
-  // Şirket 2 İlanları (bunlar pazar yerinde görünecek)
-  console.log('🏪 Şirket 2 pazar yeri ilanları...');
-  const listings2 = await Promise.all([
-    prisma.listing.create({
-      data: {
-        companyId: company2.id, userId: company2User.id,
-        title: 'Cummins ISX15 Komple Motor — 0 Km Revizeli',
-        description: 'Cummins ISX15 motor komple revizyondan geçmiş, 0 km. Tüm contalar, segmanlar yeni. 1 yıl garanti. Fatura ve test raporu mevcuttur.',
-        price: 95000.00, quantity: 1, condition: 'REFURBISHED', status: 'ACTIVE', viewsCount: 124,
-      },
-    }),
-    prisma.listing.create({
-      data: {
-        companyId: company2.id, userId: company2User.id,
-        title: 'Mercedes OM471 Krank Mili — Orijinal',
-        description: 'Mercedes-Benz OM471 orijinal krank mili. 200.000 km kullanılmış, ölçüler standart. Taşlama yapılmamış.',
-        price: 28000.00, quantity: 1, condition: 'USED', status: 'ACTIVE', viewsCount: 56,
-      },
-    }),
-    prisma.listing.create({
-      data: {
-        companyId: company2.id, userId: company2User.id,
-        title: 'Bosch Common Rail Enjektör — Çeşitli Modeller',
-        description: 'Bosch orijinal common rail enjektörler. MAN, Mercedes, Volvo uyumlu modeller mevcut. Sıfır, kutusunda.',
-        price: 4500.00, quantity: 12, condition: 'NEW', status: 'ACTIVE', viewsCount: 89,
-      },
-    }),
-    prisma.listing.create({
-      data: {
-        companyId: company2.id, userId: company2User.id,
-        title: 'ZF Şanzıman 16S2530 — Kamyon',
-        description: '16 ileri ZF şanzıman, 2019 model Scania\'dan söküldü. 180.000 km. Test edilmiş, çalışır durumda.',
-        price: 45000.00, quantity: 1, condition: 'USED', status: 'ACTIVE', viewsCount: 67,
-      },
-    }),
-    prisma.listing.create({
-      data: {
-        companyId: company2.id, userId: company2User.id,
-        title: 'Wabco ABS Kontrol Ünitesi',
-        description: 'Wabco ABS/EBS kontrol ünitesi. Ağır ticari araç uyumlu. Revize edilmiş, 6 ay garanti.',
-        price: 7500.00, quantity: 3, condition: 'REFURBISHED', status: 'ACTIVE', viewsCount: 34,
-      },
-    }),
-    prisma.listing.create({
-      data: {
-        companyId: company2.id, userId: company2User.id,
-        title: 'Caterpillar C13 Yağ Pompası',
-        description: 'CAT C13 motor için yağ pompası. Orijinal parça, az kullanılmış.',
-        price: 6200.00, quantity: 2, condition: 'USED', status: 'ACTIVE', viewsCount: 21,
-      },
-    }),
-  ]);
-
   // ═══════════════════════════════════════════════════════════════════════
-  // ŞİRKET 3 — Ege Dizel San. Tic. (Daha fazla pazar yeri çeşitliliği)
+  // ŞİRKET 3 — Ege Dizel San. Tic. (Demo Şirket)
   // ═══════════════════════════════════════════════════════════════════════
   console.log('🏢 Şirket 3: Ege Dizel San. Tic. oluşturuluyor...');
   const company3 = await prisma.company.create({
@@ -609,98 +515,6 @@ async function main() {
     data: { companyId: company3.id, planId: 'plan-pro', status: 'ACTIVE' },
   });
 
-  const listings3 = await Promise.all([
-    prisma.listing.create({
-      data: {
-        companyId: company3.id, userId: company3User.id,
-        title: 'Volvo D12 Silindir Gömleği Seti (6lı)',
-        description: 'Volvo D12 motor için aftermarket silindir gömleği seti. Yüksek kalite, OEM standartlarında.',
-        price: 8900.00, quantity: 4, condition: 'NEW', status: 'ACTIVE', viewsCount: 42,
-      },
-    }),
-    prisma.listing.create({
-      data: {
-        companyId: company3.id, userId: company3User.id,
-        title: 'Denso Marş Motoru — 24V Ağır Hizmet',
-        description: 'Denso 24V marş motoru. Kamyon ve iş makinesi uyumlu. Sıfır, garantili.',
-        price: 5800.00, quantity: 6, condition: 'NEW', status: 'ACTIVE', viewsCount: 38,
-      },
-    }),
-    prisma.listing.create({
-      data: {
-        companyId: company3.id, userId: company3User.id,
-        title: 'MAN D2066 Piston Kol Seti',
-        description: 'MAN D2066 motor için piston ve kol seti. Nural marka, orijinal ölçü.',
-        price: 12500.00, quantity: 2, condition: 'NEW', status: 'ACTIVE', viewsCount: 19,
-      },
-    }),
-    prisma.listing.create({
-      data: {
-        companyId: company3.id, userId: company3User.id,
-        title: 'Holset Turbo HX40 — Cummins Uyumlu',
-        description: 'Holset HX40 turbo şarj. Cummins 6CT, 6BT motorlara uyumlu. Revizyonlu, 6 ay garanti.',
-        price: 9500.00, quantity: 1, condition: 'REFURBISHED', status: 'ACTIVE', viewsCount: 55,
-      },
-    }),
-  ]);
-
-  // ─── Pazar Yeri Mesajları ──────────────────────────────────────────────
-  console.log('💬 Pazar yeri mesajları oluşturuluyor...');
-  await Promise.all([
-    // Şirket 1 → Şirket 2'nin ilanına mesaj
-    prisma.listingMessage.create({
-      data: {
-        listingId: listings2[0].id, senderCompanyId: company1.id, receiverCompanyId: company2.id,
-        message: 'Merhaba, Cummins ISX15 motor hâlâ mevcut mu? Fiyatta pazarlık payı var mı?',
-        createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-      },
-    }),
-    prisma.listingMessage.create({
-      data: {
-        listingId: listings2[0].id, senderCompanyId: company2.id, receiverCompanyId: company1.id,
-        message: 'Merhaba, evet motor hâlâ mevcut. Fiyat 90.000₺\'ye düşebilir, peşin ödeme şartıyla.',
-        createdAt: new Date(now.getTime() - 1.5 * 24 * 60 * 60 * 1000),
-      },
-    }),
-    prisma.listingMessage.create({
-      data: {
-        listingId: listings2[0].id, senderCompanyId: company1.id, receiverCompanyId: company2.id,
-        message: 'Teşekkürler. Motoru yerinde görmemiz mümkün mü? Ankara\'ya gelebiliriz.',
-        createdAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
-      },
-    }),
-    // Şirket 2 → Şirket 1'in turbo ilanına mesaj
-    prisma.listingMessage.create({
-      data: {
-        listingId: listings1[0].id, senderCompanyId: company2.id, receiverCompanyId: company1.id,
-        message: 'Garrett turbo ile ilgileniyoruz. Test raporu var mı? Kargo ile gönderim yapıyor musunuz?',
-        createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
-      },
-    }),
-    prisma.listingMessage.create({
-      data: {
-        listingId: listings1[0].id, senderCompanyId: company1.id, receiverCompanyId: company2.id,
-        message: 'Test raporu mevcuttur, PDF olarak gönderebilirim. Kargo ile gönderim yapıyoruz, sigortalı olarak.',
-        createdAt: new Date(now.getTime() - 2.5 * 24 * 60 * 60 * 1000),
-      },
-    }),
-    // Şirket 3 → Şirket 1'in enjektör ilanına mesaj
-    prisma.listingMessage.create({
-      data: {
-        listingId: listings1[1].id, senderCompanyId: company3.id, receiverCompanyId: company1.id,
-        message: 'D13 enjektör takımı kaç km kullanılmış? Revizyon belgesi var mı?',
-        createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-      },
-    }),
-    prisma.listingMessage.create({
-      data: {
-        listingId: listings1[1].id, senderCompanyId: company1.id, receiverCompanyId: company3.id,
-        message: '85.000 km kullanılmış. Revizyon Bosch yetkili servisinde yapılmıştır, belgesi mevcuttur.',
-        createdAt: new Date(now.getTime() - 4.5 * 24 * 60 * 60 * 1000),
-      },
-    }),
-  ]);
-
   console.log('');
   console.log('✅ ════════════════════════════════════════════════');
   console.log('✅  Seed tamamlandı!');
@@ -713,8 +527,7 @@ async function main() {
   console.log('   🔧 12 Parça (3 düşük stoklu, 1 stok bitti)');
   console.log('   🛠️  15 Bakım kaydı (11 Tamamlanmış, 1 Devam Eden, 2 Planlı, 1 Acil)');
   console.log('   📦 16 Stok hareketi');
-  console.log('   🏪 14 Pazar yeri ilanı (4 kendi + 10 diğer şirketler)');
-  console.log('   💬 7 Mesaj');
+  console.log('');
   console.log('');
   console.log('📧 Giriş:');
   console.log('   admin@motortrack.com / Demo1234!');

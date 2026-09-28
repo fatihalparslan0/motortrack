@@ -26,6 +26,7 @@ const movementLabel: Record<string, { label: string; color: string; sign: string
   FIRE: { label: 'Fire', color: '#F59E0B', sign: '-' },
   DUZELTME: { label: 'Düzeltme', color: '#6366F1', sign: '±' },
   DEPO_TRANSFERI: { label: 'Transfer', color: '#6366F1', sign: '↔' },
+  ATOLYE_SARFI: { label: 'Atölye Sarfı', color: '#8B5CF6', sign: '-' },
   IN: { label: 'Giriş', color: '#10B981', sign: '+' },
   OUT: { label: 'Çıkış', color: '#EF4444', sign: '-' },
   RETURN: { label: 'İade', color: '#10B981', sign: '+' },
@@ -34,7 +35,7 @@ const movementLabel: Record<string, { label: string; color: string; sign: string
 };
 
 const isOutMovement = (type: string) =>
-  ['IS_EMRI_KULLANIMI', 'SATIS', 'FIRE', 'OUT', 'TRANSFER'].includes(type);
+  ['IS_EMRI_KULLANIMI', 'SATIS', 'FIRE', 'OUT', 'TRANSFER', 'ATOLYE_SARFI'].includes(type);
 
 // ─── Stok Giriş Modal ─────────────────────────────────────────────────────────
 function StockInModal({ visible, onClose, theme }: any) {
@@ -45,6 +46,7 @@ function StockInModal({ visible, onClose, theme }: any) {
   const [unitCost, setUnitCost] = useState('');
   const [supplierId, setSupplierId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState('');
   const [notes, setNotes] = useState('');
 
   const { data: partsData } = useQuery({
@@ -73,6 +75,7 @@ function StockInModal({ visible, onClose, theme }: any) {
       unitCost: parseFloat(unitCost.replace(',', '.')),
       supplierId: supplierId || undefined,
       warehouseId: warehouseId || undefined,
+      invoiceNumber: invoiceNumber.trim() || undefined,
       notes,
     }),
     onSuccess: (res: any) => {
@@ -80,12 +83,15 @@ function StockInModal({ visible, onClose, theme }: any) {
       queryClient.invalidateQueries({ queryKey: ['criticalStock'] });
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       queryClient.invalidateQueries({ queryKey: ['partStats'] });
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['supplierSummary'] });
       Alert.alert('✅ Başarılı', res?.message || 'Stok girişi yapıldı.');
       setSelectedPart(null);
       setPartSearch('');
       setQuantity('');
       setUnitCost('');
       setSupplierId('');
+      setInvoiceNumber('');
       setNotes('');
       onClose();
     },
@@ -211,10 +217,20 @@ function StockInModal({ visible, onClose, theme }: any) {
               ))}
             </ScrollView>
 
+            {/* İrsaliye / Fiş No */}
+            <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>İrsaliye / Fiş No (Opsiyonel)</Text>
+            <TextInput
+              style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary, marginBottom: Spacing.md }}
+              placeholder="Örn: İRS-2024-8841 veya Kurye Fişi"
+              placeholderTextColor={theme.textMuted}
+              value={invoiceNumber}
+              onChangeText={setInvoiceNumber}
+            />
+
             {/* Not */}
             <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>Not</Text>
             <TextInput
-              style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary, height: 80, textAlignVertical: 'top', marginBottom: Spacing.lg }}
+              style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary, height: 70, textAlignVertical: 'top', marginBottom: Spacing.lg }}
               multiline
               placeholder="Opsiyonel not..."
               placeholderTextColor={theme.textMuted}
@@ -245,7 +261,7 @@ function StockOutModal({ visible, onClose, theme }: any) {
   const [partSearch, setPartSearch] = useState('');
   const [selectedPart, setSelectedPart] = useState<any>(null);
   const [quantity, setQuantity] = useState('');
-  const [reason, setReason] = useState('FIRE');
+  const [reason, setReason] = useState('ATOLYE_SARFI');
   const [warehouseId, setWarehouseId] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -263,7 +279,8 @@ function StockOutModal({ visible, onClose, theme }: any) {
   const warehouses = (warehousesData as any)?.data || [];
 
   const REASONS = [
-    { value: 'FIRE', label: '🔥 Fire' },
+    { value: 'ATOLYE_SARFI', label: '🧰 Atölye Sarfı' },
+    { value: 'FIRE', label: '🔥 Fire / Zayi' },
     { value: 'SATIS', label: '💰 Satış' },
     { value: 'DUZELTME', label: '📝 Düzeltme' },
   ];
@@ -835,7 +852,13 @@ export default function WarehouseTab() {
     queryFn: () => warehouseAPI.getCriticalStock(),
   });
 
+  const { data: supplierSummaryData } = useQuery({
+    queryKey: ['supplierSummary'],
+    queryFn: () => supplierAPI.getSummary(),
+  });
+
   const stats = (statsData as any)?.data;
+  const supplierSummary = (supplierSummaryData as any)?.data;
   const criticalParts: any[] = ((criticalData as any)?.data || []).slice(0, 5);
   const recentMovements: any[] = (stats?.recentMovements || []).slice(0, 8);
 
@@ -903,6 +926,43 @@ export default function WarehouseTab() {
             <Text style={dynamicStyles.statLabel}>Depo Sayısı</Text>
           </View>
         </View>
+
+        {/* Parçacı Borçları / Cariler Kartı */}
+        <TouchableOpacity
+          onPress={() => router.push('/warehouse/suppliers' as any)}
+          style={{
+            marginHorizontal: Spacing.lg,
+            marginTop: Spacing.md,
+            backgroundColor: theme.surface,
+            borderWidth: 1,
+            borderColor: (supplierSummary?.totalDebt || 0) > 0 ? '#EF444440' : theme.border,
+            borderRadius: BorderRadius.lg,
+            padding: Spacing.md,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            ...Shadows.sm,
+          }}
+          activeOpacity={0.8}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 }}>
+            <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: (supplierSummary?.totalDebt || 0) > 0 ? '#EF444415' : theme.success + '15', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 20 }}>🏪</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, fontWeight: '700', textTransform: 'uppercase' }}>
+                Parçacılara Toplam Borcumuz
+              </Text>
+              <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: (supplierSummary?.totalDebt || 0) > 0 ? '#EF4444' : theme.success, marginTop: 2 }}>
+                ₺{Number(supplierSummary?.totalDebt || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={{ fontSize: Typography.fontSize.xs, color: theme.primary, fontWeight: '700' }}>Carileri Gör</Text>
+            <ChevronRight size={16} color={theme.primary} />
+          </View>
+        </TouchableOpacity>
 
         {/* Hızlı İşlemler */}
         <View style={dynamicStyles.section}>

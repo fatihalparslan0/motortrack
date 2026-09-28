@@ -20,6 +20,7 @@ const TYPE_FILTERS = [
   { key: 'TRANSFER', label: '🔄 Transfer', color: '#6366F1' },
   { key: 'IN', label: '📥 Giriş', color: '#10B981' },
   { key: 'OUT', label: '📤 Çıkış', color: '#EF4444' },
+  { key: 'IADE', label: '↩️ İade', color: '#F59E0B' },
   { key: 'ADJUSTMENT', label: '✏️ Düzeltme', color: '#8B5CF6' },
 ];
 
@@ -27,7 +28,7 @@ const MOVEMENT_CONFIG: Record<string, { label: string; color: string; sign: stri
   SATIN_ALMA: { label: 'Satın Alma', color: '#10B981', sign: '+', icon: '📥', bg: '#10B98118' },
   IS_EMRI_KULLANIMI: { label: 'İş Emri Kullanımı', color: '#EF4444', sign: '-', icon: '🛠️', bg: '#EF444418' },
   SATIS: { label: 'Satış', color: '#EF4444', sign: '-', icon: '💰', bg: '#EF444418' },
-  IADE: { label: 'İade Alındı', color: '#10B981', sign: '+', icon: '♻️', bg: '#10B98118' },
+  IADE: { label: 'Parçacıya İade', color: '#F59E0B', sign: '-', icon: '↩️', bg: '#F59E0B18' },
   FIRE: { label: 'Fire / Zayi', color: '#F59E0B', sign: '-', icon: '🔥', bg: '#F59E0B18' },
   DUZELTME: { label: 'Stok Düzeltme', color: '#8B5CF6', sign: '±', icon: '✏️', bg: '#8B5CF618' },
   DEPO_TRANSFERI: { label: 'Depo Transferi', color: '#6366F1', sign: '↔', icon: '🔄', bg: '#6366F118' },

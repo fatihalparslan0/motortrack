@@ -8,7 +8,7 @@ exports.getProfile = async (req, res, next) => {
       where: { id: req.company.id },
       include: {
         subscription: { include: { plan: true } },
-        _count: { select: { users: true, motors: true, parts: true, listings: true } },
+        _count: { select: { users: true, motors: true, parts: true } },
       },
     });
     return success(res, company, 'Şirket profili');

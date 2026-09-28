@@ -15,7 +15,6 @@ model SubscriptionPlan {
   priceYearly   Decimal        @db.Decimal(10, 2)
   maxMotors     Int? // null = unlimited
   maxUsers      Int?
-  maxListings   Int?
   stripePriceId String?        @unique
   features      Json           @default("{}")
   isActive      Boolean        @default(true)
@@ -43,14 +42,14 @@ model Company {
   users            User[]
   motors           Motor[]
   parts            Part[]
-  listings         Listing[]
-  sentMessages     ListingMessage[] @relation("SentMessages")
-  receivedMessages ListingMessage[] @relation("ReceivedMessages")
   subscription     Subscription?
   warehouses       Warehouse[]
   suppliers        Supplier[]
   workOrders       WorkOrder[]
   purchaseRecords  PurchaseRecord[]
+  supplierTransactions SupplierTransaction[]
+  cashTransactions     CashTransaction[]
+  dailyRegisterCloses  DailyRegisterClose[]
 
   @@map("companies")
 }
@@ -73,9 +72,11 @@ model User {
   refreshTokens      RefreshToken[]
   maintenanceRecords MaintenanceRecord[]
   partMovements      PartMovement[]
-  listings           Listing[]
-  workOrders         WorkOrder[]
-  purchaseRecords    PurchaseRecord[]
+  workOrders           WorkOrder[]
+  purchaseRecords      PurchaseRecord[]
+  supplierTransactions SupplierTransaction[]
+  cashTransactions     CashTransaction[]
+  dailyRegisterCloses  DailyRegisterClose[]
 
   @@map("users")
 }
@@ -172,7 +173,6 @@ model Part {
   company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   motor           Motor?           @relation(fields: [motorId], references: [id], onDelete: SetNull)
   movements       PartMovement[]
-  listings        Listing[]
   warehouseStocks WarehouseStock[]
   workOrderItems  WorkOrderItem[]
   purchaseRecords PurchaseRecord[]
@@ -197,8 +197,9 @@ model PartMovement {
   movementType  StockMovementType
   quantity      Int               // Hareket miktarı (her zaman pozitif; tip giriş/çıkış belirler)
   unitCost      Decimal?          @db.Decimal(10, 2)
-  referenceType String?           // "WORK_ORDER", "PURCHASE", "SALE"
+  referenceType String?           // "WORK_ORDER", "PURCHASE", "SALE", "SUPPLIER_RETURN", "WORKSHOP_CONSUMPTION"
   referenceId   String?
+  documentNo    String?           // İrsaliye, fatura veya fiş no
   notes         String?
   createdAt     DateTime          @default(now())
 
@@ -218,6 +219,7 @@ enum StockMovementType {
   FIRE              // Fire / zayi
   DUZELTME          // Manuel düzeltme
   DEPO_TRANSFERI    // Depolar arası transfer
+  ATOLYE_SARFI      // Atölye sarfiyatı (balata spreyi, sıvı conta vb.)
   // Geriye dönük uyumluluk
   IN
   OUT
@@ -261,7 +263,7 @@ model WarehouseStock {
   @@map("warehouse_stocks")
 }
 
-// ─── Suppliers (Tedarikçiler) ─────────────────────────────────────────────────
+// ─── Suppliers (Tedarikçiler / Parçacılar) ────────────────────────────────────
 model Supplier {
   id            String   @id @default(uuid())
   companyId     String
@@ -271,29 +273,58 @@ model Supplier {
   email         String?
   address       String?
   notes         String?
+  balance       Decimal  @default(0) @db.Decimal(10, 2) // Parçacıya olan borç bakiyesi (TL)
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company         Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
   purchaseRecords PurchaseRecord[]
+  transactions    SupplierTransaction[]
 
   @@map("suppliers")
 }
 
+// ─── Supplier Transactions (Tedarikçi Cari / Borç Hareketleri) ────────────────
+model SupplierTransaction {
+  id            String                  @id @default(uuid())
+  companyId     String
+  supplierId    String
+  userId        String
+  type          SupplierTransactionType // ALIS, ODEME, IADE
+  amount        Decimal                 @db.Decimal(10, 2)
+  paymentMethod String?                 // NAKIT, HAVALE, KREDI_KARTI, CEK
+  documentNo    String?                 // Fiş / İrsaliye / Makbuz No
+  notes         String?
+  createdAt     DateTime                @default(now())
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@map("supplier_transactions")
+}
+
+enum SupplierTransactionType {
+  ALIS      // Parça alışı (Borç artar)
+  ODEME     // Tedarikçiye yapılan ödeme (Borç azalır)
+  IADE      // Parça iadesi (Borç azalır)
+}
+
 // ─── Purchase Records (Satın Alma Kayıtları) ──────────────────────────────────
 model PurchaseRecord {
-  id          String   @id @default(uuid())
-  companyId   String
-  partId      String
-  supplierId  String?
-  userId      String
-  quantity    Int
-  unitCost    Decimal  @db.Decimal(10, 2)
-  totalCost   Decimal  @db.Decimal(10, 2)
-  notes       String?
-  purchasedAt DateTime @default(now())
-  createdAt   DateTime @default(now())
+  id            String   @id @default(uuid())
+  companyId     String
+  partId        String
+  supplierId    String?
+  userId        String
+  quantity      Int
+  unitCost      Decimal  @db.Decimal(10, 2)
+  totalCost     Decimal  @db.Decimal(10, 2)
+  invoiceNumber String?  // İrsaliye veya Fatura / Fiş No
+  notes         String?
+  purchasedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
 
   company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   part     Part      @relation(fields: [partId], references: [id], onDelete: Cascade)
@@ -357,6 +388,7 @@ model WorkOrderItem {
   id          String              @id @default(uuid())
   workOrderId String
   partId      String
+  warehouseId String?             // Kullanıldığı depo
   quantity    Int
   unitPrice   Decimal             @db.Decimal(10, 2)
   unitCost    Decimal?            @db.Decimal(10, 2)
@@ -416,58 +448,6 @@ enum MaintenanceStatus {
   CANCELLED
 }
 
-// ─── Listings (B2B Pazar Yeri) ────────────────────────────────────────────────
-model Listing {
-  id          String        @id @default(uuid())
-  companyId   String
-  userId      String
-  partId      String?
-  title       String
-  description String
-  price       Decimal       @db.Decimal(10, 2)
-  currency    String        @default("TRY")
-  quantity    Int           @default(1)
-  condition   PartCondition @default(USED)
-  imageUrls   String[]      @default([])
-  status      ListingStatus @default(ACTIVE)
-  viewsCount  Int           @default(0)
-  expiresAt   DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  company  Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user     User             @relation(fields: [userId], references: [id])
-  part     Part?            @relation(fields: [partId], references: [id], onDelete: SetNull)
-  messages ListingMessage[]
-
-  @@map("listings")
-}
-
-enum ListingStatus {
-  DRAFT
-  ACTIVE
-  SOLD
-  EXPIRED
-  DELETED
-}
-
-// ─── Listing Messages ─────────────────────────────────────────────────────────
-model ListingMessage {
-  id                String   @id @default(uuid())
-  listingId         String
-  senderCompanyId   String
-  receiverCompanyId String
-  message           String
-  isRead            Boolean  @default(false)
-  createdAt         DateTime @default(now())
-
-  listing         Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  senderCompany   Company @relation("SentMessages", fields: [senderCompanyId], references: [id])
-  receiverCompany Company @relation("ReceivedMessages", fields: [receiverCompanyId], references: [id])
-
-  @@map("listing_messages")
-}
-
 // ─── Subscriptions ────────────────────────────────────────────────────────────
 model Subscription {
   id                   String             @id @default(uuid())
@@ -496,3 +476,58 @@ enum SubscriptionStatus {
   CANCELED
   INCOMPLETE
 }
+
+// ─── Kasa & Günlük Hareketler ────────────────────────────────────────────────
+model CashTransaction {
+  id            String              @id @default(uuid())
+  companyId     String
+  userId        String
+  type          CashTransactionType
+  category      String              // TAHSILAT, DEVIR_GIRIS, PERSONEL, YEMEK, MALZEME, FATURA_KIRA, DIGER_CIKIS, ORTAK_EKLEME, vb.
+  amount        Decimal             @db.Decimal(10, 2)
+  paymentMethod String              @default("NAKIT") // NAKIT, KREDI_KARTI, HAVALE
+  documentNo    String?             // Fiş / Makbuz / Fatura no
+  description   String?
+  date          DateTime            @default(now())
+  createdAt     DateTime            @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("cash_transactions")
+}
+
+enum CashTransactionType {
+  IN   // Kasa Girişi
+  OUT  // Kasa Çıkışı
+}
+
+// ─── Gün Sonu Kasa Kapatma (Z-Raporu) ─────────────────────────────────────────
+model DailyRegisterClose {
+  id                   String   @id @default(uuid())
+  companyId            String
+  userId               String
+  date                 DateTime // Rapor tarihi
+  openingCash          Decimal  @default(0) @db.Decimal(10, 2)
+  cashIncome           Decimal  @default(0) @db.Decimal(10, 2)
+  posIncome            Decimal  @default(0) @db.Decimal(10, 2)
+  transferIncome       Decimal  @default(0) @db.Decimal(10, 2)
+  cashExpense          Decimal  @default(0) @db.Decimal(10, 2)
+  expectedCash         Decimal  @default(0) @db.Decimal(10, 2)
+  actualCash           Decimal  @default(0) @db.Decimal(10, 2)
+  discrepancy          Decimal  @default(0) @db.Decimal(10, 2)
+  transferredToNextDay Decimal  @default(0) @db.Decimal(10, 2)
+  takenByOwner         Decimal  @default(0) @db.Decimal(10, 2)
+  totalRevenue         Decimal  @default(0) @db.Decimal(10, 2)
+  workOrdersCompleted  Int      @default(0)
+  notes                String?
+  status               String   @default("CLOSED")
+  createdAt            DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([companyId, date])
+  @@map("daily_register_closes")
+}
+

@@ -126,17 +126,6 @@ export const partsAPI = {
   getMovements: (id: string, params?: any) => apiClient.get(`/parts/${id}/movements`, { params }),
 };
 
-export const listingsAPI = {
-  getMarketplace: (params?: any) => apiClient.get('/listings/marketplace', { params }),
-  getMy: (params?: any) => apiClient.get('/listings/my', { params }),
-  getById: (id: string) => apiClient.get(`/listings/${id}`),
-  create: (data: any) => apiClient.post('/listings', data),
-  update: (id: string, data: any) => apiClient.put(`/listings/${id}`, data),
-  delete: (id: string) => apiClient.delete(`/listings/${id}`),
-  getMessages: (id: string) => apiClient.get(`/listings/${id}/messages`),
-  sendMessage: (id: string, message: string) => apiClient.post(`/listings/${id}/messages`, { message }),
-};
-
 export const maintenanceAPI = {
   getAll: (params?: any) => apiClient.get('/maintenance', { params }),
   getUpcoming: (days?: number) => apiClient.get('/maintenance/upcoming', { params: { days } }),
@@ -174,6 +163,9 @@ export const warehouseAPI = {
 export const supplierAPI = {
   getAll: (params?: any) => apiClient.get('/suppliers', { params }),
   getById: (id: string) => apiClient.get(`/suppliers/${id}`),
+  getSummary: () => apiClient.get('/suppliers/summary'),
+  getTransactions: (id: string, params?: any) => apiClient.get(`/suppliers/${id}/transactions`, { params }),
+  recordPayment: (id: string, data: any) => apiClient.post(`/suppliers/${id}/payments`, data),
   create: (data: any) => apiClient.post('/suppliers', data),
   update: (id: string, data: any) => apiClient.put(`/suppliers/${id}`, data),
   delete: (id: string) => apiClient.delete(`/suppliers/${id}`),
@@ -188,7 +180,7 @@ export const workOrderAPI = {
   create: (data: any) => apiClient.post('/work-orders', data),
   update: (id: string, data: any) => apiClient.put(`/work-orders/${id}`, data),
   delete: (id: string) => apiClient.delete(`/work-orders/${id}`),
-  updatePayment: (id: string, data: { paymentStatus?: string; paidAmount?: number; paymentMethod?: string; paymentNotes?: string }) =>
+  updatePayment: (id: string, data: { paymentStatus?: string; paidAmount?: number; amountCollected?: number; paymentMethod?: string; paymentNotes?: string }) =>
     apiClient.patch(`/work-orders/${id}/payment`, data),
   addPhoto: (id: string, data: { type: 'before' | 'after'; imageUrl: string }) =>
     apiClient.post(`/work-orders/${id}/photos`, data),
@@ -213,8 +205,32 @@ export const uploadAPI = {
 export const stockAPI = {
   purchase: (data: any) => apiClient.post('/stock/purchase', data),
   out: (data: any) => apiClient.post('/stock/out', data),
+  stockOut: (data: any) => apiClient.post('/stock/out', data),
   transfer: (data: any) => apiClient.post('/stock/transfer', data),
   adjustWarehouses: (data: any) => apiClient.post('/stock/adjust-warehouses', data),
   findByBarcode: (barcode: string) => apiClient.get(`/stock/barcode/${barcode}`),
   getMovements: (params?: any) => apiClient.get('/stock/movements', { params }),
+};
+
+export const cashAPI = {
+  getDaily: (params?: { date?: string }) => apiClient.get('/cash/daily', { params }),
+  addTransaction: (data: {
+    type: 'IN' | 'OUT';
+    category: string;
+    amount: number;
+    paymentMethod?: string;
+    documentNo?: string;
+    description?: string;
+    date?: string;
+    supplierId?: string;
+  }) => apiClient.post('/cash/transactions', data),
+  deleteTransaction: (id: string) => apiClient.delete(`/cash/transactions/${id}`),
+  closeDay: (data: {
+    date?: string;
+    actualCash?: number;
+    transferredToNextDay?: number;
+    takenByOwner?: number;
+    notes?: string;
+  }) => apiClient.post('/cash/close-day', data),
+  getZReports: (params?: any) => apiClient.get('/cash/reports', { params }),
 };

@@ -4,20 +4,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PagerView from 'react-native-pager-view';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { useTabStore } from '../../src/store/tab.store';
-import { LayoutDashboard, ClipboardList, Package, Store, Warehouse } from 'lucide-react-native';
+import { LayoutDashboard, ClipboardList, Package, Warehouse } from 'lucide-react-native';
 
 import DashboardTab from '../../src/components/tabs/DashboardTab';
 import WorkOrdersTab from '../../src/components/tabs/WorkOrdersTab';
 import PartsTab from '../../src/components/tabs/PartsTab';
 import WarehouseTab from '../../src/components/tabs/WarehouseTab';
-import MarketplaceTab from '../../src/components/tabs/MarketplaceTab';
 
 const TABS = [
   { key: 'dashboard', label: 'Özet', Icon: LayoutDashboard },
   { key: 'workorders', label: 'İş Emirleri', Icon: ClipboardList },
   { key: 'parts', label: 'Parçalar', Icon: Package },
   { key: 'warehouse', label: 'Depo', Icon: Warehouse },
-  { key: 'marketplace', label: 'Pazar', Icon: Store },
 ];
 
 export default function MainTabs() {
@@ -48,9 +46,6 @@ export default function MainTabs() {
         </View>
         <View key="4" style={{ flex: 1 }}>
           <WarehouseTab />
-        </View>
-        <View key="5" style={{ flex: 1 }}>
-          <MarketplaceTab />
         </View>
       </PagerView>
 

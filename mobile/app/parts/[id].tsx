@@ -10,10 +10,16 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { partsAPI, warehouseAPI, stockAPI, supplierAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
-import { openWhatsApp, generateSupplierInquiryMessage } from '../../src/utils/whatsapp';
+import { openWhatsApp, generateSupplierInquiryMessage, generateReturnSupplierMessage } from '../../src/utils/whatsapp';
 
 const QUICK_NOTES_IN = ['📦 Yeni Sevkiyat', '♻️ İade Geldi', '📈 Sayım Fazlası'];
 const QUICK_NOTES_OUT = ['🔧 Tamirde Kullanıldı', '⚠️ Defolu / Hasarlı', '📉 Sayım Eksiği'];
+const QUICK_RETURN_REASONS = [
+  '❌ Araca Uymadı / Yanlış Parça',
+  '⚠️ Defolu / Hasarlı Parça',
+  '🔄 Müşteri Onaylamadı',
+  '📦 Fazla Sipariş / İhtiyaç Kalmadı',
+];
 
 export default function PartDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -77,6 +83,68 @@ export default function PartDetailScreen() {
     const defW = warehouses.find(w => w.isDefault);
     setSelectedWarehouseId(defW ? defW.id : (warehouses[0]?.id || ''));
     setStockModalVisible(true);
+  };
+
+  // Parçacıya İade Modalı (Türkiye Sanayi: Uymayan Parçanın Geri Gönderimi)
+  const [returnModalVisible, setReturnModalVisible] = useState(false);
+  const [returnQty, setReturnQty] = useState('');
+  const [returnReason, setReturnReason] = useState('❌ Araca Uymadı / Yanlış Parça');
+  const [returnSupplierId, setReturnSupplierId] = useState('');
+  const [returnCustomNotes, setReturnCustomNotes] = useState('');
+
+  const returnMutation = useMutation({
+    mutationFn: () => stockAPI.stockOut({
+      partId: id,
+      quantity: parseInt(returnQty),
+      reason: 'IADE',
+      warehouseId: selectedWarehouseId || undefined,
+      supplierId: returnSupplierId || undefined,
+      notes: `${returnReason}${returnCustomNotes ? ` — ${returnCustomNotes}` : ''}`,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['part', id] });
+      queryClient.invalidateQueries({ queryKey: ['partMovements', id] });
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouseStats'] });
+      setReturnModalVisible(false);
+
+      const targetSupplier = suppliers.find((s: any) => s.id === returnSupplierId);
+      if (targetSupplier && targetSupplier.phone) {
+        Alert.alert(
+          '✅ İade Kaydedildi',
+          `Stoktan ${returnQty} adet düşüldü. ${targetSupplier.name} parçacısına WhatsApp üzerinden iade bildirimi geçmek ister misiniz?`,
+          [
+            { text: 'Gerek Yok', style: 'cancel' },
+            {
+              text: '📲 WhatsApp İle Bildir',
+              onPress: () => {
+                const msg = generateReturnSupplierMessage(part, parseInt(returnQty), returnReason);
+                openWhatsApp(targetSupplier.phone, msg);
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('✅ Başarılı', 'Parçacıya iade kaydı oluşturuldu ve stoktan düşüldü.');
+      }
+      setReturnQty('');
+      setReturnCustomNotes('');
+    },
+    onError: (err: any) => {
+      Alert.alert('Hata', err?.response?.data?.error || err?.message || 'İade işlemi kaydedilemedi.');
+    }
+  });
+
+  const handleOpenReturnModal = () => {
+    setReturnQty('1');
+    setReturnReason('❌ Araca Uymadı / Yanlış Parça');
+    setReturnCustomNotes('');
+    const defW = warehouses.find(w => w.isDefault);
+    setSelectedWarehouseId(defW ? defW.id : (warehouses[0]?.id || ''));
+    if (suppliers.length > 0) {
+      setReturnSupplierId(suppliers[0].id);
+    }
+    setReturnModalVisible(true);
   };
 
   const handleOpenAdjustModal = () => {
@@ -303,9 +371,9 @@ export default function PartDetailScreen() {
             {[
               { emoji: '➕', label: 'Stok Ekle', onPress: () => handleOpenStockModal('IN') },
               { emoji: '➖', label: 'Stok Düş', onPress: () => handleOpenStockModal('OUT') },
+              { emoji: '↩️', label: 'Parçacıya İade', onPress: handleOpenReturnModal },
               { emoji: '💬', label: 'Parçacıya Sor', onPress: handleAskSupplier },
               { emoji: '🏢', label: 'Depo Sayım', onPress: handleOpenAdjustModal },
-              { emoji: '📢', label: 'İlan Aç', onPress: () => router.push(`/marketplace/create?partId=${id}` as any) },
             ].map((a) => (
               <TouchableOpacity key={a.label} style={dynamicStyles.actionCard} onPress={a.onPress} activeOpacity={0.8}>
                 <Text style={dynamicStyles.actionEmoji}>{a.emoji}</Text>
@@ -319,22 +387,36 @@ export default function PartDetailScreen() {
         {movements.length > 0 && (
           <View style={dynamicStyles.section}>
             <Text style={dynamicStyles.sectionTitle}>Son Stok Hareketleri</Text>
-            {movements.map((m: any) => (
-              <View key={m.id} style={dynamicStyles.movementItem}>
-                <View style={dynamicStyles.movementHeader}>
-                  <Text style={dynamicStyles.movementType}>
-                    {m.movementType === 'IN' ? '🟢 Giriş' : m.movementType === 'OUT' ? '🔴 Çıkış' : '🔵 ' + m.movementType}
+            {movements.map((m: any) => {
+              const isPositive = m.movementType === 'IN' || m.movementType === 'SATIN_ALMA';
+              const isSupplierReturn = m.movementType === 'IADE' || m.referenceType === 'SUPPLIER_RETURN';
+              const isWorkOrder = m.movementType === 'IS_EMRI_KULLANIMI';
+
+              const typeLabel = isPositive
+                ? '🟢 Giriş'
+                : isSupplierReturn
+                ? '↩️ Parçacıya İade'
+                : isWorkOrder
+                ? '🔧 İş Emri Kullanımı'
+                : m.movementType === 'FIRE'
+                ? '⚠️ Fire / Zayi'
+                : m.movementType === 'OUT' ? '🔴 Çıkış' : '🔵 ' + m.movementType;
+
+              return (
+                <View key={m.id} style={dynamicStyles.movementItem}>
+                  <View style={dynamicStyles.movementHeader}>
+                    <Text style={dynamicStyles.movementType}>{typeLabel}</Text>
+                    <Text style={[dynamicStyles.movementQuantity, { color: isPositive ? theme.success : isSupplierReturn ? '#F59E0B' : theme.danger }]}>
+                      {isPositive ? '+' : '-'}{m.quantity} {part.unit}
+                    </Text>
+                  </View>
+                  <Text style={dynamicStyles.movementDate}>
+                    {new Date(m.createdAt).toLocaleDateString('tr-TR')} — {m.user?.fullName}
                   </Text>
-                  <Text style={dynamicStyles.movementQuantity}>
-                    {m.movementType === 'IN' ? '+' : '-'}{m.quantity} {part.unit}
-                  </Text>
+                  {m.notes && <Text style={dynamicStyles.movementNotes}>{m.notes}</Text>}
                 </View>
-                <Text style={dynamicStyles.movementDate}>
-                  {new Date(m.createdAt).toLocaleDateString('tr-TR')} — {m.user?.fullName}
-                </Text>
-                {m.notes && <Text style={dynamicStyles.movementNotes}>{m.notes}</Text>}
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
 
@@ -433,6 +515,173 @@ export default function PartDetailScreen() {
             >
               {movementMutation.isPending ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: Typography.fontSize.base }}>Kaydet</Text>}
             </TouchableOpacity>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Parçacıya İade Modalı (Sanayi: Uymayan Parçanın Geri Gönderimi) */}
+      <Modal visible={returnModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setReturnModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: theme.background }}>
+          <SafeAreaView style={{ flex: 1, padding: Spacing.lg }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md }}>
+              <View>
+                <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: theme.textPrimary }}>
+                  ↩️ Parçacıya İade
+                </Text>
+                <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, marginTop: 2 }}>
+                  Uymayan veya fazla parçayı toptancıya geri gönder
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setReturnModalVisible(false)}>
+                <Text style={{ color: theme.primary, fontWeight: 'bold', fontSize: Typography.fontSize.md }}>Kapat</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* İade Yapılacak Parçacı */}
+              <Text style={{ color: theme.textMuted, marginBottom: 6, fontSize: Typography.fontSize.sm, fontWeight: '600' }}>
+                İade Edilecek Parçacı / Tedarikçi *
+              </Text>
+              {suppliers.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md, maxHeight: 44 }}>
+                  {suppliers.map((s: any) => (
+                    <TouchableOpacity
+                      key={s.id}
+                      onPress={() => setReturnSupplierId(s.id)}
+                      style={{
+                        paddingHorizontal: Spacing.md,
+                        paddingVertical: 8,
+                        borderRadius: BorderRadius.full,
+                        borderWidth: 1,
+                        borderColor: returnSupplierId === s.id ? '#F59E0B' : theme.border,
+                        backgroundColor: returnSupplierId === s.id ? '#F59E0B20' : theme.surface,
+                        marginRight: Spacing.sm,
+                      }}
+                    >
+                      <Text style={{
+                        color: returnSupplierId === s.id ? '#F59E0B' : theme.textSecondary,
+                        fontSize: Typography.fontSize.sm,
+                        fontWeight: returnSupplierId === s.id ? '700' : '400',
+                      }}>
+                        🏭 {s.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              ) : (
+                <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: Spacing.md, fontStyle: 'italic' }}>
+                  Kayıtlı tedarikçi yok (Genel iade olarak kaydedilir)
+                </Text>
+              )}
+
+              {/* Depo Seçimi */}
+              <Text style={{ color: theme.textMuted, marginBottom: 6, fontSize: Typography.fontSize.sm, fontWeight: '600' }}>
+                Çıkış Yapılacak Depo *
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md, maxHeight: 44 }}>
+                {warehouses.map((w: any) => (
+                  <TouchableOpacity
+                    key={w.id}
+                    onPress={() => setSelectedWarehouseId(w.id)}
+                    style={{
+                      paddingHorizontal: Spacing.md,
+                      paddingVertical: 8,
+                      borderRadius: BorderRadius.full,
+                      borderWidth: 1,
+                      borderColor: selectedWarehouseId === w.id ? theme.primary : theme.border,
+                      backgroundColor: selectedWarehouseId === w.id ? theme.primary + '15' : theme.surface,
+                      marginRight: Spacing.sm,
+                    }}
+                  >
+                    <Text style={{
+                      color: selectedWarehouseId === w.id ? theme.primary : theme.textSecondary,
+                      fontSize: Typography.fontSize.sm,
+                      fontWeight: selectedWarehouseId === w.id ? '700' : '400',
+                    }}>
+                      {w.name} {w.isDefault ? '⭐' : ''}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Miktar */}
+              <Text style={{ color: theme.textMuted, marginBottom: 4, fontSize: Typography.fontSize.sm, fontWeight: '600' }}>
+                İade Miktarı ({part.unit || 'adet'}) *
+              </Text>
+              <TextInput
+                style={{ backgroundColor: theme.surface, color: theme.textPrimary, padding: Spacing.md, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: theme.border, marginBottom: Spacing.md, fontSize: Typography.fontSize.base }}
+                keyboardType="numeric"
+                placeholder="Örn: 1"
+                placeholderTextColor={theme.textMuted}
+                value={returnQty}
+                onChangeText={setReturnQty}
+              />
+
+              {/* İade Sebebi */}
+              <Text style={{ color: theme.textMuted, marginBottom: 6, fontSize: Typography.fontSize.sm, fontWeight: '600' }}>
+                İade Nedeni *
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: Spacing.md }}>
+                {QUICK_RETURN_REASONS.map((r) => (
+                  <TouchableOpacity
+                    key={r}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      backgroundColor: returnReason === r ? '#F59E0B' : theme.surface,
+                      borderWidth: 1,
+                      borderColor: returnReason === r ? '#F59E0B' : theme.border,
+                    }}
+                    onPress={() => setReturnReason(r)}
+                  >
+                    <Text style={{ color: returnReason === r ? '#fff' : theme.textSecondary, fontSize: 13, fontWeight: returnReason === r ? '700' : '400' }}>
+                      {r}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Ek Not */}
+              <Text style={{ color: theme.textMuted, marginBottom: 4, fontSize: Typography.fontSize.sm, fontWeight: '600' }}>
+                Ek İade Notu (Opsiyonel)
+              </Text>
+              <TextInput
+                style={{ backgroundColor: theme.surface, color: theme.textPrimary, padding: Spacing.md, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: theme.border, marginBottom: Spacing.lg, height: 70, textAlignVertical: 'top', fontSize: Typography.fontSize.base }}
+                multiline
+                placeholder="Örn: Sol kaliper uydu, sağ uymadı kurye ile geri verilecek..."
+                placeholderTextColor={theme.textMuted}
+                value={returnCustomNotes}
+                onChangeText={setReturnCustomNotes}
+              />
+
+              {/* İadeyi Kaydet Butonu */}
+              <TouchableOpacity
+                style={[dynamicStyles.actionBtn, { backgroundColor: '#D97706', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.md }, returnMutation.isPending && { opacity: 0.7 }]}
+                onPress={() => {
+                  const q = parseInt(returnQty);
+                  if (isNaN(q) || q <= 0) {
+                    Alert.alert('Hata', 'Lütfen geçerli bir iade miktarı girin.');
+                    return;
+                  }
+                  if (q > (part.quantity || 0)) {
+                    Alert.alert('Hata', `İade miktarı mevcut stoktan (${part.quantity} ${part.unit}) fazla olamaz.`);
+                    return;
+                  }
+                  returnMutation.mutate();
+                }}
+                disabled={returnMutation.isPending}
+              >
+                {returnMutation.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.base }}>
+                    ↩️ İadeyi Kaydet & Stoktan Düş
+                  </Text>
+                )}
+              </TouchableOpacity>
+              <View style={{ height: 30 }} />
+            </ScrollView>
           </SafeAreaView>
         </KeyboardAvoidingView>
       </Modal>

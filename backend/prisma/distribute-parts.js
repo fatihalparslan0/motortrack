@@ -10,12 +10,13 @@ async function run() {
   }
   console.log(`🏢 Şirket: ${company.name} (${company.id})`);
 
-  // 1. A, B, C Depolarını oluştur veya bul
+  // 1. Gerçek Otomotiv Sanayi Depoları
   const desiredWarehouses = [
-    { name: 'Ana Depo', isDefault: true, description: 'Merkez Atölye ve Ana Stok', address: 'Ana Bina Kat: 1' },
-    { name: 'A Deposu', isDefault: false, description: 'Hızlı Tüketim & Bakım Parçaları', address: 'A Blok - Raf Bölümü' },
-    { name: 'B Deposu', isDefault: false, description: 'Motor Bloğu & Ağır Aksam', address: 'B Blok - Zemin Kat' },
-    { name: 'C Deposu', isDefault: false, description: 'Sarf Malzemeleri & Elektrik', address: 'C Blok - Kiler' },
+    { name: 'Merkez Yedek Parça Deposu', isDefault: true, description: 'Sıfır ambalajlı orijinal ve muadil yedek parçalar (Filtreler, bujiler, frenler, kayışlar)', address: 'Asma Kat / A-B Raf Reyonu' },
+    { name: 'Atölye Hızlı Sarfiyat & Yağ Reyonu', isDefault: false, description: 'Motor/şanzıman yağları, balata spreyleri, sıvılar, contalar ve hızlı tüketim sarfiyatı', address: 'Zemin Kat / 1. & 2. Lift Yanı (Hızlı İstasyon)' },
+    { name: 'Ağır Mekanik & Motor Revizyon Deposu', isDefault: false, description: 'Sandık motorlar, silindir kapakları, turboşarjlar, krank milleri, radyatörler ve aktarma organları', address: 'Arka Atölye / Vinç & Palet Bölümü' },
+    { name: 'Çıkma & İkinci El Parça Rafı', isDefault: false, description: 'Araçlardan sökülen sağlam çıkma parçalar, revizyonluk dinamolar, marş motorları ve yedekler', address: 'D Blok / 2. El Reyonu - Raf D-1' },
+    { name: 'Müşteri Emanet & Kurye Kabul Dolabı', isDefault: false, description: 'Müşterinin getirdiği parçalar ile parçacıdan kuryeyle gelen, montaj bekleyen etiketli parçalar', address: 'Servis Danışmanı / Müşteri Kabul Bölümü' },
   ];
 
   const warehouseMap = {};

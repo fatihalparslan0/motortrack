@@ -1,16 +1,17 @@
 import React, { useMemo } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  ActivityIndicator, RefreshControl,
+  ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { warehouseAPI } from '../../src/api/client';
+import { warehouseAPI, supplierAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
-import { AlertTriangle, ChevronRight } from 'lucide-react-native';
+import { AlertTriangle, ChevronRight, MessageSquare } from 'lucide-react-native';
+import { openWhatsApp, generateBatchOrderMessage } from '../../src/utils/whatsapp';
 
 export default function CriticalStockScreen() {
   const { colors: theme } = useAppTheme();
@@ -20,7 +21,49 @@ export default function CriticalStockScreen() {
     queryFn: () => warehouseAPI.getCriticalStock(),
   });
 
+  const { data: suppliersData } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: () => supplierAPI.getAll(),
+  });
+  const suppliers: any[] = (suppliersData as any)?.data || [];
+
   const parts: any[] = (data as any)?.data || [];
+
+  const handleBatchOrder = () => {
+    if (parts.length === 0) {
+      Alert.alert('Bilgi', 'Kritik seviyede parça bulunmuyor.');
+      return;
+    }
+    if (!suppliers || suppliers.length === 0) {
+      Alert.alert(
+        'Tedarikçi Bulunamadı',
+        'Kayıtlı yedek parçacı bulunmuyor. Depo > Tedarikçiler bölümünden parça toptancısı ekleyebilirsiniz.'
+      );
+      return;
+    }
+
+    if (suppliers.length === 1) {
+      const s = suppliers[0];
+      const msg = generateBatchOrderMessage(parts);
+      openWhatsApp(s.phone, msg);
+      return;
+    }
+
+    Alert.alert(
+      '📲 Parçacıya Toplu Sipariş (WhatsApp)',
+      `Kritik ${parts.length} parça için hangi tedarikçiye WhatsApp siparişi göndermek istersiniz?`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        ...suppliers.slice(0, 6).map((s: any) => ({
+          text: `🏭 ${s.name}`,
+          onPress: () => {
+            const msg = generateBatchOrderMessage(parts);
+            openWhatsApp(s.phone, msg);
+          },
+        })),
+      ]
+    );
+  };
 
   const getStockLevel = (qty: number, min: number) => {
     if (qty === 0) return { label: 'Tükendi', color: '#7F1D1D', bg: '#FEE2E2' };
@@ -38,14 +81,40 @@ export default function CriticalStockScreen() {
           <Text style={{ color: 'rgba(255,255,255,0.8)', marginBottom: 4 }}>← Geri</Text>
         </TouchableOpacity>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={{ fontSize: Typography.fontSize.xl, fontWeight: '800', color: '#fff' }}>⚠️ Kritik Stok</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>{parts.length} ürün dikkat gerektiriyor</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.85)', marginTop: 2, fontSize: Typography.fontSize.xs }}>
+              {parts.length} ürün minimum stok sınırının altında
+            </Text>
           </View>
-          <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}>
-            <AlertTriangle size={28} color="#fff" />
+          <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center' }}>
+            <AlertTriangle size={26} color="#fff" />
           </View>
         </View>
+
+        {parts.length > 0 && (
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              backgroundColor: '#10B981',
+              paddingVertical: 11,
+              paddingHorizontal: Spacing.md,
+              borderRadius: BorderRadius.md,
+              marginTop: Spacing.md,
+              ...Shadows.sm,
+            }}
+            onPress={handleBatchOrder}
+            activeOpacity={0.85}
+          >
+            <MessageSquare size={18} color="#fff" />
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.sm }}>
+              Parçacıya WhatsApp İle Sipariş Geç
+            </Text>
+          </TouchableOpacity>
+        )}
       </LinearGradient>
 
       {isLoading ? (

@@ -56,7 +56,7 @@ function AddWarehouseModal({ visible, onClose, theme }: any) {
               }}
               value={form.name}
               onChangeText={v => update('name', v)}
-              placeholder="Örn: B Deposu veya Gezici Servis"
+              placeholder="Örn: Atölye Hızlı Sarfiyat & Yağ Reyonu"
               placeholderTextColor={theme.textMuted}
             />
 
@@ -87,7 +87,7 @@ function AddWarehouseModal({ visible, onClose, theme }: any) {
               multiline
               value={form.address}
               onChangeText={v => update('address', v)}
-              placeholder="Örn: Sanayi Sitesi 4. Blok No:18"
+              placeholder="Örn: Zemin Kat / 1. & 2. Lift Yanı"
               placeholderTextColor={theme.textMuted}
             />
 

@@ -303,9 +303,14 @@ exports.addMovement = async (req, res, next) => {
 
     const qty = parseInt(quantity);
 
-    // Çıkış türleri
+    // Çıkış türleri (Tedarikçiye iade durumunda parça dükkandan çıktığı için stok düşer)
+    const isSupplierReturn = referenceType === 'SUPPLIER_RETURN';
     const outTypes = ['OUT', 'TRANSFER', 'IS_EMRI_KULLANIMI', 'SATIS', 'FIRE'];
-    const inTypes = ['IN', 'RETURN', 'SATIN_ALMA', 'IADE'];
+    if (isSupplierReturn) {
+      outTypes.push('IADE');
+      outTypes.push('RETURN');
+    }
+    const inTypes = ['IN', 'SATIN_ALMA'];
 
     if (outTypes.includes(movementType)) {
       const available = part.quantity - part.reservedQuantity;

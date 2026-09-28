@@ -83,6 +83,7 @@ export default function ReceivablesScreen() {
       queryClient.invalidateQueries({ queryKey: ['receivables'] });
       queryClient.invalidateQueries({ queryKey: ['work-orders'] });
       queryClient.invalidateQueries({ queryKey: ['work-order', selectedOrder?.id] });
+      queryClient.invalidateQueries({ queryKey: ['cashDaily'] });
       setShowPaymentModal(false);
       setSelectedOrder(null);
       Alert.alert('Başarılı', 'Ödeme ve tahsilat kaydı başarıyla kaydedildi! ✅');
@@ -91,6 +92,21 @@ export default function ReceivablesScreen() {
       Alert.alert('Hata', err?.response?.data?.error || err?.message || 'Ödeme kaydedilemedi.');
     },
   });
+
+  const handleAmountChange = (text: string) => {
+    setPayAmount(text);
+    const amount = parseFloat(text);
+    const remaining = selectedOrder?.remainingAmount || ((selectedOrder?.totalAmount || 0) - (selectedOrder?.paidAmount || 0));
+    if (!isNaN(amount)) {
+      if (amount >= remaining - 0.01 && remaining > 0) {
+        setPayStatus('ODENDI');
+      } else if (amount > 0) {
+        setPayStatus('KISMI');
+      } else {
+        setPayStatus('VERESIYE');
+      }
+    }
+  };
 
   const handleOpenPaymentModal = (order: any) => {
     setSelectedOrder(order);
@@ -105,19 +121,21 @@ export default function ReceivablesScreen() {
   const handleSavePayment = () => {
     if (!selectedOrder) return;
     const amount = parseFloat(payAmount);
-    if (isNaN(amount) || amount < 0) {
+    if (isNaN(amount) || amount <= 0) {
       Alert.alert('Hata', 'Lütfen geçerli bir tahsilat tutarı girin.');
       return;
     }
 
     const previousPaid = parseFloat(selectedOrder.paidAmount || 0);
+    const totalAmount = parseFloat(selectedOrder.totalAmount || 0);
     const newTotalPaid = previousPaid + amount;
+    const isFullPayment = newTotalPaid >= totalAmount - 0.01;
 
     paymentMutation.mutate({
       id: selectedOrder.id,
       data: {
-        paidAmount: newTotalPaid,
-        paymentStatus: payStatus,
+        amountCollected: amount,
+        paymentStatus: isFullPayment ? 'ODENDI' : (payStatus === 'ODENDI' ? 'KISMI' : payStatus),
         paymentMethod: payMethod,
         paymentNotes: payNotes.trim() || undefined,
       },
@@ -145,7 +163,7 @@ export default function ReceivablesScreen() {
     <SafeAreaView style={dynamicStyles.container} edges={['top']}>
       {/* Header */}
       <LinearGradient
-        colors={[theme.danger + 'DD', theme.dangerDark || '#991B1B'] as [string, string]}
+        colors={[theme.danger + 'DD', (theme as any).dangerDark || '#991B1B'] as [string, string]}
         style={dynamicStyles.header}
       >
         <View style={dynamicStyles.headerTop}>
@@ -401,7 +419,7 @@ export default function ReceivablesScreen() {
                 style={dynamicStyles.amountInput}
                 keyboardType="numeric"
                 value={payAmount}
-                onChangeText={setPayAmount}
+                onChangeText={handleAmountChange}
                 placeholder="0"
                 placeholderTextColor={theme.textMuted}
                 autoFocus
@@ -411,13 +429,13 @@ export default function ReceivablesScreen() {
               <View style={dynamicStyles.quickAmountRow}>
                 <TouchableOpacity
                   style={dynamicStyles.quickAmountBtn}
-                  onPress={() => setPayAmount(String(selectedOrder?.remainingAmount || 0))}
+                  onPress={() => handleAmountChange(String(selectedOrder?.remainingAmount || 0))}
                 >
                   <Text style={dynamicStyles.quickAmountText}>Tamamını Kapat</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={dynamicStyles.quickAmountBtn}
-                  onPress={() => setPayAmount(String(Math.round((selectedOrder?.remainingAmount || 0) / 2)))}
+                  onPress={() => handleAmountChange(String(Math.round((selectedOrder?.remainingAmount || 0) / 2)))}
                 >
                   <Text style={dynamicStyles.quickAmountText}>Yarısını Tahsil Et</Text>
                 </TouchableOpacity>
@@ -664,7 +682,7 @@ const styles = (theme: any) =>
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      padding: Spacing.xxl,
+      padding: Spacing['2xl'],
     },
     emptyTitle: {
       fontSize: Typography.fontSize.lg,

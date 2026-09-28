@@ -10,7 +10,6 @@ const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/auth.routes');
 const motorRoutes = require('./routes/motors.routes');
 const partRoutes = require('./routes/parts.routes');
-const listingRoutes = require('./routes/listings.routes');
 const maintenanceRoutes = require('./routes/maintenance.routes');
 const subscriptionRoutes = require('./routes/subscriptions.routes');
 const companyRoutes = require('./routes/companies.routes');
@@ -19,6 +18,7 @@ const warehouseRoutes = require('./routes/warehouse.routes');
 const supplierRoutes = require('./routes/supplier.routes');
 const workorderRoutes = require('./routes/workorder.routes');
 const stockRoutes = require('./routes/stock.routes');
+const cashRoutes = require('./routes/cash.routes');
 
 const path = require('path');
 const uploadRoutes = require('./routes/upload.routes');
@@ -66,7 +66,6 @@ app.use('/api/auth/register', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/motors', motorRoutes);
 app.use('/api/parts', partRoutes);
-app.use('/api/listings', listingRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/companies', companyRoutes);
@@ -74,6 +73,7 @@ app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/work-orders', workorderRoutes);
 app.use('/api/stock', stockRoutes);
+app.use('/api/cash', cashRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────

@@ -21,13 +21,14 @@ async function main() {
       const warehouse = await prisma.warehouse.create({
         data: {
           companyId: company.id,
-          name: 'Ana Depo',
-          description: 'Varsayılan ana depo',
+          name: 'Merkez Yedek Parça Deposu',
+          description: 'Sıfır ambalajlı orijinal ve muadil yedek parçalar (Filtreler, bujiler, frenler, kayışlar)',
+          address: 'Asma Kat / A-B Raf Reyonu',
           isDefault: true,
           isActive: true,
         },
       });
-      console.log(`✅ ${company.name} için "Ana Depo" oluşturuldu: ${warehouse.id}`);
+      console.log(`✅ ${company.name} için "Merkez Yedek Parça Deposu" oluşturuldu: ${warehouse.id}`);
     } else {
       console.log(`⏭️  ${company.name} zaten varsayılan depoya sahip: ${existing.name}`);
     }
