@@ -10,6 +10,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { partsAPI, motorsAPI, warehouseAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { useAuthStore, isTechnicianRole } from '../../src/store/auth.store';
 
 import { SearchableSelect, SelectOption } from '../../src/components/ui/SearchableSelect';
 
@@ -82,6 +83,8 @@ const COMMON_PARTS = [
 export default function CreatePartScreen() {
   const queryClient = useQueryClient();
   const { motorId: preselectedMotorId } = useLocalSearchParams<{ motorId?: string }>();
+  const { user } = useAuthStore();
+  const isTechnician = isTechnicianRole(user?.role);
   
   const { colors: theme } = useAppTheme();
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
@@ -217,16 +220,22 @@ export default function CreatePartScreen() {
               <View style={dynamicStyles.halfField}>
                 <InputField label="Min. Stok Eşiği" value={form.minQuantity} onChangeText={v => update('minQuantity', v)} keyboardType="numeric" placeholder="5" last theme={theme} dynamicStyles={dynamicStyles} />
               </View>
-              <View style={[dynamicStyles.halfField, dynamicStyles.fieldBorder]}>
-                <InputField label="Alış Fiyatı (₺)" value={form.purchasePrice} onChangeText={v => {
-                    let numeric = v.replace(/[^0-9,]/g, '');
-                    const parts = numeric.split(',');
-                    if (parts.length > 2) numeric = parts[0] + ',' + parts.slice(1).join('');
-                    let [whole, decimal] = numeric.split(',');
-                    whole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-                    update('purchasePrice', decimal !== undefined ? `${whole},${decimal}` : whole);
-                  }} keyboardType="decimal-pad" placeholder="0,00" last theme={theme} dynamicStyles={dynamicStyles} />
-              </View>
+              {!isTechnician ? (
+                <View style={[dynamicStyles.halfField, dynamicStyles.fieldBorder]}>
+                  <InputField label="Alış Fiyatı (₺)" value={form.purchasePrice} onChangeText={v => {
+                      let numeric = v.replace(/[^0-9,]/g, '');
+                      const parts = numeric.split(',');
+                      if (parts.length > 2) numeric = parts[0] + ',' + parts.slice(1).join('');
+                      let [whole, decimal] = numeric.split(',');
+                      whole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                      update('purchasePrice', decimal !== undefined ? `${whole},${decimal}` : whole);
+                    }} keyboardType="decimal-pad" placeholder="0,00" last theme={theme} dynamicStyles={dynamicStyles} />
+                </View>
+              ) : (
+                <View style={[dynamicStyles.halfField, dynamicStyles.fieldBorder]}>
+                  <InputField label="Depo Konumu" value={form.warehouseLocation} onChangeText={v => update('warehouseLocation', v)} placeholder="A-Raf-3" last theme={theme} dynamicStyles={dynamicStyles} />
+                </View>
+              )}
             </View>
             <View style={[dynamicStyles.row, { borderTopWidth: 1, borderTopColor: theme.border }]}>
               <View style={dynamicStyles.halfField}>
@@ -239,9 +248,11 @@ export default function CreatePartScreen() {
                     update('sellingPrice', decimal !== undefined ? `${whole},${decimal}` : whole);
                   }} keyboardType="decimal-pad" placeholder="0,00" last theme={theme} dynamicStyles={dynamicStyles} />
               </View>
-              <View style={[dynamicStyles.halfField, dynamicStyles.fieldBorder]}>
-                <InputField label="Depo Konumu" value={form.warehouseLocation} onChangeText={v => update('warehouseLocation', v)} placeholder="A-Raf-3" last theme={theme} dynamicStyles={dynamicStyles} />
-              </View>
+              {!isTechnician && (
+                <View style={[dynamicStyles.halfField, dynamicStyles.fieldBorder]}>
+                  <InputField label="Depo Konumu" value={form.warehouseLocation} onChangeText={v => update('warehouseLocation', v)} placeholder="A-Raf-3" last theme={theme} dynamicStyles={dynamicStyles} />
+                </View>
+              )}
             </View>
 
             {/* Giriş Yapılacak Depo */}
@@ -332,7 +343,14 @@ export default function CreatePartScreen() {
   );
 }
 
-function InputField({ label, last = false, theme, dynamicStyles, ...props }: any) {
+interface InputFieldProps extends React.ComponentProps<typeof TextInput> {
+  label: string;
+  last?: boolean;
+  theme: any;
+  dynamicStyles: any;
+}
+
+function InputField({ label, last = false, theme, dynamicStyles, ...props }: InputFieldProps) {
   return (
     <View style={[dynamicStyles.inputWrapper, !last && dynamicStyles.inputBorder]}>
       <Text style={dynamicStyles.inputLabel}>{label}</Text>

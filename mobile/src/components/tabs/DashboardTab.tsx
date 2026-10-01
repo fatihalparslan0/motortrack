@@ -16,7 +16,7 @@ import { useTabStore } from '../../store/tab.store';
 import { 
   Settings, CheckCircle, ClipboardList, Package, Bell, 
   PlusCircle, Warehouse, ScanLine, Moon, Sun, Palette,
-  DollarSign, ChevronRight
+  DollarSign, ChevronRight, Search
 } from 'lucide-react-native';
 
 function StatCard({ Icon, label, value, color, onPress, theme }: any) {
@@ -64,9 +64,12 @@ export default function Dashboard() {
     queryFn: () => workOrderAPI.getStats(),
   });
 
+  const isTech = user?.role === 'TECHNICIAN';
+
   const { data: recData, isLoading: l4, refetch: r4 } = useQuery({
     queryKey: ['receivables'],
     queryFn: () => workOrderAPI.getReceivables(),
+    enabled: !isTech,
   });
 
   const { data: lowStock, isLoading: l5, refetch: r5 } = useQuery({
@@ -77,6 +80,7 @@ export default function Dashboard() {
   const { data: subscription } = useQuery({
     queryKey: ['subscriptionStatus'],
     queryFn: () => subscriptionsAPI.getStatus(),
+    enabled: !isTech,
   });
 
   const isLoading = l1 || l2 || l3 || l4 || l5;
@@ -120,8 +124,30 @@ export default function Dashboard() {
         {/* Header */}
         <LinearGradient colors={gradientHeaderColors as [string, string]} style={dynamicStyles.header}>
           <View>
-            <Text style={[dynamicStyles.greeting, themeMode === 'light' && {color: '#FFF'}]}>{greeting()}, {user?.fullName?.split(' ')[0]} 👋</Text>
-            <Text style={[dynamicStyles.companyName, themeMode === 'light' && {color: 'rgba(255,255,255,0.8)'}]}>{user?.companyName}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <Text style={[dynamicStyles.greeting, themeMode === 'light' && {color: '#FFF'}]}>
+                {greeting()}, {user?.fullName?.split(' ')[0]} 👋
+              </Text>
+              <View style={{
+                backgroundColor: isTech ? 'rgba(245, 158, 11, 0.25)' : 'rgba(16, 185, 129, 0.25)',
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                borderRadius: BorderRadius.full,
+                borderWidth: 1,
+                borderColor: isTech ? '#F59E0B' : '#10B981',
+              }}>
+                <Text style={{
+                  fontSize: 10,
+                  fontWeight: '800',
+                  color: isTech ? '#FEF3C7' : '#D1FAE5',
+                }}>
+                  {isTech ? '🔧 Teknisyen' : '👑 Yönetici'}
+                </Text>
+              </View>
+            </View>
+            <Text style={[dynamicStyles.companyName, themeMode === 'light' && {color: 'rgba(255,255,255,0.8)'}]}>
+              {user?.companyName}
+            </Text>
           </View>
           <View style={{flexDirection: 'row', gap: 10}}>
             <TouchableOpacity style={dynamicStyles.iconBtn} onPress={toggleTheme}>
@@ -137,7 +163,7 @@ export default function Dashboard() {
         </LinearGradient>
 
         {/* Trial Banner */}
-        {sub?.status === 'TRIAL' && (
+        {!isTech && sub?.status === 'TRIAL' && (
           <TouchableOpacity onPress={() => router.push('/subscription/plans' as any)}>
             <LinearGradient colors={[theme.primary + '30', theme.primary + '10']} style={dynamicStyles.trialBanner}>
               <Text style={dynamicStyles.trialBannerText}>
@@ -166,11 +192,11 @@ export default function Dashboard() {
         </View>
 
         {/* Alerts */}
-        {(lowStockList.length > 0 || (receivables?.totalReceivables > 0)) && (
+        {(lowStockList.length > 0 || (!isTech && receivables?.totalReceivables > 0)) && (
           <View style={dynamicStyles.section}>
             <Text style={dynamicStyles.sectionTitle}>⚠️ Dikkat Gerektiren Durumlar</Text>
             <View style={dynamicStyles.alertsContainer}>
-              {receivables?.totalReceivables > 0 && (
+              {!isTech && receivables?.totalReceivables > 0 && (
                 <AlertItem
                   title={`📒 Açık Hesap & Veresiye: ₺${receivables.totalReceivables.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`}
                   subtitle={`${receivables.debtorOrdersCount} müşteriden tahsilat bekleyen alacak mevcut.`}
@@ -193,54 +219,92 @@ export default function Dashboard() {
           </View>
         )}
 
-        {/* Atölye Kasası & Z-Raporu Banner */}
+        {/* Banner Section */}
         <View style={dynamicStyles.section}>
-          <TouchableOpacity
-            activeOpacity={0.88}
-            onPress={() => router.push('/cash' as any)}
-            style={dynamicStyles.cashBanner}
-          >
-            <LinearGradient
-              colors={themeMode === 'light' ? ['#0D9488', '#115E59'] : ['#134E4A', '#042F2E']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={dynamicStyles.cashBannerInner}
+          {!isTech ? (
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={() => router.push('/cash' as any)}
+              style={dynamicStyles.cashBanner}
             >
-              <View style={dynamicStyles.cashBannerLeft}>
-                <View style={dynamicStyles.cashIconBg}>
-                  <DollarSign size={22} color="#5EEAD4" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={dynamicStyles.cashBannerTitle}>Atölye Kasası & Z-Raporu</Text>
-                    <View style={dynamicStyles.cashBadge}>
-                      <Text style={dynamicStyles.cashBadgeText}>GÜN SONU</Text>
-                    </View>
+              <LinearGradient
+                colors={themeMode === 'light' ? ['#0D9488', '#115E59'] : ['#134E4A', '#042F2E']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={dynamicStyles.cashBannerInner}
+              >
+                <View style={dynamicStyles.cashBannerLeft}>
+                  <View style={dynamicStyles.cashIconBg}>
+                    <DollarSign size={22} color="#5EEAD4" />
                   </View>
-                  <Text style={dynamicStyles.cashBannerSubtitle}>
-                    Nakit / POS tahsilatları, parça ve çırak masrafları
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={dynamicStyles.cashBannerTitle}>Atölye Kasası & Z-Raporu</Text>
+                      <View style={dynamicStyles.cashBadge}>
+                        <Text style={dynamicStyles.cashBadgeText}>GÜN SONU</Text>
+                      </View>
+                    </View>
+                    <Text style={dynamicStyles.cashBannerSubtitle}>
+                      Nakit / POS tahsilatları, parça ve çırak masrafları
+                    </Text>
+                  </View>
                 </View>
-              </View>
-              <ChevronRight size={20} color="#5EEAD4" />
-            </LinearGradient>
-          </TouchableOpacity>
+                <ChevronRight size={20} color="#5EEAD4" />
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={() => router.push('/work-orders/plate-history' as any)}
+              style={dynamicStyles.cashBanner}
+            >
+              <LinearGradient
+                colors={themeMode === 'light' ? ['#2563EB', '#1D4ED8'] : ['#1E3A8A', '#0F172A']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={dynamicStyles.cashBannerInner}
+              >
+                <View style={dynamicStyles.cashBannerLeft}>
+                  <View style={[dynamicStyles.cashIconBg, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <Text style={{ fontSize: 20 }}>🚗</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={dynamicStyles.cashBannerTitle}>Plaka ile Araç Geçmişi</Text>
+                      <View style={[dynamicStyles.cashBadge, { backgroundColor: '#38BDF8' }]}>
+                        <Text style={[dynamicStyles.cashBadgeText, { color: '#0F172A' }]}>SORGULA</Text>
+                      </View>
+                    </View>
+                    <Text style={dynamicStyles.cashBannerSubtitle}>
+                      Geçmiş servis kayıtları, değişen parçalar ve kilometre takibi
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={20} color="#93C5FD" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Quick Actions */}
         <View style={dynamicStyles.section}>
           <Text style={dynamicStyles.sectionTitle}>Hızlı İşlemler</Text>
           <View style={dynamicStyles.quickActions}>
-            {[
+            {(isTech ? [
+              { Icon: ClipboardList, label: 'Yeni İş Emri', path: '/work-orders/create' },
+              { Icon: Search, label: 'Plaka Sorgula', path: '/work-orders/plate-history' },
+              { Icon: Package, label: 'Parçalar', action: () => setActiveTab(2) },
+              { Icon: Warehouse, label: 'Depo Durumu', path: '/warehouse/list' },
+            ] : [
               { Icon: ClipboardList, label: 'Yeni İş Emri', path: '/work-orders/create' },
               { Icon: Package, label: 'Parça Ekle', path: '/parts/create' },
               { Icon: Warehouse, label: 'Depo Durumu', path: '/warehouse/list' },
               { Icon: DollarSign, label: 'Atölye Kasası', path: '/cash' },
-            ].map((action) => (
+            ]).map((action: any) => (
               <TouchableOpacity
                 key={action.label}
                 style={dynamicStyles.quickAction}
-                onPress={() => router.push(action.path as any)}
+                onPress={() => action.action ? action.action() : router.push(action.path)}
                 activeOpacity={0.8}
               >
                 <View style={dynamicStyles.quickActionInner}>

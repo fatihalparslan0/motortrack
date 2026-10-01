@@ -10,6 +10,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { partsAPI, warehouseAPI, stockAPI, supplierAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { useAuthStore, isTechnicianRole, canManageFinancesRole } from '../../src/store/auth.store';
 import { openWhatsApp, generateSupplierInquiryMessage, generateReturnSupplierMessage } from '../../src/utils/whatsapp';
 
 const QUICK_NOTES_IN = ['📦 Yeni Sevkiyat', '♻️ İade Geldi', '📈 Sayım Fazlası'];
@@ -24,6 +25,8 @@ const QUICK_RETURN_REASONS = [
 export default function PartDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const isTechnician = isTechnicianRole(user?.role);
   
   const { colors: theme } = useAppTheme();
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
@@ -279,9 +282,11 @@ export default function PartDetailScreen() {
             >
               <Text style={dynamicStyles.actionBtnText}>✏️ Düzenle</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[dynamicStyles.actionBtn, dynamicStyles.deleteBtn]} onPress={handleDelete}>
-              <Text style={[dynamicStyles.actionBtnText, { color: theme.danger }]}>🗑️</Text>
-            </TouchableOpacity>
+            {!isTechnician && (
+              <TouchableOpacity style={[dynamicStyles.actionBtn, dynamicStyles.deleteBtn]} onPress={handleDelete}>
+                <Text style={[dynamicStyles.actionBtnText, { color: theme.danger }]}>🗑️</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </LinearGradient>
 
@@ -341,7 +346,7 @@ export default function PartDetailScreen() {
               { label: 'Depo Konumu', value: part.warehouseLocation },
               { label: 'Rezerve', value: (part.reservedQuantity || 0) > 0 ? `${part.reservedQuantity} ${part.unit}` : null },
               { label: 'Minimum Stok', value: part.minQuantity > 0 ? part.minQuantity.toString() : 'Belirtilmemiş' },
-              { label: 'Alış Fiyatı', value: part.purchasePrice ? `₺${parseFloat(part.purchasePrice).toLocaleString('tr-TR')}` : '—' },
+              ...(!isTechnician ? [{ label: 'Alış Fiyatı', value: part.purchasePrice ? `₺${parseFloat(part.purchasePrice).toLocaleString('tr-TR')}` : '—' }] : []),
               { label: 'Satış Fiyatı', value: part.sellingPrice ? `₺${parseFloat(part.sellingPrice).toLocaleString('tr-TR')}` : '—' },
             ].filter(i => i.value).map((item, i) => (
               <View key={i} style={[dynamicStyles.detailRow, i > 0 && dynamicStyles.detailRowBorder]}>

@@ -97,3 +97,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 }));
+
+export const isTechnicianRole = (role?: string) => role === 'TECHNICIAN';
+export const canManageFinancesRole = (role?: string) =>
+  ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(role || '');
+

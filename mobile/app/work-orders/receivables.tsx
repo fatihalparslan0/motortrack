@@ -22,6 +22,7 @@ import { router } from 'expo-router';
 import { workOrderAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { useAuthStore } from '../../src/store/auth.store';
 import {
   ArrowLeft,
   Search,
@@ -41,6 +42,8 @@ export default function ReceivablesScreen() {
   const queryClient = useQueryClient();
   const { colors: theme } = useAppTheme();
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
+  const { user } = useAuthStore();
+  const canAccess = ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(user?.role || '');
 
   const [search, setSearch] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'VERESIYE' | 'KISMI' | 'BEKLIYOR'>('ALL');
@@ -56,7 +59,30 @@ export default function ReceivablesScreen() {
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['receivables', search],
     queryFn: () => workOrderAPI.getReceivables({ search: search.trim() || undefined }),
+    enabled: canAccess,
   });
+
+  if (!canAccess) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl }}>
+        <View style={{ backgroundColor: theme.surface, borderRadius: BorderRadius.xl, padding: Spacing.xl, alignItems: 'center', borderWidth: 1, borderColor: theme.border, width: '100%', maxWidth: 360 }}>
+          <Text style={{ fontSize: 48, marginBottom: Spacing.md }}>🔒</Text>
+          <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: theme.textPrimary, textAlign: 'center', marginBottom: Spacing.xs }}>
+            Yetkisiz Erişim
+          </Text>
+          <Text style={{ fontSize: Typography.fontSize.sm, color: theme.textSecondary, textAlign: 'center', marginBottom: Spacing.lg, lineHeight: 20 }}>
+            Açık Hesap & Veresiye Takibi ekranı sadece Yönetici ve Admin yetkisine açıktır.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: theme.primary, borderRadius: BorderRadius.md, paddingVertical: Spacing.sm + 2, paddingHorizontal: Spacing.xl }}
+            onPress={() => router.back()}
+          >
+            <Text style={{ color: '#fff', fontWeight: '700' }}>Geri Dön</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const receivablesData = (data as any)?.data || {
     totalReceivables: 0,
@@ -79,14 +105,15 @@ export default function ReceivablesScreen() {
   const paymentMutation = useMutation({
     mutationFn: (payload: { id: string; data: any }) =>
       workOrderAPI.updatePayment(payload.id, payload.data),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['receivables'] });
       queryClient.invalidateQueries({ queryKey: ['work-orders'] });
       queryClient.invalidateQueries({ queryKey: ['work-order', selectedOrder?.id] });
       queryClient.invalidateQueries({ queryKey: ['cashDaily'] });
       setShowPaymentModal(false);
       setSelectedOrder(null);
-      Alert.alert('Başarılı', 'Ödeme ve tahsilat kaydı başarıyla kaydedildi! ✅');
+      const msg = res?.data?.message || 'Ödeme ve tahsilat kaydı başarıyla kaydedildi! ✅';
+      Alert.alert('Başarılı', msg);
     },
     onError: (err: any) => {
       Alert.alert('Hata', err?.response?.data?.error || err?.message || 'Ödeme kaydedilemedi.');
@@ -126,20 +153,43 @@ export default function ReceivablesScreen() {
       return;
     }
 
+    const remaining = selectedOrder?.remainingAmount ?? Math.max(0, (selectedOrder?.totalAmount || 0) - (selectedOrder?.paidAmount || 0));
     const previousPaid = parseFloat(selectedOrder.paidAmount || 0);
     const totalAmount = parseFloat(selectedOrder.totalAmount || 0);
-    const newTotalPaid = previousPaid + amount;
-    const isFullPayment = newTotalPaid >= totalAmount - 0.01;
 
-    paymentMutation.mutate({
-      id: selectedOrder.id,
-      data: {
-        amountCollected: amount,
-        paymentStatus: isFullPayment ? 'ODENDI' : (payStatus === 'ODENDI' ? 'KISMI' : payStatus),
-        paymentMethod: payMethod,
-        paymentNotes: payNotes.trim() || undefined,
-      },
-    });
+    const executePayment = () => {
+      const isFullPayment = (previousPaid + amount) >= totalAmount - 0.01;
+      paymentMutation.mutate({
+        id: selectedOrder.id,
+        data: {
+          amountCollected: amount,
+          paymentStatus: isFullPayment ? 'ODENDI' : (payStatus === 'ODENDI' ? 'KISMI' : payStatus),
+          paymentMethod: payMethod,
+          paymentNotes: payNotes.trim() || undefined,
+        },
+      });
+    };
+
+    if (amount > remaining && remaining > 0) {
+      const excess = Math.round((amount - remaining) * 100) / 100;
+      Alert.alert(
+        'Bahşiş / İkramiye Onayı 🎁',
+        `Kalan borç ₺${remaining.toLocaleString('tr-TR')} tutarındadır.\n\nFazla olan ₺${excess.toLocaleString('tr-TR')} tutar kasaya 'Bahşiş / Usta İkramiyesi' olarak kaydedilecek ve iş emri tamamen kapatılacaktır.\n\nOnaylıyor musunuz?`,
+        [
+          { text: 'Vazgeç', style: 'cancel' },
+          {
+            text: `Kalan Tutara Eşitle (₺${remaining.toLocaleString('tr-TR')})`,
+            onPress: () => handleAmountChange(String(remaining)),
+          },
+          {
+            text: 'Evet, Bahşiş Olarak Kaydet',
+            onPress: executePayment,
+          },
+        ]
+      );
+    } else {
+      executePayment();
+    }
   };
 
   const handleSendWhatsAppReminder = (order: any) => {
@@ -440,6 +490,52 @@ export default function ReceivablesScreen() {
                   <Text style={dynamicStyles.quickAmountText}>Yarısını Tahsil Et</Text>
                 </TouchableOpacity>
               </View>
+
+              {/* Smart Tip Notice if amount > remaining */}
+              {(() => {
+                const rem = selectedOrder?.remainingAmount ?? Math.max(0, (selectedOrder?.totalAmount || 0) - (selectedOrder?.paidAmount || 0));
+                const amt = parseFloat(payAmount) || 0;
+                const tip = Math.max(0, amt - rem);
+                if (tip > 0 && rem > 0) {
+                  return (
+                    <View
+                      style={{
+                        backgroundColor: '#10B98115',
+                        borderWidth: 1,
+                        borderColor: '#10B981',
+                        borderRadius: BorderRadius.md,
+                        padding: Spacing.sm + 2,
+                        marginVertical: Spacing.sm,
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: '#059669' }}>
+                          🎁 Fazla Tutar: +₺{tip.toLocaleString('tr-TR')} (Bahşiş)
+                        </Text>
+                        <TouchableOpacity
+                          style={{
+                            backgroundColor: theme.surface,
+                            borderWidth: 1,
+                            borderColor: '#059669',
+                            borderRadius: BorderRadius.sm,
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                          }}
+                          onPress={() => handleAmountChange(String(rem))}
+                        >
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#059669' }}>
+                            Kalan Tutara Eşitle (₺{rem.toLocaleString('tr-TR')})
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 4 }}>
+                        Kalan ₺{rem.toLocaleString('tr-TR')} borç kapatılacak, fazla girilen ₺{tip.toLocaleString('tr-TR')} tutar kasaya Bahşiş / Usta İkramiyesi olarak kaydedilecektir.
+                      </Text>
+                    </View>
+                  );
+                }
+                return null;
+              })()}
 
               {/* Payment Method */}
               <Text style={dynamicStyles.inputLabel}>Ödeme Şekli</Text>

@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const cashController = require('../controllers/cash.controller');
-const { authenticate, requireSubscription } = require('../middleware/auth.middleware');
+const { authenticate, requireSubscription, authorize } = require('../middleware/auth.middleware');
 
-router.use(authenticate, requireSubscription);
+router.use(authenticate, requireSubscription, authorize('ADMIN', 'MANAGER'));
 
 // Günlük kasa durumu ve hareket zaman tüneli
 router.get('/daily', cashController.getDailyRegister);

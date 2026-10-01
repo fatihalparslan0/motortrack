@@ -121,11 +121,25 @@ exports.getWorkOrderById = async (req, res, next) => {
     const paid = parseFloat(order.paidAmount || 0);
     const remainingAmount = Math.max(0, totalAmount - paid);
 
+    const isTech = req.user.role === 'TECHNICIAN';
+
+    // Teknisyen için maliyet ve kâr bilgilerini gizle
+    const sanitizedItems = order.items.map((item) => {
+      if (!isTech) return item;
+      const { unitCost, ...restItem } = item;
+      if (restItem.part) {
+        const { purchasePrice, ...restPart } = restItem.part;
+        restItem.part = restPart;
+      }
+      return restItem;
+    });
+
     return success(res, {
       ...order,
+      items: sanitizedItems,
       partsSaleTotal,
-      partsCostTotal,
-      partsProfit: partsSaleTotal - partsCostTotal,
+      partsCostTotal: isTech ? undefined : partsCostTotal,
+      partsProfit: isTech ? undefined : (partsSaleTotal - partsCostTotal),
       laborCost: labor,
       totalAmount,
       paidAmount: paid,
@@ -713,16 +727,36 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
 
     const prevPaid = parseFloat(order.paidAmount || 0);
     let numericPaid = prevPaid;
-    let cashIncrement = 0;
+    let tipAmount = 0;
+    let woPaymentPortion = 0;
 
     if (amountCollected !== undefined) {
-      // YENİ TAHSİLAT AL MODU: Alınan yeni tahsilat tutarı eklenir
-      cashIncrement = parseFloat(amountCollected || 0);
-      numericPaid = prevPaid + cashIncrement;
+      // YENİ TAHSİLAT AL MODU:
+      const rawCollected = parseFloat(amountCollected || 0);
+      const remainingBefore = Math.max(0, totalAmount - prevPaid);
+
+      if (rawCollected > remainingBefore) {
+        // Kalan tutardan fazla girildi: Akıllı Bahşiş Modu
+        woPaymentPortion = remainingBefore;
+        tipAmount = Math.round((rawCollected - remainingBefore) * 100) / 100;
+        numericPaid = prevPaid + woPaymentPortion; // İş emri tutarını aşamaz!
+      } else {
+        woPaymentPortion = rawCollected;
+        tipAmount = 0;
+        numericPaid = prevPaid + woPaymentPortion;
+      }
     } else if (paidAmount !== undefined) {
-      // TOPLAMI DÜZELT MODU: Toplam tahsilat doğrudan güncellenir
-      numericPaid = parseFloat(paidAmount || 0);
-      cashIncrement = numericPaid - prevPaid;
+      // TOPLAMI DÜZELT MODU:
+      const requestedPaid = parseFloat(paidAmount || 0);
+      if (requestedPaid > totalAmount) {
+        // En fazla totalAmount kadar düzeltilebilir
+        numericPaid = totalAmount;
+      } else {
+        numericPaid = requestedPaid;
+      }
+      const cashIncrement = numericPaid - prevPaid;
+      woPaymentPortion = Math.max(0, cashIncrement);
+      tipAmount = 0;
     }
 
     let calculatedStatus = paymentStatus;
@@ -747,13 +781,23 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
       }
     }
 
+    let finalPaymentNotes = paymentNotes !== undefined ? paymentNotes : order.paymentNotes;
+    if (tipAmount > 0) {
+      const tipNoteTag = `[₺${tipAmount.toLocaleString('tr-TR')} Bahşiş/İkramiye]`;
+      if (finalPaymentNotes && !finalPaymentNotes.includes(tipNoteTag)) {
+        finalPaymentNotes = `${finalPaymentNotes} ${tipNoteTag}`.trim();
+      } else if (!finalPaymentNotes) {
+        finalPaymentNotes = tipNoteTag;
+      }
+    }
+
     const updated = await prisma.workOrder.update({
       where: { id },
       data: {
         paymentStatus: calculatedStatus,
         paidAmount: numericPaid,
         ...(paymentMethod !== undefined && { paymentMethod }),
-        ...(paymentNotes !== undefined && { paymentNotes }),
+        ...(finalPaymentNotes !== undefined && { paymentNotes: finalPaymentNotes }),
       },
       include: {
         user: { select: { fullName: true } },
@@ -766,7 +810,8 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
     });
 
     // Atölye kasasına tahsilat hareketi olarak kaydet
-    if (cashIncrement > 0) {
+    // 1. İş Emri Tahsilatı (Kalan borç kadar veya tahsil edilen kadar)
+    if (woPaymentPortion > 0) {
       try {
         await prisma.cashTransaction.create({
           data: {
@@ -774,7 +819,7 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
             userId: req.user.id,
             type: 'IN',
             category: 'IS_EMRI_TAHSILAT',
-            amount: cashIncrement,
+            amount: woPaymentPortion,
             paymentMethod: paymentMethod || order.paymentMethod || 'NAKIT',
             documentNo: order.id,
             description: `İş Emri Tahsilatı: ${order.customerName ? order.customerName + ' - ' : ''}${order.title}`,
@@ -782,18 +827,44 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
           },
         });
       } catch (cashErr) {
-        console.error('Kasa kaydı oluşturulurken hata:', cashErr);
+        console.error('Kasa tahsilat kaydı oluşturulurken hata:', cashErr);
+      }
+    }
+
+    // 2. Bahşiş / Usta İkramiyesi (Fazla tutar kasaya ayrı gelir olarak girer)
+    if (tipAmount > 0) {
+      try {
+        await prisma.cashTransaction.create({
+          data: {
+            companyId: req.company.id,
+            userId: req.user.id,
+            type: 'IN',
+            category: 'BAHSIS',
+            amount: tipAmount,
+            paymentMethod: paymentMethod || order.paymentMethod || 'NAKIT',
+            documentNo: order.id,
+            description: `Bahşiş / Usta İkramiyesi: ${order.customerName ? order.customerName + ' - ' : ''}${order.title} (₺${tipAmount.toLocaleString('tr-TR')})`,
+            date: new Date(),
+          },
+        });
+      } catch (cashErr) {
+        console.error('Kasa bahşiş kaydı oluşturulurken hata:', cashErr);
       }
     }
 
     const remainingAmount = Math.max(0, totalAmount - numericPaid);
+    const msg = tipAmount > 0
+      ? `Tahsilat kaydedildi. ₺${tipAmount.toLocaleString('tr-TR')} tutarındaki fazlalık Bahşiş/İkramiye olarak kasaya işlendi. 🎁`
+      : 'Ödeme bilgileri güncellendi.';
 
     return success(res, {
       ...updated,
       totalAmount,
       paidAmount: numericPaid,
       remainingAmount,
-    }, 'Ödeme bilgileri güncellendi.');
+      tipAmount,
+      woPaymentPortion,
+    }, msg);
   } catch (err) {
     next(err);
   }

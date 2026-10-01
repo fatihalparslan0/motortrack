@@ -55,7 +55,9 @@ exports.getParts = async (req, res, next) => {
       ]);
     }
 
-    return paginated(res, parts, total, page, limit, 'Parçalar listelendi.');
+    const isTech = req.user.role === 'TECHNICIAN';
+    const sanitized = isTech ? parts.map(p => ({ ...p, purchasePrice: null })) : parts;
+    return paginated(res, sanitized, total, page, limit, 'Parçalar listelendi.');
   } catch (err) {
     next(err);
   }
@@ -75,7 +77,9 @@ exports.getLowStockParts = async (req, res, next) => {
       LIMIT 50
     `;
 
-    return success(res, parts, 'Düşük stok parçaları');
+    const isTech = req.user.role === 'TECHNICIAN';
+    const sanitized = isTech ? parts.map(p => ({ ...p, purchasePrice: null })) : parts;
+    return success(res, sanitized, 'Düşük stok parçaları');
   } catch (err) {
     next(err);
   }
@@ -84,6 +88,7 @@ exports.getLowStockParts = async (req, res, next) => {
 exports.getPartsStats = async (req, res, next) => {
   try {
     const companyId = req.company.id;
+    const isTech = req.user.role === 'TECHNICIAN';
 
     const [totalParts, totalValue, lowStockCount, categories] = await Promise.all([
       prisma.part.count({ where: { companyId } }),
@@ -104,7 +109,7 @@ exports.getPartsStats = async (req, res, next) => {
 
     return success(res, {
       totalParts,
-      totalValue: totalValue._sum.purchasePrice,
+      totalValue: isTech ? null : totalValue._sum.purchasePrice,
       lowStockCount: parseInt(lowStockCount[0]?.count || 0),
       categories,
     });
@@ -129,7 +134,9 @@ exports.getPartById = async (req, res, next) => {
     });
 
     if (!part) return error(res, 'Parça bulunamadı.', 404);
-    return success(res, part);
+    const isTech = req.user.role === 'TECHNICIAN';
+    const sanitized = isTech ? { ...part, purchasePrice: null } : part;
+    return success(res, sanitized);
   } catch (err) {
     next(err);
   }
@@ -180,6 +187,8 @@ exports.createPart = async (req, res, next) => {
       if (!motor) return error(res, 'Motor bulunamadı.', 404);
     }
 
+    const isTech = req.user.role === 'TECHNICIAN';
+
     const part = await prisma.part.create({
       data: {
         companyId: req.company.id,
@@ -190,7 +199,7 @@ exports.createPart = async (req, res, next) => {
         unit: unit || 'adet',
         minQuantity: parseInt(minQuantity) || 0,
         maxQuantity: maxQuantity ? parseInt(maxQuantity) : null,
-        purchasePrice: purchasePrice ? parseFloat(purchasePrice) : null,
+        purchasePrice: (!isTech && purchasePrice) ? parseFloat(purchasePrice) : null,
         sellingPrice: sellingPrice ? parseFloat(sellingPrice) : null,
         warehouseLocation, condition: condition || 'NEW', notes,
         isActive: true,
@@ -225,7 +234,8 @@ exports.createPart = async (req, res, next) => {
       ]);
     }
 
-    return success(res, part, 'Parça başarıyla oluşturuldu.', 201);
+    const sanitizedPart = isTech ? { ...part, purchasePrice: null } : part;
+    return success(res, sanitizedPart, 'Parça başarıyla oluşturuldu.', 201);
   } catch (err) {
     next(err);
   }
@@ -237,6 +247,8 @@ exports.updatePart = async (req, res, next) => {
       where: { id: req.params.id, companyId: req.company.id },
     });
     if (!existing) return error(res, 'Parça bulunamadı.', 404);
+
+    const isTech = req.user.role === 'TECHNICIAN';
 
     const {
       motorId, partNumber, sku, barcode, oemCode,
@@ -260,7 +272,7 @@ exports.updatePart = async (req, res, next) => {
         unit: unit !== undefined ? unit : undefined,
         minQuantity: minQuantity !== undefined ? parseInt(minQuantity) : undefined,
         maxQuantity: maxQuantity !== undefined ? (maxQuantity ? parseInt(maxQuantity) : null) : undefined,
-        purchasePrice: purchasePrice !== undefined ? (purchasePrice ? parseFloat(purchasePrice) : null) : undefined,
+        purchasePrice: (!isTech && purchasePrice !== undefined) ? (purchasePrice ? parseFloat(purchasePrice) : null) : undefined,
         sellingPrice: sellingPrice !== undefined ? (sellingPrice ? parseFloat(sellingPrice) : null) : undefined,
         warehouseLocation: warehouseLocation !== undefined ? warehouseLocation : undefined,
         condition: condition !== undefined ? condition : undefined,
@@ -269,7 +281,8 @@ exports.updatePart = async (req, res, next) => {
       },
     });
 
-    return success(res, part, 'Parça güncellendi.');
+    const sanitizedPart = isTech ? { ...part, purchasePrice: null } : part;
+    return success(res, sanitizedPart, 'Parça güncellendi.');
   } catch (err) {
     next(err);
   }

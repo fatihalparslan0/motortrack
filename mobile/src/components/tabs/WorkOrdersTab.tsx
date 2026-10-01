@@ -17,6 +17,7 @@ import { router } from 'expo-router';
 import { workOrderAPI } from '../../api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { useAuthStore, canManageFinancesRole } from '../../store/auth.store';
 import { Plus, ChevronRight, Search, ClipboardList } from 'lucide-react-native';
 
 const STATUS_FILTERS = [
@@ -149,6 +150,8 @@ function WorkOrderCard({ order, onPress, theme }: any) {
 
 export default function WorkOrdersTab() {
   const { colors: theme } = useAppTheme();
+  const { user } = useAuthStore();
+  const canManageFinances = canManageFinancesRole(user?.role);
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -189,25 +192,27 @@ export default function WorkOrdersTab() {
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: Spacing.xs }}>
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                backgroundColor: 'rgba(239,68,68,0.3)',
-                borderRadius: BorderRadius.md,
-                paddingHorizontal: Spacing.sm + 2,
-                paddingVertical: Spacing.sm,
-                borderWidth: 1,
-                borderColor: 'rgba(239,68,68,0.5)',
-              }}
-              onPress={() => router.push('/work-orders/receivables' as any)}
-            >
-              <Text style={{ fontSize: 13 }}>📒</Text>
-              <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.xs }}>
-                Veresiye
-              </Text>
-            </TouchableOpacity>
+            {canManageFinances && (
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  backgroundColor: 'rgba(239,68,68,0.3)',
+                  borderRadius: BorderRadius.md,
+                  paddingHorizontal: Spacing.sm + 2,
+                  paddingVertical: Spacing.sm,
+                  borderWidth: 1,
+                  borderColor: 'rgba(239,68,68,0.5)',
+                }}
+                onPress={() => router.push('/work-orders/receivables' as any)}
+              >
+                <Text style={{ fontSize: 13 }}>📒</Text>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.xs }}>
+                  Veresiye
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={{

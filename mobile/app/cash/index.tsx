@@ -22,6 +22,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { cashAPI, supplierAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { useAuthStore } from '../../src/store/auth.store';
 
 function toLocalISODate(d: Date = new Date()): string {
   const year = d.getFullYear();
@@ -78,6 +79,7 @@ const EXPENSE_CATEGORIES = [
 ];
 
 const INCOME_CATEGORIES = [
+  { id: 'BAHSIS', label: 'Bahşiş / Usta İkramiyesi', icon: '🎁' },
   { id: 'DEVIR_GIRIS', label: 'Kasa Açılış Devir Nakdi', icon: '🌅' },
   { id: 'ORTAK_EKLEME', label: 'Patron / Sermaye Ekleme', icon: '💼' },
   { id: 'HURDA_CIKMA', label: 'Hurda / Çıkma Parça Satışı', icon: '♻️' },
@@ -642,6 +644,7 @@ function CloseDayModal({
       `💳 POS / Kredi Kartı: ₺${Number(summary?.woPosIncome || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}\n` +
       `🏦 Havale / EFT: ₺${Number(summary?.woTransferIncome || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}\n` +
       `💵 Nakit Tahsilat: ₺${Number(summary?.woCashIncome || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}\n` +
+      (Number(summary?.tipIncome || 0) > 0 ? `🎁 Bahşiş / İkramiye: ₺${Number(summary?.tipIncome || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}\n` : '') +
       `────────────────\n` +
       `🌅 Açılış Devir Nakdi: ₺${Number(summary?.openingCash || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}\n` +
       `📤 Toplam Çıkan Nakit: ₺${Number(summary?.totalCashExpense || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}\n` +
@@ -1338,6 +1341,8 @@ function DateSelectorModal({
 export default function CashRegisterScreen() {
   const { colors: theme } = useAppTheme();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const canAccess = ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(user?.role || '');
 
   const [date, setDate] = useState(() => toLocalISODate(new Date()));
   const [filterType, setFilterType] = useState<'ALL' | 'IN' | 'OUT'>('ALL');
@@ -1350,13 +1355,38 @@ export default function CashRegisterScreen() {
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['cashDaily', date],
     queryFn: () => cashAPI.getDaily({ date }).then((res) => res.data?.data || res.data),
+    enabled: canAccess,
   });
 
   useFocusEffect(
     React.useCallback(() => {
-      refetch();
-    }, [refetch])
+      if (canAccess) {
+        refetch();
+      }
+    }, [refetch, canAccess])
   );
+
+  if (!canAccess) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl }}>
+        <View style={{ backgroundColor: theme.surface, borderRadius: BorderRadius.xl, padding: Spacing.xl, alignItems: 'center', borderWidth: 1, borderColor: theme.border, width: '100%', maxWidth: 360 }}>
+          <Text style={{ fontSize: 48, marginBottom: Spacing.md }}>🔒</Text>
+          <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: theme.textPrimary, textAlign: 'center', marginBottom: Spacing.xs }}>
+            Erişim Yetkisi Yok
+          </Text>
+          <Text style={{ fontSize: Typography.fontSize.sm, color: theme.textSecondary, textAlign: 'center', marginBottom: Spacing.lg, lineHeight: 20 }}>
+            Atölye Kasası ve finansal hareketler ekranı sadece Yönetici ve Admin yetkisine açıktır.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: theme.primary, borderRadius: BorderRadius.md, paddingVertical: Spacing.sm + 2, paddingHorizontal: Spacing.xl }}
+            onPress={() => router.back()}
+          >
+            <Text style={{ color: '#fff', fontWeight: '700' }}>Geri Dön</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const summary = (data as any)?.summary;
   const timeline: any[] = (data as any)?.timeline || [];

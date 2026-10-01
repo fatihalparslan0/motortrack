@@ -155,7 +155,15 @@ export default function CreateWorkOrderScreen() {
   );
 }
 
-function InputField({ label, last = false, multiline = false, theme, dynamicStyles, ...props }: any) {
+interface InputFieldProps extends React.ComponentProps<typeof TextInput> {
+  label: string;
+  last?: boolean;
+  multiline?: boolean;
+  theme: any;
+  dynamicStyles: any;
+}
+
+function InputField({ label, last = false, multiline = false, theme, dynamicStyles, ...props }: InputFieldProps) {
   return (
     <View style={[dynamicStyles.inputWrapper, !last && dynamicStyles.inputBorder]}>
       <Text style={dynamicStyles.inputLabel}>{label}</Text>

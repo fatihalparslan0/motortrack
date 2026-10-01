@@ -141,8 +141,12 @@ exports.getCriticalStock = async (req, res, next) => {
 
     // JS tarafında filtrele (Prisma'nın field referansı sorunu nedeniyle)
     const criticalParts = parts.filter(p => p.quantity <= p.minQuantity);
+    const isTech = req.user.role === 'TECHNICIAN';
+    const sanitized = isTech
+      ? criticalParts.map(p => ({ ...p, purchasePrice: null }))
+      : criticalParts;
 
-    return success(res, criticalParts, 'Kritik stok ürünleri');
+    return success(res, sanitized, 'Kritik stok ürünleri');
   } catch (err) {
     next(err);
   }

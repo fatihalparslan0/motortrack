@@ -2,7 +2,7 @@ const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
 const ctrl = require('../controllers/workorder.controller');
-const { authenticate, requireSubscription } = require('../middleware/auth.middleware');
+const { authenticate, requireSubscription, authorize } = require('../middleware/auth.middleware');
 const validate = require('../middleware/validate.middleware');
 
 router.use(authenticate, requireSubscription);
@@ -10,7 +10,7 @@ router.use(authenticate, requireSubscription);
 router.get('/', ctrl.getWorkOrders);
 router.get('/stats', ctrl.getWorkOrderStats);
 router.get('/plate-history', ctrl.getPlateHistory);
-router.get('/receivables', ctrl.getReceivables);
+router.get('/receivables', authorize('ADMIN', 'MANAGER'), ctrl.getReceivables);
 router.get('/:id', ctrl.getWorkOrderById);
 
 router.post('/', [
@@ -18,10 +18,10 @@ router.post('/', [
 ], validate, ctrl.createWorkOrder);
 
 router.put('/:id', ctrl.updateWorkOrder);
-router.delete('/:id', ctrl.deleteWorkOrder);
+router.delete('/:id', authorize('ADMIN', 'MANAGER'), ctrl.deleteWorkOrder);
 
-// Ödeme ve Veresiye Yönetimi
-router.patch('/:id/payment', ctrl.updateWorkOrderPayment);
+// Ödeme ve Veresiye Yönetimi (Sadece Yönetici / Admin)
+router.patch('/:id/payment', authorize('ADMIN', 'MANAGER'), ctrl.updateWorkOrderPayment);
 
 // Parça & Ekspertiz Fotoğrafları
 router.post('/:id/photos', ctrl.addWorkOrderPhoto);

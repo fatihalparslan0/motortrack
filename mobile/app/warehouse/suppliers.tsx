@@ -22,6 +22,7 @@ import { router } from 'expo-router';
 import { supplierAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { useAuthStore, isTechnicianRole } from '../../src/store/auth.store';
 import {
   Plus,
   Phone,
@@ -695,7 +696,34 @@ function SupplierTransactionsModal({ visible, supplier, onClose, theme }: any) {
 // ─── Tedarikçiler Ekranı ────────────────────────────────────────────────────
 export default function SuppliersScreen() {
   const { colors: theme } = useAppTheme();
+  const { user } = useAuthStore();
+  const isTechnician = isTechnicianRole(user?.role);
   const queryClient = useQueryClient();
+
+  if (isTechnician) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl }}>
+        <Text style={{ fontSize: 56, marginBottom: Spacing.md }}>🔒</Text>
+        <Text style={{ fontSize: Typography.fontSize.xl, fontWeight: '800', color: theme.textPrimary, marginBottom: Spacing.xs, textAlign: 'center' }}>
+          Yetkisiz Erişim
+        </Text>
+        <Text style={{ color: theme.textSecondary, textAlign: 'center', marginBottom: Spacing.xl, fontSize: Typography.fontSize.sm, lineHeight: 20 }}>
+          Parçacı borçları, cari hesaplar ve tedarikçi finansal yönetimi sadece Atölye Yöneticisi ve Admin yetkisine açıktır.
+        </Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: theme.primary,
+            paddingHorizontal: Spacing.xl,
+            paddingVertical: Spacing.md,
+            borderRadius: BorderRadius.md,
+          }}
+          onPress={() => router.back()}
+        >
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.sm }}>Geri Dön</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   const [search, setSearch] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState<any | null>(null);

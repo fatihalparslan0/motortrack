@@ -68,6 +68,8 @@ exports.getDailyRegister = async (req, res, next) => {
     const recordedOrderIds = new Set();
     const recordedSupplierTxIds = new Set();
 
+    let tipIncome = 0;
+
     for (const tx of manualTransactions) {
       const amt = parseFloat(tx.amount || 0);
       const method = (tx.paymentMethod || 'NAKIT').toUpperCase();
@@ -77,6 +79,17 @@ exports.getDailyRegister = async (req, res, next) => {
           manualDevirIn += amt;
         } else if (tx.category === 'IS_EMRI_TAHSILAT') {
           if (tx.documentNo) recordedOrderIds.add(tx.documentNo);
+          if (method === 'NAKIT') {
+            woTxCashIncome += amt;
+          } else if (method === 'KREDI_KARTI' || method === 'POS') {
+            woTxPosIncome += amt;
+          } else if (method === 'HAVALE' || method === 'EFT') {
+            woTxTransferIncome += amt;
+          } else {
+            woTxCashIncome += amt;
+          }
+        } else if (tx.category === 'BAHSIS') {
+          tipIncome += amt;
           if (method === 'NAKIT') {
             woTxCashIncome += amt;
           } else if (method === 'KREDI_KARTI' || method === 'POS') {
@@ -241,16 +254,19 @@ exports.getDailyRegister = async (req, res, next) => {
       const isDevir = tx.category === 'DEVIR_GIRIS';
       const isWoPayment = tx.category === 'IS_EMRI_TAHSILAT';
       const isSupplier = tx.category === 'TEDARIKCI' || tx.category === 'TEDARIKCI_ODEME';
+      const isTip = tx.category === 'BAHSIS';
       timeline.push({
         id: `tx-${tx.id}`,
-        source: isWoPayment ? 'WORK_ORDER' : isSupplier ? 'SUPPLIER_PAYMENT' : 'MANUAL',
-        title: tx.description || (isSupplier ? 'Tedarikçi Ödemesi' : tx.category),
+        source: isWoPayment ? 'WORK_ORDER' : isSupplier ? 'SUPPLIER_PAYMENT' : isTip ? 'TIP' : 'MANUAL',
+        title: tx.description || (isSupplier ? 'Tedarikçi Ödemesi' : isTip ? 'Bahşiş / Usta İkramiyesi' : tx.category),
         subtitle: isDevir
           ? 'Sabah Açılış Devri'
           : isWoPayment
           ? 'İş Emri Tahsilatı'
           : isSupplier
           ? `Parçacı Ödemesi (${tx.paymentMethod || 'NAKIT'})`
+          : isTip
+          ? '🎁 Bahşiş / Usta İkramiyesi'
           : tx.type === 'IN'
           ? 'Harici Kasa Girişi'
           : 'Atölye Masrafı',
@@ -260,7 +276,7 @@ exports.getDailyRegister = async (req, res, next) => {
         paymentMethod: tx.paymentMethod || 'NAKIT',
         documentNo: tx.documentNo,
         time: tx.date || tx.createdAt,
-        badgeColor: tx.type === 'IN' ? '#10B981' : isSupplier ? '#EF4444' : '#F59E0B',
+        badgeColor: tx.type === 'IN' ? (isTip ? '#059669' : '#10B981') : isSupplier ? '#EF4444' : '#F59E0B',
       });
     }
 
@@ -276,6 +292,7 @@ exports.getDailyRegister = async (req, res, next) => {
         woCashIncome,
         woPosIncome,
         woTransferIncome,
+        tipIncome,
         manualCashIn,
         manualCashOut, // Dükkan masrafları (yemek, kira, harçlık vb.)
         supplierCashOut, // Kasadan nakit çıkan parçacı ödemeleri

@@ -11,6 +11,7 @@ import { router } from 'expo-router';
 import { warehouseAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { useAuthStore, isTechnicianRole } from '../../src/store/auth.store';
 import {
   Plus, Warehouse, MapPin, CheckCircle2, Star, Edit3, Trash2, ArrowLeft, Info
 } from 'lucide-react-native';
@@ -340,6 +341,8 @@ function EditWarehouseModal({ visible, warehouse, onClose, theme }: any) {
 // ─── Ana Ekran ────────────────────────────────────────────────────────────────
 export default function WarehousesScreen() {
   const { colors: theme } = useAppTheme();
+  const { user } = useAuthStore();
+  const isTechnician = isTechnicianRole(user?.role);
   const queryClient = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
   const [selectedWarehouseForEdit, setSelectedWarehouseForEdit] = useState<any>(null);
@@ -409,19 +412,21 @@ export default function WarehousesScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={{
-              flexDirection: 'row', alignItems: 'center', gap: 6,
-              backgroundColor: 'rgba(255,255,255,0.25)',
-              borderRadius: BorderRadius.full, paddingHorizontal: Spacing.md, paddingVertical: 8,
-              borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)'
-            }}
-            onPress={() => setShowAdd(true)}
-            activeOpacity={0.8}
-          >
-            <Plus size={16} color="#fff" />
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.sm }}>Yeni Depo</Text>
-          </TouchableOpacity>
+          {!isTechnician && (
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 6,
+                backgroundColor: 'rgba(255,255,255,0.25)',
+                borderRadius: BorderRadius.full, paddingHorizontal: Spacing.md, paddingVertical: 8,
+                borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)'
+              }}
+              onPress={() => setShowAdd(true)}
+              activeOpacity={0.8}
+            >
+              <Plus size={16} color="#fff" />
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.sm }}>Yeni Depo</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </LinearGradient>
 
@@ -507,27 +512,29 @@ export default function WarehousesScreen() {
                     </View>
                   </View>
 
-                  {/* Düzenle Butonu */}
-                  <TouchableOpacity
-                    onPress={() => setSelectedWarehouseForEdit(item)}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 4,
-                      backgroundColor: theme.surfaceElevated || theme.background,
-                      paddingHorizontal: Spacing.sm,
-                      paddingVertical: 6,
-                      borderRadius: BorderRadius.md,
-                      borderWidth: 1,
-                      borderColor: theme.border,
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Edit3 size={13} color={theme.textPrimary} />
-                    <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textPrimary, fontWeight: '700' }}>
-                      Düzenle
-                    </Text>
-                  </TouchableOpacity>
+                  {/* Düzenle Butonu (Sadece Admin / Manager) */}
+                  {!isTechnician && (
+                    <TouchableOpacity
+                      onPress={() => setSelectedWarehouseForEdit(item)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 4,
+                        backgroundColor: theme.surfaceElevated || theme.background,
+                        paddingHorizontal: Spacing.sm,
+                        paddingVertical: 6,
+                        borderRadius: BorderRadius.md,
+                        borderWidth: 1,
+                        borderColor: theme.border,
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Edit3 size={13} color={theme.textPrimary} />
+                      <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textPrimary, fontWeight: '700' }}>
+                        Düzenle
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 {/* Adres / Konum Bilgisi */}
@@ -571,7 +578,7 @@ export default function WarehousesScreen() {
                         Varsayılan Depo
                       </Text>
                     </View>
-                  ) : (
+                  ) : !isTechnician ? (
                     <TouchableOpacity
                       onPress={() => handleQuickSetDefault(item)}
                       style={{
@@ -592,7 +599,7 @@ export default function WarehousesScreen() {
                         ⭐ Ana Depo Yap
                       </Text>
                     </TouchableOpacity>
-                  )}
+                  ) : null}
                 </View>
               </View>
             );

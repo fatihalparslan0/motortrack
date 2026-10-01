@@ -22,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { workOrderAPI, partsAPI, uploadAPI, warehouseAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { useAuthStore } from '../../src/store/auth.store';
 import {
   Plus,
   Trash2,
@@ -1119,13 +1120,14 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
 
   const mutation = useMutation({
     mutationFn: (data: any) => workOrderAPI.updatePayment(order.id, data),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['work-order', order.id] });
       queryClient.invalidateQueries({ queryKey: ['work-orders'] });
       queryClient.invalidateQueries({ queryKey: ['receivables'] });
       queryClient.invalidateQueries({ queryKey: ['cashDaily'] });
       onClose();
-      Alert.alert('Başarılı', 'Ödeme ve kasa kaydı güncellendi! ✅');
+      const msg = res?.data?.message || 'Ödeme ve kasa kaydı güncellendi! ✅';
+      Alert.alert('Başarılı', msg);
     },
     onError: (err: any) => Alert.alert('Hata', err?.response?.data?.error || err?.message || 'Ödeme güncellenemedi.'),
   });
@@ -1138,11 +1140,34 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
       return;
     }
 
-    mutation.mutate({
-      amountCollected: numAmount,
-      paymentMethod: collectMethod,
-      paymentNotes: collectNotes.trim() || undefined,
-    });
+    const executeCollect = () => {
+      mutation.mutate({
+        amountCollected: numAmount,
+        paymentMethod: collectMethod,
+        paymentNotes: collectNotes.trim() || undefined,
+      });
+    };
+
+    if (numAmount > remaining && remaining > 0) {
+      const tip = Math.round((numAmount - remaining) * 100) / 100;
+      Alert.alert(
+        'Bahşiş / İkramiye Onayı 🎁',
+        `Kalan borç ₺${remaining.toLocaleString('tr-TR')} tutarındadır.\n\nFazla olan ₺${tip.toLocaleString('tr-TR')} tutar kasaya 'Bahşiş / Usta İkramiyesi' olarak kaydedilecek ve iş emri borcu tamamen kapatılacaktır.\n\nOnaylıyor musunuz?`,
+        [
+          { text: 'Vazgeç', style: 'cancel' },
+          {
+            text: `Kalan Tutara Eşitle (₺${remaining.toLocaleString('tr-TR')})`,
+            onPress: () => setCollectAmount(String(remaining)),
+          },
+          {
+            text: 'Evet, Bahşiş Olarak Kaydet',
+            onPress: executeCollect,
+          },
+        ]
+      );
+    } else {
+      executeCollect();
+    }
   };
 
   // Handle Tab 2: Kaydı Düzelt
@@ -1150,6 +1175,17 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
     const numPaid = parseFloat(editPaidAmount);
     if (isNaN(numPaid) || numPaid < 0) {
       Alert.alert('Geçersiz Tutar', 'Lütfen geçerli bir toplam ödeme tutarı giriniz.');
+      return;
+    }
+    if (numPaid > total) {
+      Alert.alert(
+        'Tutar Aşıldı',
+        `Toplam tahsilat tutarı iş emri toplam bedelini (₺${total.toLocaleString('tr-TR')}) aşamaz. Lütfen en fazla ₺${total.toLocaleString('tr-TR')} giriniz veya fazla ödeme için 'Yeni Tahsilat Al' sekmesindeki Bahşiş özelliğini kullanınız.`,
+        [
+          { text: 'Tamam' },
+          { text: 'Maksimuma Eşitle', onPress: () => setEditPaidAmount(String(total)) },
+        ]
+      );
       return;
     }
 
@@ -1162,7 +1198,9 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
   };
 
   const parsedCollect = parseFloat(collectAmount) || 0;
-  const projectedPaid = paid + parsedCollect;
+  const woPortion = Math.min(parsedCollect, remaining);
+  const excessTip = Math.max(0, parsedCollect - remaining);
+  const projectedPaid = Math.min(total, paid + parsedCollect);
   const projectedRemaining = Math.max(0, remaining - parsedCollect);
 
   const parsedEditPaid = parseFloat(editPaidAmount) || 0;
@@ -1317,6 +1355,44 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
                       </TouchableOpacity>
                     </View>
 
+                    {/* Smart Tip Notice if parsedCollect > remaining */}
+                    {excessTip > 0 && remaining > 0 && (
+                      <View
+                        style={{
+                          backgroundColor: '#10B98115',
+                          borderWidth: 1,
+                          borderColor: '#10B981',
+                          borderRadius: BorderRadius.md,
+                          padding: Spacing.sm + 2,
+                          marginBottom: Spacing.md,
+                        }}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: '#059669' }}>
+                            🎁 Fazla Tutar: +₺{excessTip.toLocaleString('tr-TR')} (Bahşiş)
+                          </Text>
+                          <TouchableOpacity
+                            style={{
+                              backgroundColor: theme.surface,
+                              borderWidth: 1,
+                              borderColor: '#059669',
+                              borderRadius: BorderRadius.sm,
+                              paddingHorizontal: 8,
+                              paddingVertical: 4,
+                            }}
+                            onPress={() => setCollectAmount(String(remaining))}
+                          >
+                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#059669' }}>
+                              Kalan Tutara Eşitle (₺{remaining.toLocaleString('tr-TR')})
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                        <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 4 }}>
+                          Kalan ₺{remaining.toLocaleString('tr-TR')} borç kapatılacak, fazla girilen ₺{excessTip.toLocaleString('tr-TR')} tutar kasaya Bahşiş / Usta İkramiyesi olarak kaydedilecektir.
+                        </Text>
+                      </View>
+                    )}
+
                     {/* Projected calculation preview box */}
                     {parsedCollect > 0 && (
                       <View style={{ backgroundColor: theme.primary + '10', borderWidth: 1, borderColor: theme.primary + '30', borderRadius: BorderRadius.md, padding: Spacing.sm + 2, marginBottom: Spacing.md }}>
@@ -1327,8 +1403,14 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
                           <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary }}>Kasaya Girecek:</Text>
                           <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.success }}>+₺{parsedCollect.toLocaleString('tr-TR')}</Text>
                         </View>
+                        {excessTip > 0 && (
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+                            <Text style={{ fontSize: Typography.fontSize.xs, color: '#059669', fontWeight: '600' }}>├─ Usta Bahşişi / İkramiye:</Text>
+                            <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: '#059669' }}>+₺{excessTip.toLocaleString('tr-TR')}</Text>
+                          </View>
+                        )}
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
-                          <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary }}>Yeni Toplam Tahsilat:</Text>
+                          <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary }}>{excessTip > 0 ? '└─ İş Emri Tahsilatı:' : 'Yeni Toplam Tahsilat:'}</Text>
                           <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary }}>₺{projectedPaid.toLocaleString('tr-TR')}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
@@ -1877,6 +1959,8 @@ export default function WorkOrderDetailScreen() {
   const queryClient = useQueryClient();
   const { colors: theme } = useAppTheme();
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
+  const { user } = useAuthStore();
+  const isTech = user?.role === 'TECHNICIAN';
 
   const [showAddPart, setShowAddPart] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -2037,8 +2121,10 @@ export default function WorkOrderDetailScreen() {
           <View style={dynamicStyles.costCard}>
             {[
               { label: 'Parça Satışı', value: order.partsSaleTotal, color: theme.textPrimary },
-              { label: 'Parça Maliyeti', value: order.partsCostTotal, color: theme.textMuted },
-              { label: 'Parça Kârı', value: order.partsProfit, color: order.partsProfit >= 0 ? theme.success : theme.danger },
+              ...(!isTech ? [
+                { label: 'Parça Maliyeti', value: order.partsCostTotal, color: theme.textMuted },
+                { label: 'Parça Kârı', value: order.partsProfit, color: (order.partsProfit || 0) >= 0 ? theme.success : theme.danger },
+              ] : []),
               { label: 'İşçilik', value: order.laborCost, color: theme.primary },
               { label: 'TOPLAM', value: order.totalAmount, color: theme.accent, bold: true },
             ].filter((i) => i.value > 0).map((item, i) => (
@@ -2103,30 +2189,38 @@ export default function WorkOrderDetailScreen() {
             )}
 
             {/* Action buttons */}
-            <View style={{ flexDirection: 'row', gap: Spacing.xs, marginTop: Spacing.sm }}>
-              <TouchableOpacity
-                style={[dynamicStyles.paymentActionBtn, { backgroundColor: remaining > 0 ? theme.primary : theme.success }]}
-                onPress={() => setShowPaymentModal(true)}
-              >
-                <CreditCard size={14} color="#fff" />
-                <Text style={dynamicStyles.paymentActionBtnText}>
-                  {remaining > 0 ? '💰 Tahsilat Al' : '✅ Tahsilat Tamamlandı (Yönet)'}
+            {isTech ? (
+              <View style={{ marginTop: Spacing.xs, backgroundColor: theme.surface, padding: Spacing.sm, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: theme.border }}>
+                <Text style={{ fontSize: 11, color: theme.textSecondary, textAlign: 'center' }}>
+                  🔒 Tahsilat ve ödeme alma işlemleri sadece Yönetici / Admin yetkisine açıktır.
                 </Text>
-              </TouchableOpacity>
-
-              {remaining > 0 && order.customerPhone && (
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', gap: Spacing.xs, marginTop: Spacing.sm }}>
                 <TouchableOpacity
-                  style={[dynamicStyles.paymentActionBtn, { backgroundColor: '#25D366' }]}
-                  onPress={() => {
-                    const msg = generateDebtReminderMessage(order);
-                    openWhatsApp(order.customerPhone, msg);
-                  }}
+                  style={[dynamicStyles.paymentActionBtn, { backgroundColor: remaining > 0 ? theme.primary : theme.success }]}
+                  onPress={() => setShowPaymentModal(true)}
                 >
-                  <MessageSquare size={14} color="#fff" />
-                  <Text style={dynamicStyles.paymentActionBtnText}>Borç Hatırlat</Text>
+                  <CreditCard size={14} color="#fff" />
+                  <Text style={dynamicStyles.paymentActionBtnText}>
+                    {remaining > 0 ? '💰 Tahsilat Al' : '✅ Tahsilat Tamamlandı (Yönet)'}
+                  </Text>
                 </TouchableOpacity>
-              )}
-            </View>
+
+                {remaining > 0 && order.customerPhone && (
+                  <TouchableOpacity
+                    style={[dynamicStyles.paymentActionBtn, { backgroundColor: '#25D366' }]}
+                    onPress={() => {
+                      const msg = generateDebtReminderMessage(order);
+                      openWhatsApp(order.customerPhone, msg);
+                    }}
+                  >
+                    <MessageSquare size={14} color="#fff" />
+                    <Text style={dynamicStyles.paymentActionBtnText}>Borç Hatırlat</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
 
           {/* WhatsApp Fiş Gönder Butonu */}

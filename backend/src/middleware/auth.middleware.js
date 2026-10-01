@@ -44,7 +44,7 @@ const authenticate = async (req, res, next) => {
  */
 const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(req.user.role) && req.user.role !== 'SUPER_ADMIN') {
       return error(res, 'Bu işlem için yetkiniz yok.', 403);
     }
     next();

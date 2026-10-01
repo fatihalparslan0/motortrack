@@ -2,10 +2,10 @@ const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
 const ctrl = require('../controllers/supplier.controller');
-const { authenticate, requireSubscription } = require('../middleware/auth.middleware');
+const { authenticate, requireSubscription, authorize } = require('../middleware/auth.middleware');
 const validate = require('../middleware/validate.middleware');
 
-router.use(authenticate, requireSubscription);
+router.use(authenticate, requireSubscription, authorize('ADMIN', 'MANAGER'));
 
 router.get('/summary', ctrl.getSuppliersSummary);
 router.get('/', ctrl.getSuppliers);

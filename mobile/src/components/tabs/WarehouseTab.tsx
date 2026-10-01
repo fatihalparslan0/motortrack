@@ -16,6 +16,7 @@ import {
 import { warehouseAPI, stockAPI, partsAPI, supplierAPI } from '../../api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { useAuthStore, isTechnicianRole } from '../../store/auth.store';
 
 // ─── Hareket Tipi Türkçe ──────────────────────────────────────────────────────
 const movementLabel: Record<string, { label: string; color: string; sign: string }> = {
@@ -837,6 +838,8 @@ function StockTransferModal({ visible, onClose, theme }: any) {
 // ─── Ana Depo Ekranı ─────────────────────────────────────────────────────────
 export default function WarehouseTab() {
   const { colors: theme } = useAppTheme();
+  const { user } = useAuthStore();
+  const isTechnician = isTechnicianRole(user?.role);
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
   const [showStockIn, setShowStockIn] = useState(false);
   const [showStockOut, setShowStockOut] = useState(false);
@@ -855,6 +858,7 @@ export default function WarehouseTab() {
   const { data: supplierSummaryData } = useQuery({
     queryKey: ['supplierSummary'],
     queryFn: () => supplierAPI.getSummary(),
+    enabled: !isTechnician,
   });
 
   const stats = (statsData as any)?.data;
@@ -877,13 +881,23 @@ export default function WarehouseTab() {
             <Text style={dynamicStyles.headerTitle}>🏭 Depo & Stok</Text>
             <Text style={dynamicStyles.headerSubtitle}>Envanter Yönetimi</Text>
           </View>
-          <TouchableOpacity
-            style={dynamicStyles.addPartBtn}
-            onPress={() => router.push('/warehouse/list' as any)}
-          >
-            <Warehouse size={16} color="#fff" />
-            <Text style={dynamicStyles.addPartBtnText}>Depoları Yönet</Text>
-          </TouchableOpacity>
+          {!isTechnician ? (
+            <TouchableOpacity
+              style={dynamicStyles.addPartBtn}
+              onPress={() => router.push('/warehouse/list' as any)}
+            >
+              <Warehouse size={16} color="#fff" />
+              <Text style={dynamicStyles.addPartBtnText}>Depoları Yönet</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={dynamicStyles.addPartBtn}
+              onPress={() => router.push('/warehouse/critical' as any)}
+            >
+              <AlertTriangle size={16} color="#fff" />
+              <Text style={dynamicStyles.addPartBtnText}>Kritik Stoklar</Text>
+            </TouchableOpacity>
+          )}
         </LinearGradient>
 
         {/* Özet Kartlar */}
@@ -927,55 +941,68 @@ export default function WarehouseTab() {
           </View>
         </View>
 
-        {/* Parçacı Borçları / Cariler Kartı */}
-        <TouchableOpacity
-          onPress={() => router.push('/warehouse/suppliers' as any)}
-          style={{
-            marginHorizontal: Spacing.lg,
-            marginTop: Spacing.md,
-            backgroundColor: theme.surface,
-            borderWidth: 1,
-            borderColor: (supplierSummary?.totalDebt || 0) > 0 ? '#EF444440' : theme.border,
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.md,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            ...Shadows.sm,
-          }}
-          activeOpacity={0.8}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 }}>
-            <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: (supplierSummary?.totalDebt || 0) > 0 ? '#EF444415' : theme.success + '15', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 20 }}>🏪</Text>
+        {/* Parçacı Borçları / Cariler Kartı (Sadece Admin / Manager) */}
+        {!isTechnician && (
+          <TouchableOpacity
+            onPress={() => router.push('/warehouse/suppliers' as any)}
+            style={{
+              marginHorizontal: Spacing.lg,
+              marginTop: Spacing.md,
+              backgroundColor: theme.surface,
+              borderWidth: 1,
+              borderColor: (supplierSummary?.totalDebt || 0) > 0 ? '#EF444440' : theme.border,
+              borderRadius: BorderRadius.lg,
+              padding: Spacing.md,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              ...Shadows.sm,
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 }}>
+              <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: (supplierSummary?.totalDebt || 0) > 0 ? '#EF444415' : theme.success + '15', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 20 }}>🏪</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, fontWeight: '700', textTransform: 'uppercase' }}>
+                  Parçacılara Toplam Borcumuz
+                </Text>
+                <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: (supplierSummary?.totalDebt || 0) > 0 ? '#EF4444' : theme.success, marginTop: 2 }}>
+                  ₺{Number(supplierSummary?.totalDebt || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                </Text>
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, fontWeight: '700', textTransform: 'uppercase' }}>
-                Parçacılara Toplam Borcumuz
-              </Text>
-              <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: (supplierSummary?.totalDebt || 0) > 0 ? '#EF4444' : theme.success, marginTop: 2 }}>
-                ₺{Number(supplierSummary?.totalDebt || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-              </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={{ fontSize: Typography.fontSize.xs, color: theme.primary, fontWeight: '700' }}>Carileri Gör</Text>
+              <ChevronRight size={16} color={theme.primary} />
             </View>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Text style={{ fontSize: Typography.fontSize.xs, color: theme.primary, fontWeight: '700' }}>Carileri Gör</Text>
-            <ChevronRight size={16} color={theme.primary} />
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        )}
 
         {/* Hızlı İşlemler */}
         <View style={dynamicStyles.section}>
           <Text style={dynamicStyles.sectionTitle}>⚡ Hızlı İşlemler</Text>
           <View style={dynamicStyles.quickActions}>
-            <TouchableOpacity
-              style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.success + '15', borderColor: theme.success + '40' }]}
-              onPress={() => setShowStockIn(true)}
-              activeOpacity={0.8}
-            >
-              <ArrowDownCircle size={28} color={theme.success} />
-              <Text style={[dynamicStyles.quickActionLabel, { color: theme.success }]}>+ STOK GİR</Text>
-            </TouchableOpacity>
+            {!isTechnician ? (
+              <TouchableOpacity
+                style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.success + '15', borderColor: theme.success + '40' }]}
+                onPress={() => setShowStockIn(true)}
+                activeOpacity={0.8}
+              >
+                <ArrowDownCircle size={28} color={theme.success} />
+                <Text style={[dynamicStyles.quickActionLabel, { color: theme.success }]}>+ STOK GİR</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.accent + '15', borderColor: theme.accent + '40' }]}
+                onPress={() => router.push('/warehouse/critical' as any)}
+                activeOpacity={0.8}
+              >
+                <AlertTriangle size={28} color={theme.accent} />
+                <Text style={[dynamicStyles.quickActionLabel, { color: theme.accent }]}>KRİTİK STOK</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.danger + '15', borderColor: theme.danger + '40' }]}

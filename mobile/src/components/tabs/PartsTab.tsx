@@ -10,6 +10,7 @@ import { router } from 'expo-router';
 import { partsAPI } from '../../api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { useAuthStore, isTechnicianRole } from '../../store/auth.store';
 
 const CATEGORIES = ['Tümü', 'Filtre', 'Motor', 'Transmisyon', 'Fren', 'Elektrik', 'Soğutma', 'Yakıt', 'Diğer'];
 
@@ -72,6 +73,8 @@ export default function PartsScreen() {
   const [showLowStock, setShowLowStock] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Tümü');
   const { colors: theme } = useAppTheme();
+  const { user } = useAuthStore();
+  const isTechnician = isTechnicianRole(user?.role);
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
 
   const { data, isLoading, refetch } = useQuery({
@@ -122,10 +125,21 @@ export default function PartsScreen() {
             <Text style={dynamicStyles.statLabel}>Düşük Stok</Text>
           </View>
           <View style={dynamicStyles.statItem}>
-            <Text style={dynamicStyles.statValue}>
-              ₺{stats.totalValue ? parseFloat(stats.totalValue).toLocaleString('tr-TR', { maximumFractionDigits: 0 }) : '0'}
-            </Text>
-            <Text style={dynamicStyles.statLabel}>Toplam Değer</Text>
+            {!isTechnician ? (
+              <>
+                <Text style={dynamicStyles.statValue}>
+                  ₺{stats.totalValue ? parseFloat(stats.totalValue).toLocaleString('tr-TR', { maximumFractionDigits: 0 }) : '0'}
+                </Text>
+                <Text style={dynamicStyles.statLabel}>Toplam Değer</Text>
+              </>
+            ) : (
+              <>
+                <Text style={[dynamicStyles.statValue, { color: theme.success }]}>
+                  {Math.max(0, (stats.totalParts || 0) - (stats.lowStockCount || 0))}
+                </Text>
+                <Text style={dynamicStyles.statLabel}>Yeterli Stok</Text>
+              </>
+            )}
           </View>
         </View>
       )}
