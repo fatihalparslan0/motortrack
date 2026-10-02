@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  RefreshControl,
+  RefreshControl, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,7 +16,7 @@ import { useTabStore } from '../../store/tab.store';
 import { 
   Settings, CheckCircle, ClipboardList, Package, Bell, 
   PlusCircle, Warehouse, ScanLine, Moon, Sun, Palette,
-  DollarSign, ChevronRight, Search
+  DollarSign, ChevronRight, Search, Users, ShieldCheck, LogOut
 } from 'lucide-react-native';
 
 function StatCard({ Icon, label, value, color, onPress, theme }: any) {
@@ -45,9 +45,33 @@ function AlertItem({ title, subtitle, type, theme, onPress }: any) {
 
 export default function Dashboard() {
   const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   const { colors: theme, themeMode } = useAppTheme();
   const setTheme = useThemeStore((s) => s.setTheme);
   const setActiveTab = useTabStore((s) => s.setActiveTab);
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Çıkış Yap',
+      'Hesabınızdan çıkış yapmak ve kullanıcı giriş ekranına dönmek istediğinizden emin misiniz?',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Çıkış Yap',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              setActiveTab(0);
+              router.replace('/(auth)/login');
+            } catch (err) {
+              router.replace('/(auth)/login');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const { data: motorStats, isLoading: l1, refetch: r1 } = useQuery({
     queryKey: ['motorStats'],
@@ -65,6 +89,7 @@ export default function Dashboard() {
   });
 
   const isTech = user?.role === 'TECHNICIAN';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
   const { data: recData, isLoading: l4, refetch: r4 } = useQuery({
     queryKey: ['receivables'],
@@ -149,15 +174,31 @@ export default function Dashboard() {
               {user?.companyName}
             </Text>
           </View>
-          <View style={{flexDirection: 'row', gap: 10}}>
+          <View style={{flexDirection: 'row', gap: 8, alignItems: 'center'}}>
+            {isAdmin && (
+              <TouchableOpacity
+                style={dynamicStyles.iconBtn}
+                onPress={() => router.push('/users' as any)}
+                activeOpacity={0.8}
+              >
+                <Users size={19} color={themeMode === 'light' ? '#FFF' : theme.textPrimary} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={dynamicStyles.iconBtn} onPress={toggleTheme}>
-              <ThemeIcon size={20} color={themeMode === 'light' ? '#FFF' : theme.textPrimary} />
+              <ThemeIcon size={19} color={themeMode === 'light' ? '#FFF' : theme.textPrimary} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={dynamicStyles.iconBtn}
-              onPress={() => router.push('/notifications' as any)}
+              style={[
+                dynamicStyles.iconBtn,
+                {
+                  backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                  borderColor: 'rgba(239, 68, 68, 0.4)',
+                },
+              ]}
+              onPress={handleLogout}
+              activeOpacity={0.8}
             >
-              <Bell size={20} color={themeMode === 'light' ? '#FFF' : theme.textPrimary} />
+              <LogOut size={19} color={themeMode === 'light' ? '#FFF' : '#F87171'} />
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -284,6 +325,39 @@ export default function Dashboard() {
               </LinearGradient>
             </TouchableOpacity>
           )}
+
+          {isAdmin && (
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={() => router.push('/users' as any)}
+              style={[dynamicStyles.cashBanner, { marginTop: 10 }]}
+            >
+              <LinearGradient
+                colors={themeMode === 'light' ? ['#059669', '#047857'] : ['#065F46', '#022C22']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={dynamicStyles.cashBannerInner}
+              >
+                <View style={dynamicStyles.cashBannerLeft}>
+                  <View style={[dynamicStyles.cashIconBg, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <ShieldCheck size={22} color="#A7F3D0" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={dynamicStyles.cashBannerTitle}>Kullanıcı & Yetki Yönetimi</Text>
+                      <View style={[dynamicStyles.cashBadge, { backgroundColor: '#10B981' }]}>
+                        <Text style={dynamicStyles.cashBadgeText}>YÖNETİCİ</Text>
+                      </View>
+                    </View>
+                    <Text style={dynamicStyles.cashBannerSubtitle}>
+                      Personel yetkileri, usta rolleri ve şifre sıfırlama
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={20} color="#A7F3D0" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Quick Actions */}
@@ -297,9 +371,9 @@ export default function Dashboard() {
               { Icon: Warehouse, label: 'Depo Durumu', path: '/warehouse/list' },
             ] : [
               { Icon: ClipboardList, label: 'Yeni İş Emri', path: '/work-orders/create' },
-              { Icon: Package, label: 'Parça Ekle', path: '/parts/create' },
-              { Icon: Warehouse, label: 'Depo Durumu', path: '/warehouse/list' },
               { Icon: DollarSign, label: 'Atölye Kasası', path: '/cash' },
+              { Icon: Users, label: 'Kullanıcılar', path: '/users' },
+              { Icon: Warehouse, label: 'Depo Durumu', path: '/warehouse/list' },
             ]).map((action: any) => (
               <TouchableOpacity
                 key={action.label}
@@ -313,6 +387,87 @@ export default function Dashboard() {
                 </View>
               </TouchableOpacity>
             ))}
+          </View>
+        </View>
+
+        {/* User Account & Logout Card */}
+        <View style={dynamicStyles.section}>
+          <View
+            style={[
+              dynamicStyles.profileCard,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <View style={dynamicStyles.profileInfoRow}>
+              <View
+                style={[
+                  dynamicStyles.profileAvatar,
+                  {
+                    backgroundColor: isTech
+                      ? 'rgba(245, 158, 11, 0.15)'
+                      : 'rgba(16, 185, 129, 0.15)',
+                    borderColor: isTech ? '#F59E0B' : '#10B981',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    dynamicStyles.profileAvatarText,
+                    { color: isTech ? '#F59E0B' : '#10B981' },
+                  ]}
+                >
+                  {user?.fullName
+                    ?.split(' ')
+                    .map((n: string) => n[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase() || 'U'}
+                </Text>
+              </View>
+
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[dynamicStyles.profileName, { color: theme.textPrimary }]}>
+                    {user?.fullName}
+                  </Text>
+                  <View
+                    style={{
+                      backgroundColor: isTech
+                        ? 'rgba(245, 158, 11, 0.2)'
+                        : 'rgba(16, 185, 129, 0.2)',
+                      paddingHorizontal: 6,
+                      paddingVertical: 1,
+                      borderRadius: BorderRadius.full,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 9,
+                        fontWeight: '800',
+                        color: isTech ? '#D97706' : '#059669',
+                      }}
+                    >
+                      {isTech ? 'TEKNİSYEN' : 'YÖNETİCİ'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[dynamicStyles.profileEmail, { color: theme.textSecondary }]}>
+                  {user?.email}
+                </Text>
+                <Text style={[dynamicStyles.profileCompany, { color: theme.textMuted }]}>
+                  🏢 {user?.companyName}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={dynamicStyles.logoutFullBtn}
+              onPress={handleLogout}
+              activeOpacity={0.85}
+            >
+              <LogOut size={18} color="#EF4444" />
+              <Text style={dynamicStyles.logoutFullBtnText}>Uygulamadan Çıkış Yap</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -433,4 +588,57 @@ const styles = (theme: any) => StyleSheet.create({
     borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md,
   },
   quickActionLabel: { color: theme.textPrimary, fontWeight: '500', fontSize: Typography.fontSize.sm, textAlign: 'center' },
+
+  profileCard: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    ...Shadows.sm,
+  },
+  profileInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  profileAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileAvatarText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: '800',
+  },
+  profileName: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: '700',
+  },
+  profileEmail: {
+    fontSize: Typography.fontSize.xs,
+    marginTop: 2,
+  },
+  profileCompany: {
+    fontSize: Typography.fontSize.xs,
+    marginTop: 3,
+  },
+  logoutFullBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+  },
+  logoutFullBtnText: {
+    color: '#EF4444',
+    fontSize: Typography.fontSize.sm,
+    fontWeight: '700',
+  },
 });
+

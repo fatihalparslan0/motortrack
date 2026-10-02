@@ -34,7 +34,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style={isDark ? "light" : "dark"} backgroundColor={colors.background} />
+          <StatusBar style={isDark ? "light" : "dark"} />
           <Stack screenOptions={{ 
             headerShown: false, 
             contentStyle: { backgroundColor: colors.background },
@@ -44,6 +44,7 @@ export default function RootLayout() {
           }}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="users" options={{ headerShown: false }} />
           </Stack>
         </QueryClientProvider>
       </SafeAreaProvider>

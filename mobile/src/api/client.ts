@@ -147,8 +147,15 @@ export const companiesAPI = {
   getProfile: () => apiClient.get('/companies/profile'),
   updateProfile: (data: any) => apiClient.put('/companies/profile', data),
   getUsers: () => apiClient.get('/companies/users'),
-  inviteUser: (data: any) => apiClient.post('/companies/users', data),
-  updateUser: (id: string, data: any) => apiClient.put(`/companies/users/${id}`, data),
+  inviteUser: (data: { email: string; fullName: string; role?: string; password?: string }) =>
+    apiClient.post('/companies/users', data),
+  createUser: (data: { email: string; fullName: string; role?: string; password?: string }) =>
+    apiClient.post('/companies/users', data),
+  updateUser: (id: string, data: { fullName?: string; role?: string; isActive?: boolean; password?: string; newPassword?: string }) =>
+    apiClient.put(`/companies/users/${id}`, data),
+  resetPassword: (id: string, newPassword: string) =>
+    apiClient.post(`/companies/users/${id}/reset-password`, { newPassword }),
+  deleteUser: (id: string) => apiClient.delete(`/companies/users/${id}`),
 };
 
 export const warehouseAPI = {
