@@ -4,7 +4,17 @@ const { success, error } = require('../utils/apiResponse');
 // ─── Stok Girişi (Satın Alma) ─────────────────────────────────────────────────
 exports.purchaseStock = async (req, res, next) => {
   try {
-    const { partId, quantity, unitCost, supplierId, warehouseId, invoiceNumber, notes } = req.body;
+    const {
+      partId,
+      quantity,
+      unitCost,
+      supplierId,
+      warehouseId,
+      shelfLocation,
+      paymentMethod = 'CARI', // 'CARI', 'NAKIT', 'KREDI_KARTI', 'HAVALE'
+      invoiceNumber,
+      notes,
+    } = req.body;
 
     const part = await prisma.part.findFirst({
       where: { id: partId, companyId: req.company.id },
@@ -33,13 +43,16 @@ exports.purchaseStock = async (req, res, next) => {
       : await prisma.warehouse.findFirst({ where: { isDefault: true, companyId: req.company.id } });
     const wId = warehouse?.id;
 
-    // Transaction: stok artır + hareket kaydet + satın alma kaydı oluştur + depo stoku + tedarikçi carisi
-    const [updatedPart, movement, purchase] = await prisma.$transaction([
+    const isPaidImmediately = ['NAKIT', 'KREDI_KARTI', 'HAVALE'].includes(paymentMethod);
+
+    // Transaction işlemleri
+    const operations = [
       prisma.part.update({
         where: { id: partId },
         data: {
           quantity: { increment: qty },
           purchasePrice: cost,
+          ...(shelfLocation ? { warehouseLocation: shelfLocation.trim() } : {}),
         },
       }),
       prisma.partMovement.create({
@@ -52,7 +65,7 @@ exports.purchaseStock = async (req, res, next) => {
           unitCost: cost,
           referenceType: 'PURCHASE',
           documentNo: invoiceNumber || null,
-          notes: notes || `${qty} adet satın alındı${supplier ? ` (${supplier.name})` : ''}`,
+          notes: notes || `${qty} adet satın alındı${supplier ? ` (${supplier.name})` : ''} [Ödeme: ${paymentMethod}]`,
         },
       }),
       prisma.purchaseRecord.create({
@@ -65,44 +78,112 @@ exports.purchaseStock = async (req, res, next) => {
           unitCost: cost,
           totalCost,
           invoiceNumber: invoiceNumber || null,
-          notes,
+          notes: notes ? `${notes} (Ödeme: ${paymentMethod})` : `Ödeme: ${paymentMethod}`,
         },
       }),
-      // Depo stokunu güncelle
-      ...(wId ? [
+    ];
+
+    // Depo bazında stok ve raf konumu
+    if (wId) {
+      operations.push(
         prisma.warehouseStock.upsert({
           where: { warehouseId_partId: { warehouseId: wId, partId } },
-          update: { quantity: { increment: qty } },
-          create: { warehouseId: wId, partId, quantity: qty }
+          update: {
+            quantity: { increment: qty },
+            ...(shelfLocation ? { shelfLocation: shelfLocation.trim() } : {}),
+          },
+          create: {
+            warehouseId: wId,
+            partId,
+            quantity: qty,
+            shelfLocation: shelfLocation ? shelfLocation.trim() : null,
+          },
         })
-      ] : []),
-      // Tedarikçi cari borcunu artır & cari hareket yaz
-      ...(supplierId ? [
-        prisma.supplier.update({
-          where: { id: supplierId },
-          data: { balance: { increment: totalCost } },
-        }),
-        prisma.supplierTransaction.create({
+      );
+    }
+
+    // Tedarikçi işlemleri
+    if (supplierId) {
+      if (isPaidImmediately) {
+        // Peşin ödendiyse cari bakiye borç olarak kalmaz; hem ALIS hem ODEME yazılır
+        operations.push(
+          prisma.supplierTransaction.create({
+            data: {
+              companyId: req.company.id,
+              supplierId,
+              userId: req.user.id,
+              type: 'ALIS',
+              amount: totalCost,
+              documentNo: invoiceNumber || null,
+              notes: notes || `${part.name} - ${qty} ${part.unit} peşin alımı`,
+            },
+          }),
+          prisma.supplierTransaction.create({
+            data: {
+              companyId: req.company.id,
+              supplierId,
+              userId: req.user.id,
+              type: 'ODEME',
+              amount: totalCost,
+              paymentMethod,
+              documentNo: invoiceNumber || null,
+              notes: `Peşin ödeme (${paymentMethod})`,
+            },
+          })
+        );
+      } else {
+        // Cari (Açık hesap / veresiye): Borç artırılır
+        operations.push(
+          prisma.supplier.update({
+            where: { id: supplierId },
+            data: { balance: { increment: totalCost } },
+          }),
+          prisma.supplierTransaction.create({
+            data: {
+              companyId: req.company.id,
+              supplierId,
+              userId: req.user.id,
+              type: 'ALIS',
+              amount: totalCost,
+              documentNo: invoiceNumber || null,
+              notes: notes || `${part.name} - ${qty} ${part.unit} cari alımı (Veresiye)`,
+            },
+          })
+        );
+      }
+    }
+
+    // Dükkan kasasından peşin nakit/kart ödendiyse Kasa Hareketi (OUT) oluştur
+    if (isPaidImmediately && totalCost > 0) {
+      operations.push(
+        prisma.cashTransaction.create({
           data: {
             companyId: req.company.id,
-            supplierId,
             userId: req.user.id,
-            type: 'ALIS',
+            type: 'OUT',
+            category: 'MALZEME',
             amount: totalCost,
+            paymentMethod,
             documentNo: invoiceNumber || null,
-            notes: notes || `${part.name} - ${qty} ${part.unit} alımı`,
+            description: `${part.name} - ${qty} ${part.unit} peşin alımı${supplier ? ` (${supplier.name})` : ''}`,
           },
-        }),
-      ] : [])
-    ]);
+        })
+      );
+    }
+
+    const results = await prisma.$transaction(operations);
+    const updatedPart = results[0];
+    const movement = results[1];
+    const purchase = results[2];
 
     return success(res, {
       part: updatedPart,
       movement,
       purchase,
-    }, `${qty} adet stok girişi yapıldı. Yeni stok: ${updatedPart.quantity} ${updatedPart.unit}`, 201);
+    }, `${qty} adet stok girişi yapıldı (${paymentMethod}). Yeni stok: ${updatedPart.quantity} ${updatedPart.unit}`, 201);
   } catch (err) {
     next(err);
+
   }
 };
 
@@ -451,3 +532,86 @@ exports.getMovements = async (req, res, next) => {
     next(err);
   }
 };
+
+// ─── Atölye Hızlı Sarfiyat Toplu Çıkışı (Sanayi Hızlı Sarf Fişi) ──────────────
+exports.batchConsumeWorkshop = async (req, res, next) => {
+  try {
+    const { items, warehouseId, notes } = req.body;
+    // items: [{ partId: string, quantity: number }]
+    if (!Array.isArray(items) || items.length === 0) {
+      return error(res, 'Sarfiyat listesi boş olamaz.', 400);
+    }
+
+    const warehouse = warehouseId
+      ? await prisma.warehouse.findFirst({ where: { id: warehouseId, companyId: req.company.id } })
+      : await prisma.warehouse.findFirst({
+          where: {
+            companyId: req.company.id,
+            OR: [{ type: 'WORKSHOP_CONSUMABLES' }, { isDefault: true }],
+          },
+          orderBy: [{ isDefault: 'desc' }],
+        });
+    const wId = warehouse?.id;
+
+    const operations = [];
+    const consumedDetails = [];
+
+    for (const item of items) {
+      const qty = parseInt(item.quantity);
+      if (!qty || qty <= 0) continue;
+
+      const part = await prisma.part.findFirst({
+        where: { id: item.partId, companyId: req.company.id },
+      });
+      if (!part) continue;
+
+      operations.push(
+        prisma.part.update({
+          where: { id: part.id },
+          data: { quantity: { decrement: qty } },
+        })
+      );
+
+      operations.push(
+        prisma.partMovement.create({
+          data: {
+            partId: part.id,
+            warehouseId: wId || null,
+            userId: req.user.id,
+            movementType: 'ATOLYE_SARFI',
+            quantity: qty,
+            referenceType: 'WORKSHOP_CONSUMPTION',
+            notes: notes || `Atölye Hızlı Sarfiyatı (${warehouse?.name || 'Depo'})`,
+          },
+        })
+      );
+
+      if (wId) {
+        operations.push(
+          prisma.warehouseStock.upsert({
+            where: { warehouseId_partId: { warehouseId: wId, partId: part.id } },
+            update: { quantity: { decrement: qty } },
+            create: { warehouseId: wId, partId: part.id, quantity: 0 },
+          })
+        );
+      }
+
+      consumedDetails.push({ name: part.name, quantity: qty, unit: part.unit });
+    }
+
+    if (operations.length === 0) {
+      return error(res, 'Geçerli bir sarf miktarı girilmedi.', 400);
+    }
+
+    await prisma.$transaction(operations);
+
+    return success(
+      res,
+      { consumedCount: consumedDetails.length, consumedDetails },
+      `${consumedDetails.length} kalem sarf malzemesi başarıyla atölye sarfiyatı olarak düşüldü.`
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+

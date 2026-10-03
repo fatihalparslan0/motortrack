@@ -80,6 +80,10 @@ export default function PartDetailScreen() {
   });
 
   const handleOpenStockModal = (type: 'IN'|'OUT') => {
+    if (isTechnician) {
+      Alert.alert('Yetkisiz İşlem', 'Stok giriş ve çıkış işlemleri sadece Atölye Yöneticisi yetkisine açıktır.');
+      return;
+    }
     setMovementType(type);
     setMovementQty('');
     setMovementNotes('');
@@ -139,6 +143,10 @@ export default function PartDetailScreen() {
   });
 
   const handleOpenReturnModal = () => {
+    if (isTechnician) {
+      Alert.alert('Yetkisiz İşlem', 'Parçacıya iade işlemi sadece yöneticiler tarafından yapılabilir.');
+      return;
+    }
     setReturnQty('1');
     setReturnReason('❌ Araca Uymadı / Yanlış Parça');
     setReturnCustomNotes('');
@@ -151,6 +159,10 @@ export default function PartDetailScreen() {
   };
 
   const handleOpenAdjustModal = () => {
+    if (isTechnician) {
+      Alert.alert('Yetkisiz İşlem', 'Stok miktarlarını düzenleme yetkisi sadece Atölye Yöneticisi ve Admin yetkisine açıktır.');
+      return;
+    }
     const partData = (data as any)?.data;
     const initial: { [id: string]: string } = {};
     warehouses.forEach(w => {
@@ -314,9 +326,11 @@ export default function PartDetailScreen() {
           <View style={{ marginTop: Spacing.md, width: '100%', backgroundColor: theme.background, borderRadius: BorderRadius.md, padding: Spacing.sm, borderWidth: 1, borderColor: theme.border }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textMuted, textTransform: 'uppercase' }}>Depo Bazlı Stok</Text>
-              <TouchableOpacity onPress={handleOpenAdjustModal}>
-                <Text style={{ fontSize: Typography.fontSize.xs, color: theme.primary, fontWeight: '700' }}>✏️ Miktarları Düzenle</Text>
-              </TouchableOpacity>
+              {!isTechnician && (
+                <TouchableOpacity onPress={handleOpenAdjustModal}>
+                  <Text style={{ fontSize: Typography.fontSize.xs, color: theme.primary, fontWeight: '700' }}>✏️ Miktarları Düzenle</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {part.warehouseStocks && part.warehouseStocks.length > 0 ? (
@@ -695,8 +709,9 @@ export default function PartDetailScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Depo Miktarlarını Düzenle / Sayım Modalı */}
-      <Modal visible={adjustModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setAdjustModalVisible(false)}>
+      {/* Depo Miktarlarını Düzenle / Sayım Modalı (Sadece Admin ve Manager) */}
+      {!isTechnician && (
+        <Modal visible={adjustModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setAdjustModalVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: theme.background }}>
           <SafeAreaView style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: theme.border }}>
@@ -797,6 +812,7 @@ export default function PartDetailScreen() {
           </SafeAreaView>
         </KeyboardAvoidingView>
       </Modal>
+      )}
     </SafeAreaView>
   );
 }

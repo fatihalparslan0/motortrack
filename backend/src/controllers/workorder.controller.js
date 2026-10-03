@@ -4,13 +4,15 @@ const { success, error, paginated } = require('../utils/apiResponse');
 // ─── İş Emirleri Listesi ──────────────────────────────────────────────────────
 exports.getWorkOrders = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status, search, paymentStatus } = req.query;
+    const { page = 1, limit = 20, status, search, paymentStatus, myOrders, userId } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const where = {
       companyId: req.company.id,
       ...(status && { status }),
       ...(paymentStatus && { paymentStatus }),
+      ...(myOrders === 'true' && { userId: req.user.id }),
+      ...(userId && { userId }),
       ...(search && {
         OR: [
           { title: { contains: search, mode: 'insensitive' } },
@@ -27,7 +29,7 @@ exports.getWorkOrders = async (req, res, next) => {
         take: parseInt(limit),
         orderBy: { createdAt: 'desc' },
         include: {
-          user: { select: { fullName: true } },
+          user: { select: { id: true, fullName: true, role: true } },
           _count: { select: { items: true } },
           items: {
             include: {
@@ -41,24 +43,26 @@ exports.getWorkOrders = async (req, res, next) => {
 
     // Her iş emrine maliyet ve ödeme hesapla
     const ordersWithCosts = orders.map(order => {
-      const partsSaleTotal = order.items.reduce((sum, item) => {
-        if (item.status === 'KULLANILDI' || item.status === 'REZERVE') {
+      const isCancelled = order.status === 'IPTAL';
+
+      const partsSaleTotal = isCancelled ? 0 : order.items.reduce((sum, item) => {
+        if (item.status !== 'IPTAL') {
           return sum + (parseFloat(item.unitPrice) * item.quantity);
         }
         return sum;
       }, 0);
 
-      const partsCostTotal = order.items.reduce((sum, item) => {
-        if ((item.status === 'KULLANILDI' || item.status === 'REZERVE') && item.unitCost) {
+      const partsCostTotal = isCancelled ? 0 : order.items.reduce((sum, item) => {
+        if (item.status !== 'IPTAL' && item.unitCost) {
           return sum + (parseFloat(item.unitCost) * item.quantity);
         }
         return sum;
       }, 0);
 
-      const labor = parseFloat(order.laborCost || 0);
+      const labor = isCancelled ? 0 : parseFloat(order.laborCost || 0);
       const totalAmount = partsSaleTotal + labor;
       const paid = parseFloat(order.paidAmount || 0);
-      const remainingAmount = Math.max(0, totalAmount - paid);
+      const remainingAmount = isCancelled ? 0 : Math.max(0, totalAmount - paid);
 
       return {
         ...order,
@@ -221,22 +225,184 @@ exports.updateWorkOrder = async (req, res, next) => {
             paymentStatus, paidAmount, paymentMethod, paymentNotes,
             beforeImages, afterImages } = req.body;
 
-    // İptal ediliyorsa rezerve edilen stokları serbest bırak
+    const isTech = req.user.role === 'TECHNICIAN';
+
+    // 1. TEKNİSYEN ROL KISITLAMALARI
+    if (isTech) {
+      if (laborCost !== undefined || paidAmount !== undefined || paymentStatus !== undefined || paymentMethod !== undefined || paymentNotes !== undefined) {
+        return error(res, 'Teknisyenlerin ödeme, tahsilat ve işçilik tutarını düzenleme yetkisi bulunmamaktadır.', 403);
+      }
+      if (status === 'IPTAL') {
+        return error(res, 'Teknisyenlerin iş emrini iptal etme yetkisi bulunmamaktadır. İptal işlemi için yöneticiye danışınız.', 403);
+      }
+      // Teknisyen sadece ACIK, DEVAM_EDIYOR veya TAMAMLANDI durumlarına geçiş yapabilir
+      if (status !== undefined && !['ACIK', 'DEVAM_EDIYOR', 'TAMAMLANDI'].includes(status)) {
+        return error(res, 'Geçersiz durum geçişi.', 400);
+      }
+    }
+
+    // 2. İPTAL DURUMUNDAKİ İŞ EMRİ KONTROLÜ
+    if (existing.status === 'IPTAL') {
+      // İptal edilmiş iş emri üzerinde yalnızca Admin/Yönetici durumu ACIK yaparak işi yeniden açabilir
+      if (status !== 'ACIK') {
+        return error(res, 'İptal edilmiş bir iş emri üzerinde işlem veya tahsilat yapılamaz. Değişiklik yapmak için önce iş emrini yeniden açınız.', 400);
+      }
+      if (isTech) {
+        return error(res, 'İptal edilmiş bir iş emrini yalnızca Yönetici veya Admin yeniden açabilir.', 403);
+      }
+    }
+
+    // 3. İŞ EMRİNİ İPTAL DURUMUNA ALMA GÜVENLİK KURALLARI
+    let targetPaymentStatus = paymentStatus;
     if (status === 'IPTAL' && existing.status !== 'IPTAL') {
-      const reservedItems = existing.items.filter(i => i.status === 'REZERVE');
-      if (reservedItems.length > 0) {
-        await prisma.$transaction(
-          reservedItems.map(item =>
-            prisma.part.update({
+      // Tahsilat kontrolü: Tahsilat yapılmış iş emri doğrudan iptal edilemez!
+      const currentPaid = parseFloat(existing.paidAmount || 0);
+      if (currentPaid > 0) {
+        return error(
+          res,
+          `Bu iş emrinde ₺${currentPaid.toLocaleString('tr-TR')} tutarında tahsilat mevcuttur. Tahsilatı bulunan iş emri iptal edilemez. Önce kasa kaydını iade ediniz veya sıfırlayınız.`,
+          400
+        );
+      }
+
+      // Parçaların depoya iadesi ve rezervasyonların çözülmesi
+      const defW = await prisma.warehouse.findFirst({
+        where: { isDefault: true, companyId: req.company.id },
+      });
+
+      await prisma.$transaction(async (tx) => {
+        for (const item of existing.items) {
+          if (item.status === 'REZERVE') {
+            // Rezerve stoku çöz
+            await tx.part.update({
               where: { id: item.partId },
               data: { reservedQuantity: { decrement: item.quantity } },
-            })
-          )
-        );
-        // Rezerve olan kalemleri iptal et
-        await prisma.workOrderItem.updateMany({
-          where: { workOrderId: req.params.id, status: 'REZERVE' },
+            });
+          } else if (item.status === 'KULLANILDI') {
+            // Araçtan sökülen / montajı iptal edilen parçayı depoya fiziki olarak geri iade et
+            const wId = item.warehouseId || defW?.id;
+            await tx.part.update({
+              where: { id: item.partId },
+              data: { quantity: { increment: item.quantity } },
+            });
+            await tx.partMovement.create({
+              data: {
+                partId: item.partId,
+                warehouseId: wId || null,
+                userId: req.user.id,
+                movementType: 'IADE',
+                quantity: item.quantity,
+                referenceType: 'WORK_ORDER',
+                referenceId: existing.id,
+                notes: `İş Emri İptali — Parça iadesi: ${existing.title}`,
+              },
+            });
+            if (wId) {
+              await tx.warehouseStock.upsert({
+                where: { warehouseId_partId: { warehouseId: wId, partId: item.partId } },
+                update: { quantity: { increment: item.quantity } },
+                create: { warehouseId: wId, partId: item.partId, quantity: item.quantity },
+              });
+            }
+          }
+        }
+
+        // Tüm iş emri kalemlerini IPTAL olarak işaretle
+        await tx.workOrderItem.updateMany({
+          where: { workOrderId: req.params.id },
           data: { status: 'IPTAL' },
+        });
+      });
+
+      targetPaymentStatus = 'IPTAL';
+    }
+
+    // 4. İŞİ BAŞLATMA / GERİ ALMA / TAMAMLAMA ZAMAN DAMGALARI & OTOMATİK STOK DÜŞÜŞÜ
+    let finalStartedAt = startedAt !== undefined ? (startedAt ? new Date(startedAt) : null) : existing.startedAt;
+    let finalCompletedAt = completedAt !== undefined ? (completedAt ? new Date(completedAt) : null) : existing.completedAt;
+    let finalUserId = undefined;
+
+    if (!isTech && req.body.userId !== undefined) {
+      finalUserId = req.body.userId;
+    }
+
+    if (status === 'DEVAM_EDIYOR') {
+      if (!existing.startedAt && startedAt === undefined) {
+        finalStartedAt = new Date(); // İşe başlama saati
+      }
+      finalCompletedAt = null; // Devam ediyorsa tamamlanma tarihi sıfır
+      // Eğer iş emrini bir teknisyen başlatıyorsa, iş emrini bu teknisyene zimmetle
+      if (isTech) {
+        finalUserId = req.user.id;
+      }
+    } else if (status === 'ACIK') {
+      // İşi geri alma / beklemeye alma
+      finalCompletedAt = null;
+    } else if (status === 'TAMAMLANDI' && existing.status !== 'TAMAMLANDI') {
+      finalCompletedAt = new Date();
+
+      // İş tamamlandığında henüz BEKLIYOR veya REZERVE olan parçaları otomatik KULLANILDI yap ve depodan düş
+      const pendingOrReserved = existing.items.filter(
+        (i) => i.status === 'BEKLIYOR' || i.status === 'REZERVE'
+      );
+
+      if (pendingOrReserved.length > 0) {
+        const defW = await prisma.warehouse.findFirst({
+          where: { isDefault: true, companyId: req.company.id },
+        });
+
+        await prisma.$transaction(async (tx) => {
+          for (const item of pendingOrReserved) {
+            const part = await tx.part.findUnique({ where: { id: item.partId } });
+            if (!part) continue;
+
+            const wId = item.warehouseId || defW?.id;
+
+            if (item.status === 'REZERVE') {
+              await tx.part.update({
+                where: { id: part.id },
+                data: {
+                  quantity: { decrement: item.quantity },
+                  reservedQuantity: { decrement: item.quantity },
+                },
+              });
+            } else {
+              // BEKLIYOR
+              await tx.part.update({
+                where: { id: part.id },
+                data: {
+                  quantity: { decrement: item.quantity },
+                },
+              });
+            }
+
+            await tx.workOrderItem.update({
+              where: { id: item.id },
+              data: { status: 'KULLANILDI' },
+            });
+
+            await tx.partMovement.create({
+              data: {
+                partId: part.id,
+                warehouseId: wId || null,
+                userId: req.user.id,
+                movementType: 'IS_EMRI_KULLANIMI',
+                quantity: item.quantity,
+                unitCost: item.unitCost || (part.purchasePrice ? parseFloat(part.purchasePrice) : null),
+                referenceType: 'WORK_ORDER',
+                referenceId: existing.id,
+                notes: `İş Emri Tamamlandı — Otomatik Kullanım: ${existing.title}`,
+              },
+            });
+
+            if (wId) {
+              await tx.warehouseStock.upsert({
+                where: { warehouseId_partId: { warehouseId: wId, partId: part.id } },
+                update: { quantity: { decrement: item.quantity } },
+                create: { warehouseId: wId, partId: part.id, quantity: 0 },
+              });
+            }
+          }
         });
       }
     }
@@ -252,9 +418,10 @@ exports.updateWorkOrder = async (req, res, next) => {
         ...(laborCost !== undefined && { laborCost: laborCost ? parseFloat(laborCost) : null }),
         ...(notes !== undefined && { notes }),
         ...(status !== undefined && { status }),
-        ...(startedAt !== undefined && { startedAt: startedAt ? new Date(startedAt) : null }),
-        ...(completedAt !== undefined && { completedAt: completedAt ? new Date(completedAt) : null }),
-        ...(paymentStatus !== undefined && { paymentStatus }),
+        startedAt: finalStartedAt,
+        completedAt: finalCompletedAt,
+        ...(finalUserId && { userId: finalUserId }),
+        ...(targetPaymentStatus !== undefined && { paymentStatus: targetPaymentStatus }),
         ...(paidAmount !== undefined && { paidAmount: parseFloat(paidAmount || 0) }),
         ...(paymentMethod !== undefined && { paymentMethod }),
         ...(paymentNotes !== undefined && { paymentNotes }),
@@ -263,7 +430,7 @@ exports.updateWorkOrder = async (req, res, next) => {
       },
     });
 
-    if (paidAmount !== undefined) {
+    if (paidAmount !== undefined && !isTech) {
       const prevPaid = parseFloat(existing.paidAmount || 0);
       const newPaid = parseFloat(paidAmount || 0);
       const diff = newPaid - prevPaid;
@@ -369,6 +536,68 @@ exports.addWorkOrderItem = async (req, res, next) => {
     });
 
     return success(res, item, 'Parça iş emrine eklendi.', 201);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── İş Emrine Çoklu / Toplu Parça Ekle ──────────────────────────────────────
+exports.addWorkOrderBatchItems = async (req, res, next) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return error(res, 'En az bir parça seçilmelidir.', 400);
+    }
+
+    const order = await prisma.workOrder.findFirst({
+      where: { id: req.params.id, companyId: req.company.id },
+    });
+    if (!order) return error(res, 'İş emri bulunamadı.', 404);
+    if (order.status === 'TAMAMLANDI' || order.status === 'IPTAL') {
+      return error(res, 'Tamamlanmış veya iptal edilmiş iş emrine parça eklenemez.', 400);
+    }
+
+    const defaultWarehouse = await prisma.warehouse.findFirst({
+      where: { isDefault: true, companyId: req.company.id },
+    });
+
+    const createdItems = await prisma.$transaction(async (tx) => {
+      const results = [];
+      for (const it of items) {
+        const part = await tx.part.findFirst({
+          where: { id: it.partId, companyId: req.company.id, isActive: true },
+        });
+        if (!part) continue;
+
+        const qty = parseInt(it.quantity) || 1;
+        const price = parseFloat(it.unitPrice);
+        const cost = it.unitCost ? parseFloat(it.unitCost) : (part.purchasePrice ? parseFloat(part.purchasePrice) : null);
+        const salePrice = isNaN(price) || price === 0 
+          ? (part.sellingPrice ? parseFloat(part.sellingPrice) : 0) 
+          : price;
+        const wId = it.warehouseId || defaultWarehouse?.id || null;
+
+        const created = await tx.workOrderItem.create({
+          data: {
+            workOrderId: req.params.id,
+            partId: it.partId,
+            warehouseId: wId,
+            quantity: qty,
+            unitPrice: salePrice,
+            unitCost: cost,
+            notes: it.notes || null,
+            status: 'BEKLIYOR',
+          },
+          include: {
+            part: { select: { id: true, name: true, unit: true, quantity: true, reservedQuantity: true } },
+          },
+        });
+        results.push(created);
+      }
+      return results;
+    });
+
+    return success(res, createdItems, `${createdItems.length} parça iş emrine başarıyla eklendi.`, 201);
   } catch (err) {
     next(err);
   }
@@ -512,7 +741,6 @@ exports.updateWorkOrderItemStatus = async (req, res, next) => {
       ]);
 
     } else if (status === 'IPTAL') {
-      // Rezerve edilmişse stoku serbest bırak
       const ops = [
         prisma.workOrderItem.update({
           where: { id: itemId },
@@ -527,10 +755,41 @@ exports.updateWorkOrderItemStatus = async (req, res, next) => {
             data: { reservedQuantity: { decrement: item.quantity } },
           })
         );
+      } else if (prevStatus === 'KULLANILDI') {
+        // Sanayi Depo Düzeltmesi: Araçtan sökülen / iptal edilen parçayı depoya geri al
+        ops.push(
+          prisma.part.update({
+            where: { id: part.id },
+            data: { quantity: { increment: item.quantity } },
+          }),
+          prisma.partMovement.create({
+            data: {
+              partId: part.id,
+              warehouseId: wId || null,
+              userId: req.user.id,
+              movementType: 'IADE',
+              quantity: item.quantity,
+              referenceType: 'WORK_ORDER',
+              referenceId: item.workOrderId,
+              notes: `İş Emri İptali — Parça söküldü, depoya geri alındı: ${item.workOrder.title}`,
+            },
+          })
+        );
+
+        if (wId) {
+          ops.push(
+            prisma.warehouseStock.upsert({
+              where: { warehouseId_partId: { warehouseId: wId, partId: part.id } },
+              update: { quantity: { increment: item.quantity } },
+              create: { warehouseId: wId, partId: part.id, quantity: item.quantity },
+            })
+          );
+        }
       }
 
       await prisma.$transaction(ops);
     }
+
 
     updatedItem = await prisma.workOrderItem.findUnique({
       where: { id: itemId },
@@ -744,6 +1003,10 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
     });
     if (!order) return error(res, 'İş emri bulunamadı.', 404);
 
+    if (order.status === 'IPTAL') {
+      return error(res, 'İptal edilmiş bir iş emrine ödeme veya tahsilat alınamaz.', 400);
+    }
+
     const partsTotal = order.items.reduce((sum, item) => {
       if (item.status !== 'IPTAL') {
         return sum + (parseFloat(item.unitPrice) * item.quantity);
@@ -918,6 +1181,7 @@ exports.getReceivables = async (req, res, next) => {
 
     const where = {
       companyId: req.company.id,
+      status: { not: 'IPTAL' },
       paymentStatus: { in: ['VERESIYE', 'KISMI', 'BEKLIYOR'] },
       ...(search && {
         OR: [

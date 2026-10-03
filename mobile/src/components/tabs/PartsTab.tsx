@@ -209,9 +209,11 @@ export default function PartsScreen() {
             <View style={dynamicStyles.empty}>
               <Text style={dynamicStyles.emptyEmoji}>🔩</Text>
               <Text style={dynamicStyles.emptyTitle}>Parça bulunamadı</Text>
-              <TouchableOpacity style={[dynamicStyles.emptyBtn, { backgroundColor: theme.primary }]} onPress={() => router.push('/parts/create' as any)}>
-                <Text style={dynamicStyles.emptyBtnText}>Parça Ekle</Text>
-              </TouchableOpacity>
+              {!isTechnician && (
+                <TouchableOpacity style={[dynamicStyles.emptyBtn, { backgroundColor: theme.primary }]} onPress={() => router.push('/parts/create' as any)}>
+                  <Text style={dynamicStyles.emptyBtnText}>Parça Ekle</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />

@@ -14,23 +14,28 @@ router.post('/purchase', authorize('ADMIN', 'MANAGER'), [
   body('unitCost').isFloat({ min: 0 }).withMessage('Alış fiyatı 0 veya daha fazla olmalı.'),
 ], validate, ctrl.purchaseStock);
 
-// Manuel stok çıkışı
-router.post('/out', [
+// Manuel stok çıkışı (Sadece Admin ve Manager)
+router.post('/out', authorize('ADMIN', 'MANAGER'), [
   body('partId').notEmpty().withMessage('Parça ID zorunludur.'),
   body('quantity').isInt({ min: 1 }).withMessage('Miktar en az 1 olmalı.'),
-  body('reason').isIn(['FIRE', 'SATIS', 'DUZELTME']).withMessage('Geçerli bir sebep seçin.'),
+  body('reason').isIn(['FIRE', 'SATIS', 'DUZELTME', 'ATOLYE_SARFI', 'SARF', 'IADE', 'TEDARIKCIYE_IADE', 'OUT']).withMessage('Geçerli bir sebep seçin.'),
 ], validate, ctrl.stockOut);
 
-// Depolar arası transfer
-router.post('/transfer', [
+// Atölye Hızlı Sarfiyat Toplu Çıkışı (Sadece Admin ve Manager)
+router.post('/batch-consume', authorize('ADMIN', 'MANAGER'), [
+  body('items').isArray({ min: 1 }).withMessage('En az bir sarf malzemesi girilmelidir.'),
+], validate, ctrl.batchConsumeWorkshop);
+
+// Depolar arası transfer (Sadece Admin ve Manager)
+router.post('/transfer', authorize('ADMIN', 'MANAGER'), [
   body('partId').notEmpty().withMessage('Parça seçilmelidir.'),
   body('fromWarehouseId').notEmpty().withMessage('Kaynak depo zorunludur.'),
   body('toWarehouseId').notEmpty().withMessage('Hedef depo zorunludur.'),
   body('quantity').isInt({ min: 1 }).withMessage('Miktar en az 1 olmalı.'),
 ], validate, ctrl.transferStock);
 
-// Depo stoklarını doğrudan düzenleme / sayım
-router.post('/adjust-warehouses', [
+// Depo stoklarını doğrudan düzenleme / sayım (Sadece Admin ve Manager)
+router.post('/adjust-warehouses', authorize('ADMIN', 'MANAGER'), [
   body('partId').notEmpty().withMessage('Parça ID zorunludur.'),
   body('warehouseStocks').isArray().withMessage('Depo stok listesi zorunludur.'),
 ], validate, ctrl.adjustWarehouseStocks);

@@ -10,6 +10,7 @@ import { router } from 'expo-router';
 import { workOrderAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { useAuthStore, isTechnicianRole } from '../../src/store/auth.store';
 import { Plus, ChevronRight } from 'lucide-react-native';
 
 const STATUS_FILTERS = [
@@ -34,7 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
   IPTAL: 'İptal',
 };
 
-function WorkOrderCard({ order, onPress, theme }: any) {
+function WorkOrderCard({ order, onPress, theme, currentUserId }: any) {
   const statusColor = STATUS_COLORS[order.status] || '#94A3B8';
   const statusLabel = STATUS_LABELS[order.status] || order.status;
 
@@ -42,12 +43,14 @@ function WorkOrderCard({ order, onPress, theme }: any) {
   const paid = parseFloat(order.paidAmount || 0);
   const remaining = Math.max(0, total - paid);
 
-  const paymentBadge = {
-    ODENDI: { label: '✅ Ödendi', color: theme.success, bg: theme.success + '15' },
-    KISMI: { label: `🟡 Kalan ₺${remaining.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`, color: '#F59E0B', bg: '#F59E0B15' },
-    VERESIYE: { label: `🔴 Veresiye ₺${remaining.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`, color: theme.danger, bg: theme.danger + '15' },
-    BEKLIYOR: { label: '⏳ Ödeme Bekliyor', color: theme.textMuted, bg: theme.border },
-  }[order.paymentStatus as string];
+  const paymentBadge = order.status === 'IPTAL'
+    ? { label: '🚫 İptal Edildi', color: theme.danger, bg: theme.danger + '15' }
+    : {
+        ODENDI: { label: '✅ Ödendi', color: theme.success, bg: theme.success + '15' },
+        KISMI: { label: `🟡 Kalan ₺${remaining.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`, color: '#F59E0B', bg: '#F59E0B15' },
+        VERESIYE: { label: `🔴 Veresiye ₺${remaining.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`, color: theme.danger, bg: theme.danger + '15' },
+        BEKLIYOR: { label: '⏳ Ödeme Bekliyor', color: theme.textMuted, bg: theme.border },
+      }[order.paymentStatus as string];
 
   return (
     <TouchableOpacity
@@ -75,16 +78,33 @@ function WorkOrderCard({ order, onPress, theme }: any) {
         </View>
       </View>
 
-      {/* Payment / Veresiye status pill */}
-      {paymentBadge && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 2 }}>
+      {/* Payment / Veresiye status pill & Technician Badge */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4, marginBottom: 2 }}>
+        {paymentBadge && (
           <View style={{ backgroundColor: paymentBadge.bg, paddingHorizontal: 7, paddingVertical: 2, borderRadius: BorderRadius.full }}>
             <Text style={{ fontSize: 10, fontWeight: '700', color: paymentBadge.color }}>
               {paymentBadge.label}
             </Text>
           </View>
-        </View>
-      )}
+        )}
+
+        {order.user?.fullName && (
+          <View
+            style={{
+              backgroundColor: order.userId === currentUserId ? theme.primary + '18' : theme.surface,
+              borderColor: order.userId === currentUserId ? theme.primary + '40' : theme.border,
+              borderWidth: 1,
+              paddingHorizontal: 7,
+              paddingVertical: 2,
+              borderRadius: BorderRadius.full,
+            }}
+          >
+            <Text style={{ fontSize: 10, fontWeight: '700', color: order.userId === currentUserId ? theme.primary : theme.textSecondary }}>
+              {order.userId === currentUserId ? '👤 Benim İşim' : `🔧 ${order.user.fullName}`}
+            </Text>
+          </View>
+        )}
+      </View>
 
       <View style={styles(theme).cardFooter}>
         <View style={styles(theme).footerItem}>
@@ -125,15 +145,20 @@ function WorkOrderCard({ order, onPress, theme }: any) {
 
 export default function WorkOrdersScreen() {
   const { colors: theme } = useAppTheme();
+  const { user } = useAuthStore();
+  const isTechnician = isTechnicianRole(user?.role);
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
+  // Teknisyen için varsayılan 'MY' (Benim İşlerim), Admin/Manager için 'ALL' (Tüm Atölye)
+  const [scopeFilter, setScopeFilter] = useState<'MY' | 'ALL'>(isTechnician ? 'MY' : 'ALL');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['work-orders', search, statusFilter],
+    queryKey: ['work-orders', search, statusFilter, scopeFilter],
     queryFn: () => workOrderAPI.getAll({
       search: search || undefined,
       status: statusFilter || undefined,
+      myOrders: scopeFilter === 'MY' ? true : undefined,
       limit: 50,
     }),
     placeholderData: (prev) => prev,
@@ -159,13 +184,15 @@ export default function WorkOrdersScreen() {
             <Text style={{ fontSize: Typography.fontSize.xl, fontWeight: '800', color: '#fff' }}>📋 İş Emirleri</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: Spacing.xs }}>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.3)', borderRadius: BorderRadius.md, paddingHorizontal: Spacing.sm + 2, paddingVertical: Spacing.sm, borderWidth: 1, borderColor: 'rgba(239,68,68,0.5)' }}
-              onPress={() => router.push('/work-orders/receivables' as any)}
-            >
-              <Text style={{ fontSize: 13 }}>📒</Text>
-              <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.xs }}>Veresiye</Text>
-            </TouchableOpacity>
+            {!isTechnician && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.3)', borderRadius: BorderRadius.md, paddingHorizontal: Spacing.sm + 2, paddingVertical: Spacing.sm, borderWidth: 1, borderColor: 'rgba(239,68,68,0.5)' }}
+                onPress={() => router.push('/work-orders/receivables' as any)}
+              >
+                <Text style={{ fontSize: 13 }}>📒</Text>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.xs }}>Veresiye</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: BorderRadius.md, paddingHorizontal: Spacing.sm + 2, paddingVertical: Spacing.sm, borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' }}
@@ -201,6 +228,53 @@ export default function WorkOrdersScreen() {
           </View>
         )}
       </LinearGradient>
+
+      {/* Kapsam Seçici: Benim İşlerim vs Tüm Atölye Havuzu */}
+      <View style={{ flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, paddingBottom: Spacing.xs, gap: Spacing.sm }}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setScopeFilter('MY')}
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 9,
+            borderRadius: BorderRadius.md,
+            backgroundColor: scopeFilter === 'MY' ? theme.primary : theme.surface,
+            borderWidth: 1,
+            borderColor: scopeFilter === 'MY' ? theme.primary : theme.border,
+            gap: 6,
+          }}
+        >
+          <Text style={{ fontSize: 13 }}>👤</Text>
+          <Text style={{ color: scopeFilter === 'MY' ? '#fff' : theme.textSecondary, fontWeight: '700', fontSize: Typography.fontSize.xs }}>
+            {isTechnician ? 'Benim İşlerim' : 'Üzerimdekiler'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setScopeFilter('ALL')}
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 9,
+            borderRadius: BorderRadius.md,
+            backgroundColor: scopeFilter === 'ALL' ? theme.primary : theme.surface,
+            borderWidth: 1,
+            borderColor: scopeFilter === 'ALL' ? theme.primary : theme.border,
+            gap: 6,
+          }}
+        >
+          <Text style={{ fontSize: 13 }}>🏢</Text>
+          <Text style={{ color: scopeFilter === 'ALL' ? '#fff' : theme.textSecondary, fontWeight: '700', fontSize: Typography.fontSize.xs }}>
+            Tüm Atölye Havuzu
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Arama */}
       <View style={{ padding: Spacing.lg, paddingBottom: Spacing.sm }}>
@@ -246,6 +320,7 @@ export default function WorkOrdersScreen() {
               order={item}
               theme={theme}
               onPress={() => router.push(`/work-orders/${item.id}` as any)}
+              currentUserId={user?.id}
             />
           )}
           contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingBottom: 80, gap: Spacing.sm }}

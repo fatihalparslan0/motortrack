@@ -11,7 +11,7 @@ import { router } from 'expo-router';
 import {
   Package, AlertTriangle, TrendingUp, TrendingDown,
   Plus, ArrowDownCircle, ArrowUpCircle, ChevronRight, Warehouse,
-  ArrowLeftRight,
+  ArrowLeftRight, Wrench, Trash2, Check, Search, Minus,
 } from 'lucide-react-native';
 import { warehouseAPI, stockAPI, partsAPI, supplierAPI } from '../../api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../constants/theme';
@@ -47,6 +47,8 @@ function StockInModal({ visible, onClose, theme }: any) {
   const [unitCost, setUnitCost] = useState('');
   const [supplierId, setSupplierId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
+  const [shelfLocation, setShelfLocation] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'CARI'|'NAKIT'|'KREDI_KARTI'|'HAVALE'>('CARI');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -76,6 +78,8 @@ function StockInModal({ visible, onClose, theme }: any) {
       unitCost: parseFloat(unitCost.replace(',', '.')),
       supplierId: supplierId || undefined,
       warehouseId: warehouseId || undefined,
+      shelfLocation: shelfLocation.trim() || undefined,
+      paymentMethod,
       invoiceNumber: invoiceNumber.trim() || undefined,
       notes,
     }),
@@ -86,18 +90,21 @@ function StockInModal({ visible, onClose, theme }: any) {
       queryClient.invalidateQueries({ queryKey: ['partStats'] });
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       queryClient.invalidateQueries({ queryKey: ['supplierSummary'] });
+      queryClient.invalidateQueries({ queryKey: ['cashDaily'] });
       Alert.alert('✅ Başarılı', res?.message || 'Stok girişi yapıldı.');
       setSelectedPart(null);
       setPartSearch('');
       setQuantity('');
       setUnitCost('');
       setSupplierId('');
+      setShelfLocation('');
+      setPaymentMethod('CARI');
       setInvoiceNumber('');
       setNotes('');
       onClose();
     },
     onError: (err: any) => {
-      Alert.alert('Hata', err?.message || 'Stok girişi yapılamadı.');
+      Alert.alert('Hata', err?.response?.data?.error || err?.message || 'Stok girişi yapılamadı.');
     },
   });
 
@@ -107,6 +114,7 @@ function StockInModal({ visible, onClose, theme }: any) {
     if (!unitCost || parseFloat(unitCost.replace(',', '.')) < 0) { Alert.alert('Hata', 'Lütfen alış fiyatı girin.'); return; }
     mutation.mutate();
   };
+
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -218,6 +226,57 @@ function StockInModal({ visible, onClose, theme }: any) {
               ))}
             </ScrollView>
 
+            {/* Ödeme Yöntemi / Sanayi Finansmanı */}
+            <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase' }}>
+              Ödeme Şekli *
+            </Text>
+            <View style={{ flexDirection: 'row', gap: Spacing.xs, marginBottom: Spacing.md }}>
+              {[
+                { key: 'CARI', label: '📝 Cari (Veresiye)' },
+                { key: 'NAKIT', label: '💵 Nakit (Kasa)' },
+                { key: 'KREDI_KARTI', label: '💳 Kredi Kartı' },
+                { key: 'HAVALE', label: '🏦 Havale' },
+              ].map(item => {
+                const isSelected = paymentMethod === item.key;
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    onPress={() => setPaymentMethod(item.key as any)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 8,
+                      alignItems: 'center',
+                      borderRadius: BorderRadius.md,
+                      borderWidth: 1,
+                      borderColor: isSelected ? theme.primary : theme.border,
+                      backgroundColor: isSelected ? theme.primary + '15' : theme.surface,
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 11,
+                      fontWeight: isSelected ? '700' : '400',
+                      color: isSelected ? theme.primary : theme.textSecondary,
+                      textAlign: 'center',
+                    }}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Raf / Göz Konumu */}
+            <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>
+              Raf / Göz Konumu (Opsiyonel)
+            </Text>
+            <TextInput
+              style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary, marginBottom: Spacing.md }}
+              placeholder="Örn: Raf A-3 / Göz 12 / Kat 2"
+              placeholderTextColor={theme.textMuted}
+              value={shelfLocation}
+              onChangeText={setShelfLocation}
+            />
+
             {/* İrsaliye / Fiş No */}
             <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4 }}>İrsaliye / Fiş No (Opsiyonel)</Text>
             <TextInput
@@ -238,6 +297,7 @@ function StockInModal({ visible, onClose, theme }: any) {
               value={notes}
               onChangeText={setNotes}
             />
+
 
             <TouchableOpacity
               style={{ backgroundColor: theme.primary, borderRadius: BorderRadius.md, padding: Spacing.md, alignItems: 'center', opacity: mutation.isPending ? 0.7 : 1 }}
@@ -835,6 +895,419 @@ function StockTransferModal({ visible, onClose, theme }: any) {
   );
 }
 
+// ─── Hızlı Atölye Sarfiyatı Modal ───────────────────────────────────────────
+function QuickConsumablesModal({ visible, onClose, theme }: any) {
+  const queryClient = useQueryClient();
+  const [warehouseId, setWarehouseId] = useState('');
+  const [partSearch, setPartSearch] = useState('');
+  const [selectedItems, setSelectedItems] = useState<{ part: any; quantity: number }[]>([]);
+  const [notes, setNotes] = useState('');
+
+  const { data: warehousesData } = useQuery({
+    queryKey: ['warehouses'],
+    queryFn: () => warehouseAPI.getAll(),
+  });
+
+  const warehouses: any[] = (warehousesData as any)?.data || [];
+
+  // Öncelikli olarak WORKSHOP_CONSUMABLES (Atölye Sarf) deposunu seç, yoksa ilk depoyu seç
+  useEffect(() => {
+    if (visible && warehouses.length > 0 && !warehouseId) {
+      const workshopWh = warehouses.find((w: any) => w.type === 'WORKSHOP_CONSUMABLES');
+      setWarehouseId(workshopWh ? workshopWh.id : warehouses[0].id);
+    }
+  }, [visible, warehouses, warehouseId]);
+
+  const { data: partsData } = useQuery({
+    queryKey: ['parts-search-consumables', partSearch],
+    queryFn: () => partsAPI.getAll({ search: partSearch.trim() || undefined, limit: 30 }),
+    enabled: visible,
+  });
+
+  const partsList: any[] = (partsData as any)?.data || [];
+
+  const handleAddItem = (part: any) => {
+    setSelectedItems(prev => {
+      const existing = prev.find(item => item.part.id === part.id);
+      if (existing) {
+        return prev.map(item =>
+          item.part.id === part.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [...prev, { part, quantity: 1 }];
+    });
+  };
+
+  const handleUpdateQty = (partId: string, delta: number) => {
+    setSelectedItems(prev =>
+      prev
+        .map(item => {
+          if (item.part.id === partId) {
+            const nextQty = item.quantity + delta;
+            return nextQty > 0 ? { ...item, quantity: nextQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean) as { part: any; quantity: number }[]
+    );
+  };
+
+  const handleRemoveItem = (partId: string) => {
+    setSelectedItems(prev => prev.filter(item => item.part.id !== partId));
+  };
+
+  const mutation = useMutation({
+    mutationFn: (payload: any) => stockAPI.batchConsume(payload),
+    onSuccess: () => {
+      Alert.alert('✅ Sarfiyat Kaydedildi', 'Seçilen atölye malzemeleri stoktan başarıyla düşüldü.');
+      queryClient.invalidateQueries({ queryKey: ['warehouseStats'] });
+      queryClient.invalidateQueries({ queryKey: ['criticalStock'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      queryClient.invalidateQueries({ queryKey: ['parts-search'] });
+      setSelectedItems([]);
+      setNotes('');
+      setPartSearch('');
+      onClose();
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || 'Sarfiyat işlemi kaydedilemedi.';
+      Alert.alert('Hata', msg);
+    },
+  });
+
+  const handleSubmit = () => {
+    if (!warehouseId) {
+      Alert.alert('Hata', 'Lütfen çıkış yapılacak depoyu seçin.');
+      return;
+    }
+    if (selectedItems.length === 0) {
+      Alert.alert('Hata', 'Lütfen en az bir sarf malzemesi ekleyin.');
+      return;
+    }
+    mutation.mutate({
+      warehouseId,
+      items: selectedItems.map(item => ({
+        partId: item.part.id,
+        quantity: item.quantity,
+      })),
+      reason: 'ATOLYE_SARFI',
+      notes: notes.trim() || 'Atölye sarfiyat fişi',
+    });
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: Spacing.md,
+            borderBottomWidth: 1,
+            borderColor: theme.border,
+            backgroundColor: theme.surface
+          }}>
+            <View>
+              <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: theme.textPrimary }}>
+                🧰 Hızlı Atölye Sarfiyatı
+              </Text>
+              <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted }}>
+                Sprey, yağ, conta ve ortak atölye tüketimi
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={{ padding: Spacing.xs }}>
+              <Text style={{ fontSize: Typography.fontSize.base, color: theme.danger, fontWeight: '700' }}>Kapat</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={{ flex: 1, padding: Spacing.md }} showsVerticalScrollIndicator={false}>
+            {/* Depo Seçimi */}
+            <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4, fontWeight: '700' }}>
+              ÇIKIŞ YAPILACAK DEPO
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
+              <View style={{ flexDirection: 'row', gap: Spacing.xs }}>
+                {warehouses.map((wh: any) => {
+                  const isSelected = warehouseId === wh.id;
+                  const isConsumable = wh.type === 'WORKSHOP_CONSUMABLES';
+                  return (
+                    <TouchableOpacity
+                      key={wh.id}
+                      onPress={() => setWarehouseId(wh.id)}
+                      style={{
+                        paddingHorizontal: Spacing.md,
+                        paddingVertical: Spacing.sm,
+                        borderRadius: BorderRadius.md,
+                        borderWidth: 1.5,
+                        borderColor: isSelected ? '#8B5CF6' : theme.border,
+                        backgroundColor: isSelected ? '#8B5CF620' : theme.surface,
+                      }}
+                    >
+                      <Text style={{
+                        fontSize: Typography.fontSize.xs,
+                        fontWeight: isSelected ? '800' : '600',
+                        color: isSelected ? '#8B5CF6' : theme.textPrimary
+                      }}>
+                        {isConsumable ? '🧰 ' : '🏢 '}{wh.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            {/* Sepet / Seçilen Sarf Malzemeleri */}
+            <View style={{
+              backgroundColor: theme.surface,
+              borderRadius: BorderRadius.lg,
+              borderWidth: 1,
+              borderColor: selectedItems.length > 0 ? '#8B5CF660' : theme.border,
+              padding: Spacing.md,
+              marginBottom: Spacing.md,
+              ...Shadows.sm
+            }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xs }}>
+                <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: '700', color: theme.textPrimary }}>
+                  Düşülecek Malzemeler ({selectedItems.length})
+                </Text>
+                {selectedItems.length > 0 && (
+                  <TouchableOpacity onPress={() => setSelectedItems([])}>
+                    <Text style={{ fontSize: Typography.fontSize.xs, color: theme.danger, fontWeight: '600' }}>Temizle</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {selectedItems.length === 0 ? (
+                <View style={{ paddingVertical: Spacing.lg, alignItems: 'center' }}>
+                  <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, textAlign: 'center' }}>
+                    Henüz malzeme seçilmedi.{'\n'}Aşağıdan sprey, yağ veya sarf malzemesine dokunun.
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ gap: Spacing.xs, marginTop: Spacing.xs }}>
+                  {selectedItems.map((item) => (
+                    <View
+                      key={item.part.id}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: Spacing.sm,
+                        borderRadius: BorderRadius.md,
+                        backgroundColor: theme.background,
+                        borderWidth: 1,
+                        borderColor: theme.border
+                      }}
+                    >
+                      <View style={{ flex: 1, marginRight: Spacing.sm }}>
+                        <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: '700', color: theme.textPrimary }} numberOfLines={1}>
+                          {item.part.name}
+                        </Text>
+                        <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted }}>
+                          {item.part.partNumber || item.part.code || '—'} • Stok: {item.part.totalStock ?? item.part.stockQuantity ?? 0} {item.part.unit || 'adet'}
+                        </Text>
+                      </View>
+
+                      {/* Quantity Controller */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+                        <TouchableOpacity
+                          onPress={() => handleUpdateQty(item.part.id, -1)}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: BorderRadius.sm,
+                            backgroundColor: theme.surface,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderWidth: 1,
+                            borderColor: theme.border
+                          }}
+                        >
+                          <Minus size={16} color={theme.textPrimary} />
+                        </TouchableOpacity>
+
+                        <Text style={{ fontSize: Typography.fontSize.base, fontWeight: '800', color: theme.textPrimary, minWidth: 28, textAlign: 'center' }}>
+                          {item.quantity}
+                        </Text>
+
+                        <TouchableOpacity
+                          onPress={() => handleUpdateQty(item.part.id, 1)}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: BorderRadius.sm,
+                            backgroundColor: '#8B5CF620',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderWidth: 1,
+                            borderColor: '#8B5CF640'
+                          }}
+                        >
+                          <Plus size={16} color="#8B5CF6" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => handleRemoveItem(item.part.id)}
+                          style={{ padding: 6, marginLeft: 2 }}
+                        >
+                          <Trash2 size={16} color={theme.danger} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Malzeme Arama */}
+            <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4, fontWeight: '700' }}>
+              MALZEME EKLE VEYA ARA
+            </Text>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: theme.surface,
+              borderRadius: BorderRadius.md,
+              borderWidth: 1,
+              borderColor: theme.border,
+              paddingHorizontal: Spacing.sm,
+              marginBottom: Spacing.sm
+            }}>
+              <Search size={16} color={theme.textMuted} style={{ marginRight: Spacing.xs }} />
+              <TextInput
+                style={{
+                  flex: 1,
+                  paddingVertical: Spacing.sm,
+                  color: theme.textPrimary,
+                  fontSize: Typography.fontSize.sm,
+                }}
+                placeholder="Balata spreyi, sıvı conta, yağ ara..."
+                placeholderTextColor={theme.textMuted}
+                value={partSearch}
+                onChangeText={setPartSearch}
+              />
+              {partSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setPartSearch('')}>
+                  <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs }}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* List of matching parts */}
+            <View style={{
+              backgroundColor: theme.surface,
+              borderRadius: BorderRadius.md,
+              borderWidth: 1,
+              borderColor: theme.border,
+              maxHeight: 220,
+              marginBottom: Spacing.md
+            }}>
+              <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={true}>
+                {partsList.length === 0 ? (
+                  <View style={{ padding: Spacing.md, alignItems: 'center' }}>
+                    <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs }}>Malzeme bulunamadı</Text>
+                  </View>
+                ) : (
+                  partsList.slice(0, 15).map((p: any) => {
+                    const isAdded = selectedItems.some(i => i.part.id === p.id);
+                    return (
+                      <TouchableOpacity
+                        key={p.id}
+                        onPress={() => handleAddItem(p)}
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: Spacing.sm,
+                          borderBottomWidth: 1,
+                          borderColor: theme.border,
+                          backgroundColor: isAdded ? '#8B5CF608' : 'transparent'
+                        }}
+                      >
+                        <View style={{ flex: 1, marginRight: Spacing.sm }}>
+                          <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: '600', color: theme.textPrimary }}>
+                            {p.name}
+                          </Text>
+                          <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted }}>
+                            {p.partNumber || p.code || '—'} {p.shelfLocation ? `• 📍 ${p.shelfLocation}` : ''}
+                          </Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', gap: Spacing.xs, alignItems: 'center' }}>
+                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: (p.totalStock ?? p.stockQuantity ?? 0) <= 0 ? theme.danger : theme.success }}>
+                            {p.totalStock ?? p.stockQuantity ?? 0} {p.unit || 'adet'}
+                          </Text>
+                          <View style={{
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            borderRadius: BorderRadius.sm,
+                            backgroundColor: isAdded ? '#8B5CF6' : theme.primary + '15'
+                          }}>
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: isAdded ? '#fff' : theme.primary }}>
+                              {isAdded ? '+1 Ekle' : 'Seç'}
+                            </Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </ScrollView>
+            </View>
+
+            {/* Referans / Not */}
+            <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, marginBottom: 4, fontWeight: '700' }}>
+              REFERANS / AÇIKLAMA (OPSİYONEL)
+            </Text>
+            <TextInput
+              style={{
+                backgroundColor: theme.surface,
+                borderWidth: 1,
+                borderColor: theme.border,
+                borderRadius: BorderRadius.md,
+                padding: Spacing.md,
+                color: theme.textPrimary,
+                height: 60,
+                textAlignVertical: 'top',
+                marginBottom: Spacing.lg
+              }}
+              multiline
+              placeholder="Örn: 34 ABC 123 veya Lift 1 periyodik bakım sarfiyatı..."
+              placeholderTextColor={theme.textMuted}
+              value={notes}
+              onChangeText={setNotes}
+            />
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={{
+                backgroundColor: selectedItems.length > 0 ? '#8B5CF6' : theme.border,
+                borderRadius: BorderRadius.md,
+                padding: Spacing.md,
+                alignItems: 'center',
+                opacity: mutation.isPending || selectedItems.length === 0 ? 0.6 : 1,
+                marginBottom: Spacing.xl
+              }}
+              onPress={handleSubmit}
+              disabled={mutation.isPending || selectedItems.length === 0}
+            >
+              {mutation.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.base }}>
+                  ⚡ {selectedItems.reduce((acc, curr) => acc + curr.quantity, 0)} Parça Sarfiyatı Stoktan Düş
+                </Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ─── Ana Depo Ekranı ─────────────────────────────────────────────────────────
 export default function WarehouseTab() {
   const { colors: theme } = useAppTheme();
@@ -844,6 +1317,7 @@ export default function WarehouseTab() {
   const [showStockIn, setShowStockIn] = useState(false);
   const [showStockOut, setShowStockOut] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [showQuickConsumables, setShowQuickConsumables] = useState(false);
 
   const { data: statsData, isLoading, refetch } = useQuery({
     queryKey: ['warehouseStats'],
@@ -996,6 +1470,15 @@ export default function WarehouseTab() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  style={[dynamicStyles.quickActionBtn, { backgroundColor: '#8B5CF615', borderColor: '#8B5CF640' }]}
+                  onPress={() => setShowQuickConsumables(true)}
+                  activeOpacity={0.8}
+                >
+                  <Wrench size={28} color="#8B5CF6" />
+                  <Text style={[dynamicStyles.quickActionLabel, { color: '#8B5CF6' }]}>🧰 HIZLI SARF</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
                   style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.danger + '15', borderColor: theme.danger + '40' }]}
                   onPress={() => setShowStockOut(true)}
                   activeOpacity={0.8}
@@ -1011,15 +1494,6 @@ export default function WarehouseTab() {
                 >
                   <ArrowLeftRight size={28} color="#6366F1" />
                   <Text style={[dynamicStyles.quickActionLabel, { color: '#6366F1' }]}>TRANSFER</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '40' }]}
-                  onPress={() => router.push('/work-orders' as any)}
-                  activeOpacity={0.8}
-                >
-                  <Package size={28} color={theme.primary} />
-                  <Text style={[dynamicStyles.quickActionLabel, { color: theme.primary }]}>İŞ EMRİ</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -1040,6 +1514,15 @@ export default function WarehouseTab() {
                 >
                   <Warehouse size={28} color={theme.secondary} />
                   <Text style={[dynamicStyles.quickActionLabel, { color: theme.secondary }]}>DEPOLAR</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[dynamicStyles.quickActionBtn, { backgroundColor: '#38BDF815', borderColor: '#38BDF840' }]}
+                  onPress={() => router.push('/work-orders/plate-history' as any)}
+                  activeOpacity={0.8}
+                >
+                  <Package size={28} color="#38BDF8" />
+                  <Text style={[dynamicStyles.quickActionLabel, { color: '#0284C7' }]}>PLAKA ARA</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1089,59 +1572,66 @@ export default function WarehouseTab() {
           </View>
         )}
 
-        {/* Stok & Transfer Hareketleri Sorgulama Kartı */}
-        <View style={dynamicStyles.section}>
-          <TouchableOpacity
-            style={{
-              backgroundColor: theme.surface,
-              borderRadius: BorderRadius.xl,
-              borderWidth: 1.5,
-              borderColor: '#6366F140',
-              padding: Spacing.lg,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              ...Shadows.sm,
-            }}
-            onPress={() => router.push('/warehouse/movements' as any)}
-            activeOpacity={0.85}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 }}>
-              <LinearGradient
-                colors={['#6366F1', '#4F46E5']}
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: BorderRadius.lg,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                <ArrowLeftRight size={24} color="#fff" />
-              </LinearGradient>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: Typography.fontSize.base, fontWeight: '800', color: theme.textPrimary }}>
-                  🔍 Stok & Transfer Sorgulama
-                </Text>
-                <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, marginTop: 2 }}>
-                  Depo bazlı giriş, çıkış ve transfer geçmişini filtreleyin
-                </Text>
+        {/* Stok & Transfer Hareketleri Sorgulama Kartı (Sadece Admin / Manager) */}
+        {!isTechnician && (
+          <View style={dynamicStyles.section}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.surface,
+                borderRadius: BorderRadius.xl,
+                borderWidth: 1.5,
+                borderColor: '#6366F140',
+                padding: Spacing.lg,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                ...Shadows.sm,
+              }}
+              onPress={() => router.push('/warehouse/movements' as any)}
+              activeOpacity={0.85}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 }}>
+                <LinearGradient
+                  colors={['#6366F1', '#4F46E5']}
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: BorderRadius.lg,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <ArrowLeftRight size={24} color="#fff" />
+                </LinearGradient>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: Typography.fontSize.base, fontWeight: '800', color: theme.textPrimary }}>
+                    🔍 Stok & Transfer Sorgulama
+                  </Text>
+                  <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, marginTop: 2 }}>
+                    Depo bazlı giriş, çıkış ve transfer geçmişini filtreleyin
+                  </Text>
+                </View>
               </View>
-            </View>
-            <ChevronRight size={20} color={theme.textMuted} />
-          </TouchableOpacity>
-        </View>
+              <ChevronRight size={20} color={theme.textMuted} />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Navigasyon Kısayolları */}
         <View style={dynamicStyles.section}>
           <Text style={dynamicStyles.sectionTitle}>🔗 Diğer Bölümler</Text>
           <View style={dynamicStyles.navGrid}>
-            {[
+            {(isTechnician ? [
+              { emoji: '📦', label: 'Depolar & Raflar', path: '/warehouse/list', onPress: null },
+              { emoji: '⚠️', label: 'Kritik Stok', path: '/warehouse/critical', onPress: null },
+              { emoji: '🚗', label: 'Plaka Sorgula', path: '/work-orders/plate-history', onPress: null },
+              { emoji: '📜', label: 'İş Emirleri', path: '/work-orders', onPress: null },
+            ] : [
               { emoji: '🔍', label: 'Hareketler', path: '/warehouse/movements', onPress: null },
               { emoji: '📦', label: 'Depolar', path: '/warehouse/list', onPress: null },
               { emoji: '🏭', label: 'Tedarikçiler', path: '/warehouse/suppliers', onPress: null },
               { emoji: '📜', label: 'İş Emirleri', path: '/work-orders', onPress: null },
-            ].map((item, i) => (
+            ]).map((item, i) => (
               <TouchableOpacity
                 key={i}
                 style={dynamicStyles.navItem}
@@ -1159,9 +1649,14 @@ export default function WarehouseTab() {
       </ScrollView>
 
       {/* Modals */}
-      <StockInModal visible={showStockIn} onClose={() => setShowStockIn(false)} theme={theme} />
-      <StockOutModal visible={showStockOut} onClose={() => setShowStockOut(false)} theme={theme} />
-      <StockTransferModal visible={showTransfer} onClose={() => setShowTransfer(false)} theme={theme} />
+      {!isTechnician && (
+        <>
+          <StockInModal visible={showStockIn} onClose={() => setShowStockIn(false)} theme={theme} />
+          <StockOutModal visible={showStockOut} onClose={() => setShowStockOut(false)} theme={theme} />
+          <StockTransferModal visible={showTransfer} onClose={() => setShowTransfer(false)} theme={theme} />
+          <QuickConsumablesModal visible={showQuickConsumables} onClose={() => setShowQuickConsumables(false)} theme={theme} />
+        </>
+      )}
     </SafeAreaView>
   );
 }

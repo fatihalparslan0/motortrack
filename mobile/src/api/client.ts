@@ -203,10 +203,13 @@ export const companiesAPI = {
 
 export const warehouseAPI = {
   getAll: () => apiClient.get('/warehouses'),
+  getById: (id: string) => apiClient.get(`/warehouses/${id}`),
   getStats: () => apiClient.get('/warehouses/stats'),
   getCriticalStock: () => apiClient.get('/warehouses/critical-stock'),
   create: (data: any) => apiClient.post('/warehouses', data),
   update: (id: string, data: any) => apiClient.put(`/warehouses/${id}`, data),
+  updateShelfLocation: (data: { warehouseId: string; partId: string; shelfLocation?: string }) =>
+    apiClient.patch('/warehouses/stock-shelf', data),
   delete: (id: string) => apiClient.delete(`/warehouses/${id}`),
 };
 
@@ -237,6 +240,7 @@ export const workOrderAPI = {
   removePhoto: (id: string, data: { type: 'before' | 'after'; imageUrl: string }) =>
     apiClient.delete(`/work-orders/${id}/photos`, { data }),
   addItem: (orderId: string, data: any) => apiClient.post(`/work-orders/${orderId}/items`, data),
+  addBatchItems: (orderId: string, items: any[]) => apiClient.post(`/work-orders/${orderId}/items/batch`, { items }),
   updateItemStatus: (orderId: string, itemId: string, status: string) =>
     apiClient.patch(`/work-orders/${orderId}/items/${itemId}/status`, { status }),
   removeItem: (orderId: string, itemId: string) =>
@@ -256,11 +260,14 @@ export const stockAPI = {
   purchase: (data: any) => apiClient.post('/stock/purchase', data),
   out: (data: any) => apiClient.post('/stock/out', data),
   stockOut: (data: any) => apiClient.post('/stock/out', data),
+  batchConsume: (data: { items: { partId: string; quantity: number }[]; warehouseId?: string; notes?: string }) =>
+    apiClient.post('/stock/batch-consume', data),
   transfer: (data: any) => apiClient.post('/stock/transfer', data),
   adjustWarehouses: (data: any) => apiClient.post('/stock/adjust-warehouses', data),
   findByBarcode: (barcode: string) => apiClient.get(`/stock/barcode/${barcode}`),
   getMovements: (params?: any) => apiClient.get('/stock/movements', { params }),
 };
+
 
 export const cashAPI = {
   getDaily: (params?: { date?: string }) => apiClient.get('/cash/daily', { params }),

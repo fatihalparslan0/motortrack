@@ -230,15 +230,16 @@ enum StockMovementType {
 
 // ─── Warehouses (Depolar) ─────────────────────────────────────────────────────
 model Warehouse {
-  id          String   @id @default(uuid())
+  id          String        @id @default(uuid())
   companyId   String
   name        String
+  type        WarehouseType @default(MAIN)
   address     String?
   description String?
-  isActive    Boolean  @default(true)
-  isDefault   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive    Boolean       @default(true)
+  isDefault   Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   company       Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   stocks        WarehouseStock[]
@@ -247,14 +248,23 @@ model Warehouse {
   @@map("warehouses")
 }
 
+enum WarehouseType {
+  MAIN                 // Ana Yedek Parça Deposu (Kilitli / Sıfır Parçalar)
+  WORKSHOP_CONSUMABLES // Atölye Hızlı Sarfiyat & Yağ Reyonu (Sprey, Conta, Yağ)
+  USED_PARTS           // Çıkma & Revizyon Deposu (İkinci El / Yenilenmiş Parçalar)
+  SCRAP                // Eski / Değişen Parça & Hurda Alanı (Müşteri İade / Hurda)
+  OTHER                // Diğer / Harici Depo
+}
+
 // ─── Warehouse Stocks (Depo Bazında Stok) ─────────────────────────────────────
 model WarehouseStock {
-  id          String   @id @default(uuid())
-  warehouseId String
-  partId      String
-  quantity    Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(uuid())
+  warehouseId   String
+  partId        String
+  quantity      Int      @default(0)
+  shelfLocation String?  // Raf / Göz / Kutu Kodu (Örn: A-3 Kat-2 Kutu-14)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
   part      Part      @relation(fields: [partId], references: [id], onDelete: Cascade)

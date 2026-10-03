@@ -27,11 +27,15 @@ router.patch('/:id/payment', authorize('ADMIN', 'MANAGER'), ctrl.updateWorkOrder
 router.post('/:id/photos', ctrl.addWorkOrderPhoto);
 router.delete('/:id/photos', ctrl.removeWorkOrderPhoto);
 
-// İş emri parça yönetimi
+// İş emri parça yönetimi (Tekli ve Çoklu)
 router.post('/:id/items', [
   body('partId').notEmpty().withMessage('Parça ID zorunludur.'),
   body('quantity').isInt({ min: 1 }).withMessage('Miktar en az 1 olmalı.'),
 ], validate, ctrl.addWorkOrderItem);
+
+router.post('/:id/items/batch', [
+  body('items').isArray({ min: 1 }).withMessage('En az bir parça seçilmelidir.'),
+], validate, ctrl.addWorkOrderBatchItems);
 
 router.patch('/:id/items/:itemId/status', [
   body('status').isIn(['REZERVE', 'KULLANILDI', 'IPTAL']).withMessage('Geçersiz durum.'),

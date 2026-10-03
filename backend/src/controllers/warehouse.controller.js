@@ -20,7 +20,7 @@ exports.getWarehouses = async (req, res, next) => {
 // ─── Depo Oluştur ─────────────────────────────────────────────────────────────
 exports.createWarehouse = async (req, res, next) => {
   try {
-    const { name, address, description, isDefault } = req.body;
+    const { name, type, address, description, isDefault } = req.body;
 
     // Eğer varsayılan yapılıyorsa diğerlerini güncelle
     if (isDefault) {
@@ -34,6 +34,7 @@ exports.createWarehouse = async (req, res, next) => {
       data: {
         companyId: req.company.id,
         name,
+        type: type || 'MAIN',
         address: address || null,
         description: description || null,
         isDefault: isDefault || false,
@@ -54,7 +55,7 @@ exports.updateWarehouse = async (req, res, next) => {
     });
     if (!existing) return error(res, 'Depo bulunamadı.', 404);
 
-    const { name, address, description, isDefault, isActive } = req.body;
+    const { name, type, address, description, isDefault, isActive } = req.body;
 
     if (isDefault) {
       await prisma.warehouse.updateMany({
@@ -67,6 +68,7 @@ exports.updateWarehouse = async (req, res, next) => {
       where: { id: req.params.id },
       data: {
         ...(name !== undefined && { name }),
+        ...(type !== undefined && { type }),
         ...(address !== undefined && { address }),
         ...(description !== undefined && { description }),
         ...(isDefault !== undefined && { isDefault }),
@@ -79,6 +81,90 @@ exports.updateWarehouse = async (req, res, next) => {
     next(err);
   }
 };
+
+// ─── Depo Detayı ve İçindeki Stoklar ─────────────────────────────────────────
+exports.getWarehouseDetail = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const warehouse = await prisma.warehouse.findFirst({
+      where: { id, companyId: req.company.id },
+      include: {
+        stocks: {
+          include: {
+            part: {
+              select: {
+                id: true,
+                name: true,
+                brand: true,
+                category: true,
+                sku: true,
+                barcode: true,
+                oemCode: true,
+                partNumber: true,
+                unit: true,
+                purchasePrice: true,
+                sellingPrice: true,
+                minQuantity: true,
+                quantity: true,
+                condition: true,
+                warehouseLocation: true,
+              },
+            },
+          },
+          orderBy: { updatedAt: 'desc' },
+        },
+        _count: { select: { stocks: true, partMovements: true } },
+      },
+    });
+
+    if (!warehouse) return error(res, 'Depo bulunamadı.', 404);
+
+    const isTech = req.user.role === 'TECHNICIAN';
+    if (isTech) {
+      warehouse.stocks = warehouse.stocks.map(s => ({
+        ...s,
+        part: { ...s.part, purchasePrice: null },
+      }));
+    }
+
+    return success(res, warehouse, 'Depo detayları ve stokları getirildi.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── Depo Stok Raf / Göz Konumu Güncelle ─────────────────────────────────────
+exports.updateStockShelfLocation = async (req, res, next) => {
+  try {
+    const { warehouseId, partId, shelfLocation } = req.body;
+
+    const warehouse = await prisma.warehouse.findFirst({
+      where: { id: warehouseId, companyId: req.company.id },
+    });
+    if (!warehouse) return error(res, 'Depo bulunamadı.', 404);
+
+    const part = await prisma.part.findFirst({
+      where: { id: partId, companyId: req.company.id },
+    });
+    if (!part) return error(res, 'Parça bulunamadı.', 404);
+
+    const stock = await prisma.warehouseStock.upsert({
+      where: { warehouseId_partId: { warehouseId, partId } },
+      update: { shelfLocation: shelfLocation ? shelfLocation.trim() : null },
+      create: {
+        warehouseId,
+        partId,
+        quantity: 0,
+        shelfLocation: shelfLocation ? shelfLocation.trim() : null,
+      },
+    });
+
+    return success(res, stock, 'Raf konumu başarıyla güncellendi.');
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 // ─── Depo İstatistikleri ──────────────────────────────────────────────────────
 exports.getWarehouseStats = async (req, res, next) => {
