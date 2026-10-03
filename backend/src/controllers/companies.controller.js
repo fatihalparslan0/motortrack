@@ -67,6 +67,10 @@ exports.inviteUser = async (req, res, next) => {
   try {
     const { email, fullName, role, password } = req.body;
 
+    if (!req.company || !req.company.id) {
+      return error(res, 'Yetkilendirme hatası: Şirket bilgisi bulunamadı.', 401);
+    }
+
     if (!email || !fullName) {
       return error(res, 'E-posta ve ad soyad alanları zorunludur.', 400);
     }

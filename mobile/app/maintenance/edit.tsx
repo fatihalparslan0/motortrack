@@ -256,7 +256,7 @@ export default function EditMaintenanceScreen() {
             <InputField 
               label="Ad Soyad *" 
               value={form.customerName} 
-              onChangeText={v => update('customerName', v)} 
+              onChangeText={(v: string) => update('customerName', v)} 
               placeholder="Örn: Ahmet Yılmaz" 
               theme={theme} 
               dynamicStyles={dynamicStyles} 
@@ -264,7 +264,7 @@ export default function EditMaintenanceScreen() {
             <InputField 
               label="Telefon Numarası" 
               value={form.customerPhone} 
-              onChangeText={v => update('customerPhone', formatPhone(v))} 
+              onChangeText={(v: string) => update('customerPhone', formatPhone(v))} 
               placeholder="0 (5XX) XXX XX XX" 
               keyboardType="phone-pad"
               theme={theme} 
@@ -335,8 +335,8 @@ export default function EditMaintenanceScreen() {
           {/* Bakım Detayları */}
           <Text style={dynamicStyles.sectionLabel}>Tamir Detayları</Text>
           <View style={dynamicStyles.card}>
-            <InputField label="Başlık *" value={form.title} onChangeText={v => update('title', v)} placeholder="Örn: Balata değişimi..." theme={theme} dynamicStyles={dynamicStyles} />
-            <InputField label="Açıklama" value={form.description} onChangeText={v => update('description', v)} placeholder="Yapılan işlemler..." multiline theme={theme} dynamicStyles={dynamicStyles} />
+            <InputField label="Başlık *" value={form.title} onChangeText={(v: string) => update('title', v)} placeholder="Örn: Balata değişimi..." theme={theme} dynamicStyles={dynamicStyles} />
+            <InputField label="Açıklama" value={form.description} onChangeText={(v: string) => update('description', v)} placeholder="Yapılan işlemler..." multiline theme={theme} dynamicStyles={dynamicStyles} />
             
             <View style={dynamicStyles.row}>
               <View style={dynamicStyles.halfField}>

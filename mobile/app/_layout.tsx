@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -22,11 +22,22 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   const restoreSession = useAuthStore((s) => s.restoreSession);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const segments = useSegments();
+  const router = useRouter();
   const { colors, isDark } = useAppTheme();
 
   useEffect(() => {
     restoreSession().finally(() => SplashScreen.hideAsync());
   }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+    const inAuthGroup = segments[0] === '(auth)';
+    if (!isAuthenticated && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    }
+  }, [isAuthenticated, isLoading, segments]);
 
   if (isLoading) return null;
 

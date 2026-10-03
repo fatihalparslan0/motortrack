@@ -37,6 +37,7 @@ import {
   Check,
 } from 'lucide-react-native';
 import { openWhatsApp, generateDebtReminderMessage } from '../../src/utils/whatsapp';
+import { CannedNotesPicker } from '../../src/components/CannedNotesPicker';
 
 export default function ReceivablesScreen() {
   const queryClient = useQueryClient();
@@ -121,8 +122,9 @@ export default function ReceivablesScreen() {
   });
 
   const handleAmountChange = (text: string) => {
-    setPayAmount(text);
-    const amount = parseFloat(text);
+    const filtered = text.replace(/[^0-9.,]/g, '');
+    setPayAmount(filtered);
+    const amount = parseFloat(filtered.replace(',', '.'));
     const remaining = selectedOrder?.remainingAmount || ((selectedOrder?.totalAmount || 0) - (selectedOrder?.paidAmount || 0));
     if (!isNaN(amount)) {
       if (amount >= remaining - 0.01 && remaining > 0) {
@@ -147,7 +149,7 @@ export default function ReceivablesScreen() {
 
   const handleSavePayment = () => {
     if (!selectedOrder) return;
-    const amount = parseFloat(payAmount);
+    const amount = parseFloat(payAmount.replace(',', '.'));
     if (isNaN(amount) || amount <= 0) {
       Alert.alert('Hata', 'Lütfen geçerli bir tahsilat tutarı girin.');
       return;
@@ -447,19 +449,36 @@ export default function ReceivablesScreen() {
             </View>
 
             <ScrollView contentContainerStyle={{ padding: Spacing.lg }}>
-              {/* Debt comparison banner */}
-              <View style={dynamicStyles.modalBalanceBanner}>
-                <View>
-                  <Text style={dynamicStyles.modalBalanceLabel}>Toplam Borç</Text>
-                  <Text style={dynamicStyles.modalBalanceVal}>
-                    ₺{selectedOrder?.totalAmount?.toLocaleString('tr-TR')}
-                  </Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={dynamicStyles.modalBalanceLabel}>Mevcut Kalan</Text>
-                  <Text style={[dynamicStyles.modalBalanceVal, { color: theme.danger }]}>
-                    ₺{selectedOrder?.remainingAmount?.toLocaleString('tr-TR')}
-                  </Text>
+              {/* Debt comparison 3-metric banner */}
+              <View style={{ marginBottom: Spacing.md }}>
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: theme.textMuted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8 }}>
+                  📊 İş Emri Bakiye Detayları
+                </Text>
+
+                <View style={{ flexDirection: 'row', gap: Spacing.xs }}>
+                  <View style={{ flex: 1, backgroundColor: theme.surface, borderRadius: BorderRadius.md, padding: Spacing.sm + 2, borderWidth: 1, borderColor: theme.border, borderTopWidth: 3, borderTopColor: theme.primary }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.textMuted, textTransform: 'uppercase' }}>1. İŞ EMRİ TUTARI</Text>
+                    <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: '900', color: theme.textPrimary, marginTop: 4 }}>
+                      ₺{(selectedOrder?.totalAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                    <Text style={{ fontSize: 9, color: theme.textMuted, marginTop: 2 }}>Toplam Bedel</Text>
+                  </View>
+
+                  <View style={{ flex: 1, backgroundColor: theme.surface, borderRadius: BorderRadius.md, padding: Spacing.sm + 2, borderWidth: 1, borderColor: theme.border, borderTopWidth: 3, borderTopColor: theme.success }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.success, textTransform: 'uppercase' }}>2. ALINAN (ÖDENEN)</Text>
+                    <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: '900', color: theme.success, marginTop: 4 }}>
+                      ₺{(selectedOrder?.paidAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                    <Text style={{ fontSize: 9, color: theme.textMuted, marginTop: 2 }}>Kasaya Giren</Text>
+                  </View>
+
+                  <View style={{ flex: 1, backgroundColor: theme.surface, borderRadius: BorderRadius.md, padding: Spacing.sm + 2, borderWidth: 1, borderColor: theme.border, borderTopWidth: 3, borderTopColor: theme.danger }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.danger, textTransform: 'uppercase' }}>3. KALAN BORÇ</Text>
+                    <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: '900', color: theme.danger, marginTop: 4 }}>
+                      ₺{(selectedOrder?.remainingAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                    <Text style={{ fontSize: 9, color: theme.danger, marginTop: 2 }}>Açık Bakiye</Text>
+                  </View>
                 </View>
               </View>
 
@@ -596,6 +615,7 @@ export default function ReceivablesScreen() {
 
               {/* Notes */}
               <Text style={dynamicStyles.inputLabel}>Ödeme Notu / Vade (Opsiyonel)</Text>
+              <CannedNotesPicker currentNote={payNotes} onSelectNote={setPayNotes} theme={theme} />
               <TextInput
                 style={dynamicStyles.notesInput}
                 placeholder="Örn: 1.000 TL elden alındı, kalanı cuma günü ödenecek..."

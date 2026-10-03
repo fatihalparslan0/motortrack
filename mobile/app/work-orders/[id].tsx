@@ -37,6 +37,7 @@ import {
   AlertCircle,
   Eye,
 } from 'lucide-react-native';
+import { CannedNotesPicker } from '../../src/components/CannedNotesPicker';
 import {
   openWhatsApp,
   generateWorkOrderMessage,
@@ -1092,12 +1093,24 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
   const [collectAmount, setCollectAmount] = useState(String(remaining > 0 ? remaining : ''));
   const [collectMethod, setCollectMethod] = useState(order?.paymentMethod || 'NAKIT');
   const [collectNotes, setCollectNotes] = useState('');
+  const [postPaymentType, setPostPaymentType] = useState<'BAHSIS' | 'EK_TAHSILAT'>('BAHSIS');
 
   // Tab 2 (Kaydı Düzelt) state
   const [editPaidAmount, setEditPaidAmount] = useState(String(order?.paidAmount || 0));
   const [editStatus, setEditStatus] = useState(order?.paymentStatus || 'BEKLIYOR');
   const [editMethod, setEditMethod] = useState(order?.paymentMethod || 'NAKIT');
   const [editNotes, setEditNotes] = useState(order?.paymentNotes || '');
+
+  const existingTip = parseFloat(order?.tipAmount || 0) || (() => {
+    if (order?.paymentNotes) {
+      const match = order.paymentNotes.match(/\[₺([0-9.,]+)\s*Bahşiş\/İkramiye\]/i);
+      if (match && match[1]) {
+        const p = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
+        if (!isNaN(p)) return p;
+      }
+    }
+    return 0;
+  })();
 
   React.useEffect(() => {
     if (order) {
@@ -1108,6 +1121,7 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
       setCollectAmount(curRemaining > 0 ? String(curRemaining) : '');
       setCollectMethod(order.paymentMethod || 'NAKIT');
       setCollectNotes('');
+      setPostPaymentType('BAHSIS');
 
       setEditPaidAmount(String(curPaid));
       setEditStatus(order.paymentStatus || 'BEKLIYOR');
@@ -1134,21 +1148,25 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
 
   // Handle Tab 1: Yeni Tahsilat Al
   const handleCollect = () => {
-    const numAmount = parseFloat(collectAmount);
+    const cleanStr = collectAmount.replace(',', '.').trim();
+    const numAmount = parseFloat(cleanStr);
     if (isNaN(numAmount) || numAmount <= 0) {
       Alert.alert('Geçersiz Tutar', 'Lütfen tahsil edilecek tutarı 0\'dan büyük olarak giriniz.');
       return;
     }
+
+    const isTipMode = remaining <= 0 && total > 0 && postPaymentType === 'BAHSIS';
 
     const executeCollect = () => {
       mutation.mutate({
         amountCollected: numAmount,
         paymentMethod: collectMethod,
         paymentNotes: collectNotes.trim() || undefined,
+        isTip: isTipMode,
       });
     };
 
-    if (numAmount > remaining && remaining > 0) {
+    if (total > 0 && remaining > 0 && numAmount > remaining) {
       const tip = Math.round((numAmount - remaining) * 100) / 100;
       Alert.alert(
         'Bahşiş / İkramiye Onayı 🎁',
@@ -1172,12 +1190,13 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
 
   // Handle Tab 2: Kaydı Düzelt
   const handleEditRecord = () => {
-    const numPaid = parseFloat(editPaidAmount);
+    const cleanStr = editPaidAmount.replace(',', '.').trim();
+    const numPaid = parseFloat(cleanStr);
     if (isNaN(numPaid) || numPaid < 0) {
       Alert.alert('Geçersiz Tutar', 'Lütfen geçerli bir toplam ödeme tutarı giriniz.');
       return;
     }
-    if (numPaid > total) {
+    if (total > 0 && numPaid > total) {
       Alert.alert(
         'Tutar Aşıldı',
         `Toplam tahsilat tutarı iş emri toplam bedelini (₺${total.toLocaleString('tr-TR')}) aşamaz. Lütfen en fazla ₺${total.toLocaleString('tr-TR')} giriniz veya fazla ödeme için 'Yeni Tahsilat Al' sekmesindeki Bahşiş özelliğini kullanınız.`,
@@ -1197,14 +1216,16 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
     });
   };
 
-  const parsedCollect = parseFloat(collectAmount) || 0;
-  const woPortion = Math.min(parsedCollect, remaining);
-  const excessTip = Math.max(0, parsedCollect - remaining);
-  const projectedPaid = Math.min(total, paid + parsedCollect);
-  const projectedRemaining = Math.max(0, remaining - parsedCollect);
+  const cleanCollectStr = collectAmount.replace(',', '.').trim();
+  const parsedCollect = parseFloat(cleanCollectStr) || 0;
+  const woPortion = total > 0 ? Math.min(parsedCollect, remaining) : parsedCollect;
+  const excessTip = total > 0 && remaining > 0 ? Math.max(0, parsedCollect - remaining) : 0;
+  const projectedPaid = total > 0 ? Math.min(total, paid + parsedCollect) : (paid + parsedCollect);
+  const projectedRemaining = total > 0 ? Math.max(0, remaining - parsedCollect) : 0;
 
-  const parsedEditPaid = parseFloat(editPaidAmount) || 0;
-  const projectedEditRemaining = Math.max(0, total - parsedEditPaid);
+  const cleanEditPaidStr = editPaidAmount.replace(',', '.').trim();
+  const parsedEditPaid = parseFloat(cleanEditPaidStr) || 0;
+  const projectedEditRemaining = total > 0 ? Math.max(0, total - parsedEditPaid) : 0;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -1260,233 +1281,389 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
           </View>
 
           <ScrollView contentContainerStyle={{ padding: Spacing.lg }}>
-            {/* Top Balance Summary 3-Card Header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', backgroundColor: theme.surface, borderRadius: BorderRadius.md, padding: Spacing.md, borderWidth: 1, borderColor: theme.border, marginBottom: Spacing.md }}>
-              <View>
-                <Text style={{ fontSize: 10, color: theme.textMuted, textTransform: 'uppercase', fontWeight: '700' }}>İş Emri Tutarı</Text>
-                <Text style={{ fontSize: Typography.fontSize.base, fontWeight: '800', color: theme.textPrimary, marginTop: 2 }}>
-                  ₺{total.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                </Text>
+            {/* Top Balance Summary Section with Clear Distinct Titles */}
+            <View style={{ marginBottom: Spacing.md }}>
+              <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: theme.textMuted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, paddingHorizontal: 2 }}>
+                📊 İş Emri Bakiye & Hesap Detayları
+              </Text>
+
+              <View style={{ flexDirection: 'row', gap: Spacing.xs }}>
+                {/* 1. İş Emri Tutarı (Toplam Bedel) */}
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: theme.surface,
+                    borderRadius: BorderRadius.md,
+                    padding: Spacing.sm + 2,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                    borderTopWidth: 3,
+                    borderTopColor: theme.primary,
+                  }}
+                >
+                  <Text style={{ fontSize: 9, fontWeight: '800', color: theme.textMuted, textTransform: 'uppercase' }}>
+                    1. İŞ EMRİ TUTARI
+                  </Text>
+                  <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: '900', color: theme.textPrimary, marginTop: 4 }}>
+                    ₺{total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Text>
+                  <Text style={{ fontSize: 9, color: theme.textMuted, marginTop: 2 }}>
+                    Parça + İşçilik
+                  </Text>
+                </View>
+
+                {/* 2. Şu Ana Kadar Alınan (Ödenen) */}
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: theme.surface,
+                    borderRadius: BorderRadius.md,
+                    padding: Spacing.sm + 2,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                    borderTopWidth: 3,
+                    borderTopColor: theme.success,
+                  }}
+                >
+                  <Text style={{ fontSize: 9, fontWeight: '800', color: theme.success, textTransform: 'uppercase' }}>
+                    2. ALINAN (ÖDENEN)
+                  </Text>
+                  <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: '900', color: theme.success, marginTop: 4 }}>
+                    ₺{paid.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Text>
+                  <Text style={{ fontSize: 9, color: theme.textMuted, marginTop: 2 }}>
+                    Kasaya Giren
+                  </Text>
+                </View>
+
+                {/* 3. Kalan Müşteri Borcu (Açık Hesap) */}
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: theme.surface,
+                    borderRadius: BorderRadius.md,
+                    padding: Spacing.sm + 2,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                    borderTopWidth: 3,
+                    borderTopColor: remaining > 0 ? theme.danger : theme.success,
+                  }}
+                >
+                  <Text style={{ fontSize: 9, fontWeight: '800', color: remaining > 0 ? theme.danger : theme.success, textTransform: 'uppercase' }}>
+                    3. KALAN BORÇ
+                  </Text>
+                  <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: '900', color: remaining > 0 ? theme.danger : theme.success, marginTop: 4 }}>
+                    ₺{remaining.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Text>
+                  <Text style={{ fontSize: 9, color: remaining > 0 ? theme.danger : theme.success, marginTop: 2 }}>
+                    {remaining > 0 ? 'Açık Bakiye' : 'Borç Yok ✅'}
+                  </Text>
+                </View>
               </View>
-              <View>
-                <Text style={{ fontSize: 10, color: theme.textMuted, textTransform: 'uppercase', fontWeight: '700' }}>Şu Ana Kadar Alınan</Text>
-                <Text style={{ fontSize: Typography.fontSize.base, fontWeight: '800', color: theme.success, marginTop: 2 }}>
-                  ₺{paid.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                </Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 10, color: theme.textMuted, textTransform: 'uppercase', fontWeight: '700' }}>Kalan Müşteri Borcu</Text>
-                <Text style={{ fontSize: Typography.fontSize.base, fontWeight: '800', color: remaining > 0 ? theme.danger : theme.success, marginTop: 2 }}>
-                  ₺{remaining.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                </Text>
-              </View>
+
+              {/* Kayıtlı Bahşiş Vurgulama Rozeti */}
+              {existingTip > 0 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B98115', borderWidth: 1, borderColor: '#10B981', borderRadius: BorderRadius.md, paddingHorizontal: Spacing.sm + 2, paddingVertical: 6, marginTop: 8, gap: 6 }}>
+                  <Text style={{ fontSize: 16 }}>🎁</Text>
+                  <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#047857' }}>
+                      Kayıtlı Bahşiş / İkramiye:
+                    </Text>
+                    <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '900', color: '#059669' }}>
+                      +₺{existingTip.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
 
             {/* TAB 1: YENİ TAHSİLAT AL */}
             {activeTab === 'collect' && (
               <View>
-                {remaining <= 0 ? (
-                  <View style={{ backgroundColor: theme.success + '15', borderWidth: 1.5, borderColor: theme.success, borderRadius: BorderRadius.lg, padding: Spacing.lg, alignItems: 'center', marginBottom: Spacing.md }}>
-                    <Text style={{ fontSize: 36, marginBottom: Spacing.xs }}>🎉</Text>
-                    <Text style={{ fontSize: Typography.fontSize.base, fontWeight: '800', color: theme.success, textAlign: 'center' }}>
-                      MÜŞTERİNİN BORCU YOKTUR
-                    </Text>
-                    <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary, textAlign: 'center', marginTop: 4, lineHeight: 18 }}>
-                      Bu iş emrinin tüm bedeli (₺{total.toLocaleString('tr-TR')}) eksiksiz tahsil edilmiştir. Açık hesap borcu bulunmamaktadır.
-                    </Text>
+                {/* Bilgilendirme Notu: Borç yokken veya tutar girilmemişken */}
+                {remaining <= 0 && (
+                  <View
+                    style={{
+                      backgroundColor: total === 0 ? theme.primary + '15' : theme.success + '15',
+                      borderWidth: 1,
+                      borderColor: total === 0 ? theme.primary : theme.success,
+                      borderRadius: BorderRadius.md,
+                      padding: Spacing.sm + 4,
+                      marginBottom: Spacing.md,
+                      gap: Spacing.xs,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                      <Text style={{ fontSize: 20 }}>{total === 0 ? '💡' : '🎉'}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: total === 0 ? theme.primary : theme.success }}>
+                          {total === 0 ? 'Ön Ödeme / Kapora Tahsilatı' : 'Müşterinin Açık Borcu Bulunmuyor'}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2, lineHeight: 15 }}>
+                          {total === 0
+                            ? 'İş emrine henüz parça/işçilik girilmediği için tahsil edilen tutar kasaya kapora olarak işlenecektir.'
+                            : 'İş emri bedeli eksiksiz tahsil edilmiştir. Müşteri personeller / ustalar için bahşiş bıraktıysa veya ilave tahsilat alındıysa aşağıdan türünü seçebilirsiniz.'}
+                        </Text>
+                      </View>
+                    </View>
 
-                    <View style={{ height: 1, backgroundColor: theme.border, width: '100%', marginVertical: Spacing.md }} />
+                    {total > 0 && (
+                      <View style={{ flexDirection: 'row', gap: Spacing.xs, marginTop: 4 }}>
+                        <TouchableOpacity
+                          style={{
+                            flex: 1,
+                            backgroundColor: postPaymentType === 'BAHSIS' ? '#059669' : theme.surface,
+                            borderRadius: BorderRadius.md,
+                            paddingVertical: 7,
+                            alignItems: 'center',
+                            borderWidth: 1.5,
+                            borderColor: postPaymentType === 'BAHSIS' ? '#059669' : theme.border,
+                          }}
+                          onPress={() => setPostPaymentType('BAHSIS')}
+                        >
+                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: postPaymentType === 'BAHSIS' ? '#fff' : theme.textPrimary }}>
+                            🎁 Usta Bahşişi Al
+                          </Text>
+                        </TouchableOpacity>
 
-                    <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, textAlign: 'center', marginBottom: Spacing.sm }}>
-                      Geçmişte yanlış tutar girdiyseniz veya borcu sıfırlamak istiyorsanız:
-                    </Text>
+                        <TouchableOpacity
+                          style={{
+                            flex: 1,
+                            backgroundColor: postPaymentType === 'EK_TAHSILAT' ? theme.primary : theme.surface,
+                            borderRadius: BorderRadius.md,
+                            paddingVertical: 7,
+                            alignItems: 'center',
+                            borderWidth: 1.5,
+                            borderColor: postPaymentType === 'EK_TAHSILAT' ? theme.primary : theme.border,
+                          }}
+                          onPress={() => setPostPaymentType('EK_TAHSILAT')}
+                        >
+                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: postPaymentType === 'EK_TAHSILAT' ? '#fff' : theme.textPrimary }}>
+                            💰 İlave Tahsilat Al
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                )}
 
+                {/* Tahsilat Input */}
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>
+                  {total === 0 || remaining <= 0
+                    ? (postPaymentType === 'BAHSIS' && total > 0 ? 'Alınacak Usta Bahşişi Tutarı (₺) *' : 'Alınacak Tahsilat / Kapora Tutarı (₺) *')
+                    : 'Şimdi Alınan Tahsilat Tutarı (₺) *'}
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderRadius: BorderRadius.md,
+                    borderWidth: 2,
+                    borderColor: theme.success,
+                    padding: Spacing.md,
+                    fontSize: Typography.fontSize.xl,
+                    fontWeight: '800',
+                    color: theme.textPrimary,
+                    textAlign: 'center',
+                  }}
+                  keyboardType="decimal-pad"
+                  value={collectAmount}
+                  onChangeText={(val) => {
+                    const filtered = val.replace(/[^0-9.,]/g, '');
+                    setCollectAmount(filtered);
+                  }}
+                  placeholder="0.00"
+                  placeholderTextColor={theme.textMuted}
+                />
+
+                {/* Quick shortcuts */}
+                {remaining > 0 ? (
+                  <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: 6, marginBottom: Spacing.md }}>
                     <TouchableOpacity
-                      style={{ backgroundColor: '#F59E0B20', borderWidth: 1, borderColor: '#F59E0B', borderRadius: BorderRadius.md, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}
-                      onPress={() => setActiveTab('edit')}
+                      style={{ flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.sm, paddingVertical: 8, alignItems: 'center' }}
+                      onPress={() => setCollectAmount(String(remaining))}
                     >
-                      <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: '#D97706' }}>
-                        ✏️ Ödeme Kaydını Düzelt Sekmesine Geç
+                      <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.success }}>
+                        Borcun Tamamı (₺{remaining.toLocaleString('tr-TR')})
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{ flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.sm, paddingVertical: 8, alignItems: 'center' }}
+                      onPress={() => setCollectAmount(String(Math.round(remaining / 2)))}
+                    >
+                      <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.primary }}>
+                        Yarısı (₺{Math.round(remaining / 2).toLocaleString('tr-TR')})
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.sm, paddingVertical: 8, paddingHorizontal: 12, alignItems: 'center' }}
+                      onPress={() => setCollectAmount('')}
+                    >
+                      <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '600', color: theme.textMuted }}>
+                        Temizle
                       </Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <>
-                    {/* Tahsilat Input */}
-                    <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>
-                      Şimdi Alınan Tahsilat Tutarı (₺) *
-                    </Text>
-                    <TextInput
-                      style={{
-                        backgroundColor: theme.surface,
-                        borderRadius: BorderRadius.md,
-                        borderWidth: 2,
-                        borderColor: theme.success,
-                        padding: Spacing.md,
-                        fontSize: Typography.fontSize.xl,
-                        fontWeight: '800',
-                        color: theme.textPrimary,
-                        textAlign: 'center',
-                      }}
-                      keyboardType="decimal-pad"
-                      value={collectAmount}
-                      onChangeText={setCollectAmount}
-                      placeholder="0"
-                      placeholderTextColor={theme.textMuted}
-                    />
-
-                    {/* Quick shortcuts */}
-                    <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: 6, marginBottom: Spacing.md }}>
+                  <View style={{ flexDirection: 'row', gap: Spacing.xs, marginTop: 6, marginBottom: Spacing.md }}>
+                    {[500, 1000, 2000, 5000].map((amt) => (
                       <TouchableOpacity
+                        key={amt}
                         style={{ flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.sm, paddingVertical: 8, alignItems: 'center' }}
-                        onPress={() => setCollectAmount(String(remaining))}
-                      >
-                        <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.success }}>
-                          Borcun Tamamı (₺{remaining.toLocaleString('tr-TR')})
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={{ flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.sm, paddingVertical: 8, alignItems: 'center' }}
-                        onPress={() => setCollectAmount(String(Math.round(remaining / 2)))}
+                        onPress={() => setCollectAmount(String(amt))}
                       >
                         <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.primary }}>
-                          Yarısı (₺{Math.round(remaining / 2).toLocaleString('tr-TR')})
+                          +₺{amt.toLocaleString('tr-TR')}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.sm, paddingVertical: 8, paddingHorizontal: 10, alignItems: 'center' }}
+                      onPress={() => setCollectAmount('')}
+                    >
+                      <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '600', color: theme.textMuted }}>
+                        ✕
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Smart Tip Notice if parsedCollect > remaining */}
+                {excessTip > 0 && remaining > 0 && (
+                  <View
+                    style={{
+                      backgroundColor: '#10B98115',
+                      borderWidth: 1,
+                      borderColor: '#10B981',
+                      borderRadius: BorderRadius.md,
+                      padding: Spacing.sm + 2,
+                      marginBottom: Spacing.md,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: '#059669' }}>
+                        🎁 Fazla Tutar: +₺{excessTip.toLocaleString('tr-TR')} (Bahşiş)
+                      </Text>
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: theme.surface,
+                          borderWidth: 1,
+                          borderColor: '#059669',
+                          borderRadius: BorderRadius.sm,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                        }}
+                        onPress={() => setCollectAmount(String(remaining))}
+                      >
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: '#059669' }}>
+                          Kalan Tutara Eşitle (₺{remaining.toLocaleString('tr-TR')})
                         </Text>
                       </TouchableOpacity>
                     </View>
-
-                    {/* Smart Tip Notice if parsedCollect > remaining */}
-                    {excessTip > 0 && remaining > 0 && (
-                      <View
-                        style={{
-                          backgroundColor: '#10B98115',
-                          borderWidth: 1,
-                          borderColor: '#10B981',
-                          borderRadius: BorderRadius.md,
-                          padding: Spacing.sm + 2,
-                          marginBottom: Spacing.md,
-                        }}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: '#059669' }}>
-                            🎁 Fazla Tutar: +₺{excessTip.toLocaleString('tr-TR')} (Bahşiş)
-                          </Text>
-                          <TouchableOpacity
-                            style={{
-                              backgroundColor: theme.surface,
-                              borderWidth: 1,
-                              borderColor: '#059669',
-                              borderRadius: BorderRadius.sm,
-                              paddingHorizontal: 8,
-                              paddingVertical: 4,
-                            }}
-                            onPress={() => setCollectAmount(String(remaining))}
-                          >
-                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#059669' }}>
-                              Kalan Tutara Eşitle (₺{remaining.toLocaleString('tr-TR')})
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                        <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 4 }}>
-                          Kalan ₺{remaining.toLocaleString('tr-TR')} borç kapatılacak, fazla girilen ₺{excessTip.toLocaleString('tr-TR')} tutar kasaya Bahşiş / Usta İkramiyesi olarak kaydedilecektir.
-                        </Text>
-                      </View>
-                    )}
-
-                    {/* Projected calculation preview box */}
-                    {parsedCollect > 0 && (
-                      <View style={{ backgroundColor: theme.primary + '10', borderWidth: 1, borderColor: theme.primary + '30', borderRadius: BorderRadius.md, padding: Spacing.sm + 2, marginBottom: Spacing.md }}>
-                        <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.primary, marginBottom: 4 }}>
-                          ⚡ İşlem Sonrası Durum Özeti:
-                        </Text>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
-                          <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary }}>Kasaya Girecek:</Text>
-                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.success }}>+₺{parsedCollect.toLocaleString('tr-TR')}</Text>
-                        </View>
-                        {excessTip > 0 && (
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
-                            <Text style={{ fontSize: Typography.fontSize.xs, color: '#059669', fontWeight: '600' }}>├─ Usta Bahşişi / İkramiye:</Text>
-                            <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: '#059669' }}>+₺{excessTip.toLocaleString('tr-TR')}</Text>
-                          </View>
-                        )}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
-                          <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary }}>{excessTip > 0 ? '└─ İş Emri Tahsilatı:' : 'Yeni Toplam Tahsilat:'}</Text>
-                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary }}>₺{projectedPaid.toLocaleString('tr-TR')}</Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
-                          <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary }}>Kalan Son Borç:</Text>
-                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: projectedRemaining === 0 ? theme.success : theme.danger }}>
-                            ₺{projectedRemaining.toLocaleString('tr-TR')} {projectedRemaining === 0 ? '(Borç Kapanıyor ✅)' : '(Kısmi Bakiye 🟡)'}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-
-                    {/* Payment Method */}
-                    <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Ödeme Şekli</Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginBottom: Spacing.md }}>
-                      {[
-                        { id: 'NAKIT', label: '💵 Nakit' },
-                        { id: 'KREDI_KARTI', label: '💳 Kredi Kartı' },
-                        { id: 'HAVALE', label: '🏦 Havale/EFT' },
-                      ].map((m) => (
-                        <TouchableOpacity
-                          key={m.id}
-                          style={{
-                            flex: 1,
-                            backgroundColor: collectMethod === m.id ? theme.primary + '15' : theme.surface,
-                            borderWidth: 1,
-                            borderColor: collectMethod === m.id ? theme.primary : theme.border,
-                            borderRadius: BorderRadius.md,
-                            paddingVertical: Spacing.sm,
-                            alignItems: 'center',
-                          }}
-                          onPress={() => setCollectMethod(m.id)}
-                        >
-                          <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: collectMethod === m.id ? '800' : '600', color: collectMethod === m.id ? theme.primary : theme.textSecondary }}>
-                            {m.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-
-                    {/* Payment Notes */}
-                    <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Tahsilat Notu</Text>
-                    <TextInput
-                      style={{ backgroundColor: theme.surface, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: theme.border, padding: Spacing.md, color: theme.textPrimary, fontSize: Typography.fontSize.sm, minHeight: 50, textAlignVertical: 'top', marginBottom: Spacing.lg }}
-                      placeholder="Örn: Elden teslim alındı..."
-                      placeholderTextColor={theme.textMuted}
-                      value={collectNotes}
-                      onChangeText={setCollectNotes}
-                    />
-
-                    {/* Collect Button */}
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: theme.success,
-                        borderRadius: BorderRadius.md,
-                        paddingVertical: Spacing.md,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: Spacing.xs,
-                        ...Shadows.sm,
-                        opacity: mutation.isPending || parsedCollect <= 0 ? 0.6 : 1,
-                      }}
-                      onPress={handleCollect}
-                      disabled={mutation.isPending || parsedCollect <= 0}
-                    >
-                      {mutation.isPending ? <ActivityIndicator color="#fff" /> : (
-                        <>
-                          <Check size={18} color="#fff" />
-                          <Text style={{ color: '#fff', fontSize: Typography.fontSize.base, fontWeight: '800' }}>
-                            {parsedCollect > 0 ? `₺${parsedCollect.toLocaleString('tr-TR')} Tahsil Et ve Kasaya Kaydet` : 'Tahsilat Tutarı Giriniz'}
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  </>
+                    <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 4 }}>
+                      Kalan ₺{remaining.toLocaleString('tr-TR')} borç kapatılacak, fazla girilen ₺{excessTip.toLocaleString('tr-TR')} tutar kasaya Bahşiş / Usta İkramiyesi olarak kaydedilecektir.
+                    </Text>
+                  </View>
                 )}
+
+                {/* Projected calculation preview box */}
+                {parsedCollect > 0 && (
+                  <View style={{ backgroundColor: theme.primary + '10', borderWidth: 1, borderColor: theme.primary + '30', borderRadius: BorderRadius.md, padding: Spacing.sm + 2, marginBottom: Spacing.md }}>
+                    <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.primary, marginBottom: 4 }}>
+                      ⚡ İşlem Sonrası Durum Özeti:
+                    </Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+                      <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary }}>Kasaya Girecek:</Text>
+                      <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.success }}>+₺{parsedCollect.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                    </View>
+                    {excessTip > 0 && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+                        <Text style={{ fontSize: Typography.fontSize.xs, color: '#059669', fontWeight: '600' }}>├─ Usta Bahşişi / İkramiye:</Text>
+                        <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: '#059669' }}>+₺{excessTip.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                      </View>
+                    )}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+                      <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary }}>{excessTip > 0 ? '└─ İş Emri Tahsilatı:' : (total === 0 ? 'Toplam Ön Ödeme / Kapora:' : 'Yeni Toplam Tahsilat:')}</Text>
+                      <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary }}>₺{projectedPaid.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                    </View>
+                    {total > 0 && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+                        <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary }}>Kalan Son Borç:</Text>
+                        <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: projectedRemaining === 0 ? theme.success : theme.danger }}>
+                          ₺{projectedRemaining.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {projectedRemaining === 0 ? '(Borç Kapanıyor ✅)' : '(Kısmi Bakiye 🟡)'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Payment Method */}
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Ödeme Şekli</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginBottom: Spacing.md }}>
+                  {[
+                    { id: 'NAKIT', label: '💵 Nakit' },
+                    { id: 'KREDI_KARTI', label: '💳 Kredi Kartı' },
+                    { id: 'HAVALE', label: '🏦 Havale/EFT' },
+                  ].map((m) => (
+                    <TouchableOpacity
+                      key={m.id}
+                      style={{
+                        flex: 1,
+                        backgroundColor: collectMethod === m.id ? theme.primary + '15' : theme.surface,
+                        borderWidth: 1,
+                        borderColor: collectMethod === m.id ? theme.primary : theme.border,
+                        borderRadius: BorderRadius.md,
+                        paddingVertical: Spacing.sm,
+                        alignItems: 'center',
+                      }}
+                      onPress={() => setCollectMethod(m.id)}
+                    >
+                      <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: collectMethod === m.id ? '800' : '600', color: collectMethod === m.id ? theme.primary : theme.textSecondary }}>
+                        {m.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Payment Notes */}
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Tahsilat Notu</Text>
+                <CannedNotesPicker currentNote={collectNotes} onSelectNote={setCollectNotes} theme={theme} />
+                <TextInput
+                  style={{ backgroundColor: theme.surface, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: theme.border, padding: Spacing.md, color: theme.textPrimary, fontSize: Typography.fontSize.sm, minHeight: 50, textAlignVertical: 'top', marginBottom: Spacing.lg }}
+                  placeholder="Örn: Elden teslim alındı..."
+                  placeholderTextColor={theme.textMuted}
+                  value={collectNotes}
+                  onChangeText={setCollectNotes}
+                />
+
+                {/* Collect Button */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: (remaining <= 0 && total > 0 && postPaymentType === 'BAHSIS') ? '#059669' : theme.success,
+                    borderRadius: BorderRadius.md,
+                    paddingVertical: Spacing.md,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: Spacing.xs,
+                    ...Shadows.sm,
+                    opacity: mutation.isPending || parsedCollect <= 0 ? 0.6 : 1,
+                  }}
+                  onPress={handleCollect}
+                  disabled={mutation.isPending || parsedCollect <= 0}
+                >
+                  {mutation.isPending ? <ActivityIndicator color="#fff" /> : (
+                    <>
+                      <Check size={18} color="#fff" />
+                      <Text style={{ color: '#fff', fontSize: Typography.fontSize.base, fontWeight: '800' }}>
+                        {parsedCollect > 0
+                          ? (remaining <= 0 && total > 0 && postPaymentType === 'BAHSIS'
+                              ? `₺${parsedCollect.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bahşiş Olarak Kasaya Kaydet 🎁`
+                              : `₺${parsedCollect.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Tahsil Et ve Kasaya Kaydet ✅`)
+                          : 'Tahsilat Tutarı Giriniz'}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
             )}
 
@@ -1521,9 +1698,10 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
                   keyboardType="decimal-pad"
                   value={editPaidAmount}
                   onChangeText={(val) => {
-                    setEditPaidAmount(val);
-                    const n = parseFloat(val) || 0;
-                    if (n >= total - 0.01 && total > 0) setEditStatus('ODENDI');
+                    const filtered = val.replace(/[^0-9.,]/g, '');
+                    setEditPaidAmount(filtered);
+                    const n = parseFloat(filtered.replace(',', '.')) || 0;
+                    if (total > 0 && n >= total - 0.01) setEditStatus('ODENDI');
                     else if (n > 0) setEditStatus('KISMI');
                     else setEditStatus('VERESIYE');
                   }}
@@ -1560,7 +1738,7 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
                 <View style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.sm + 2, marginBottom: Spacing.md, flexDirection: 'row', justifyContent: 'space-between' }}>
                   <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted }}>Kayıt Sonrası Kalan Borç:</Text>
                   <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: projectedEditRemaining > 0 ? theme.danger : theme.success }}>
-                    ₺{projectedEditRemaining.toLocaleString('tr-TR')}
+                    ₺{projectedEditRemaining.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </Text>
                 </View>
 
@@ -1625,6 +1803,7 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
 
                 {/* Payment Notes */}
                 <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textPrimary, marginBottom: 6 }}>Düzeltme / Açıklama Notu</Text>
+                <CannedNotesPicker currentNote={editNotes} onSelectNote={setEditNotes} theme={theme} />
                 <TextInput
                   style={{ backgroundColor: theme.surface, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: theme.border, padding: Spacing.md, color: theme.textPrimary, fontSize: Typography.fontSize.sm, minHeight: 60, textAlignVertical: 'top', marginBottom: Spacing.lg }}
                   placeholder="Düzeltme sebebi veya not..."
@@ -2022,6 +2201,17 @@ export default function WorkOrderDetailScreen() {
   const paid = parseFloat(order.paidAmount || 0);
   const remaining = Math.max(0, total - paid);
 
+  let orderTip = typeof order.tipAmount === 'number' ? order.tipAmount : 0;
+  if (!orderTip && order.paymentNotes) {
+    const tipMatches = [...order.paymentNotes.matchAll(/\[₺([\d.,]+)\s*Bahşiş/gi)];
+    if (tipMatches.length > 0) {
+      orderTip = tipMatches.reduce((acc: number, m: any) => {
+        const val = parseFloat(m[1].replace(',', '.'));
+        return acc + (isNaN(val) ? 0 : val);
+      }, 0);
+    }
+  }
+
   const paymentStatusMap = {
     ODENDI: { label: '✅ ÖDENDİ', color: theme.success, bg: theme.success + '20' },
     KISMI: { label: `🟡 KISMİ (Kalan: ₺${remaining.toLocaleString('tr-TR')})`, color: '#F59E0B', bg: '#F59E0B20' },
@@ -2127,6 +2317,7 @@ export default function WorkOrderDetailScreen() {
               ] : []),
               { label: 'İşçilik', value: order.laborCost, color: theme.primary },
               { label: 'TOPLAM', value: order.totalAmount, color: theme.accent, bold: true },
+              ...(orderTip > 0 ? [{ label: '🎁 Usta Bahşişi / İkramiye', value: orderTip, color: '#059669', bold: true }] : []),
             ].filter((i) => i.value > 0).map((item, i) => (
               <View key={i} style={[dynamicStyles.costRow, i > 0 && { borderTopWidth: 1, borderTopColor: theme.border }]}>
                 <Text style={[dynamicStyles.costLabel, item.bold && { fontWeight: '800', color: theme.textPrimary }]}>{item.label}</Text>
@@ -2172,6 +2363,49 @@ export default function WorkOrderDetailScreen() {
               </View>
             </View>
 
+            {/* Kayıtlı Bahşiş / Usta İkramiyesi Vurgu Kartı */}
+            {orderTip > 0 && (
+              <View
+                style={{
+                  marginTop: Spacing.sm,
+                  backgroundColor: '#10B98115',
+                  borderWidth: 1.5,
+                  borderColor: '#10B981',
+                  borderRadius: BorderRadius.md,
+                  padding: Spacing.sm + 2,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: Spacing.sm,
+                }}
+              >
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: BorderRadius.full,
+                    backgroundColor: '#10B98125',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>🎁</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '800', color: '#047857' }}>
+                      Usta Bahşişi / İkramiye Kayıtlı
+                    </Text>
+                    <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: '900', color: '#059669' }}>
+                      +₺{orderTip.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2 }}>
+                    İş emri tutarı haricinde personele/ustaya bırakılan ikramiye kasaya kaydedilmiştir.
+                  </Text>
+                </View>
+              </View>
+            )}
+
             {/* Notes & method */}
             {(order.paymentMethod || order.paymentNotes) && (
               <View style={{ marginTop: Spacing.xs }}>
@@ -2203,7 +2437,7 @@ export default function WorkOrderDetailScreen() {
                 >
                   <CreditCard size={14} color="#fff" />
                   <Text style={dynamicStyles.paymentActionBtnText}>
-                    {remaining > 0 ? '💰 Tahsilat Al' : '✅ Tahsilat Tamamlandı (Yönet)'}
+                    {remaining > 0 ? '💰 Tahsilat Al' : (orderTip > 0 ? '🎁 Bahşiş / Tahsilat Yönet' : '✅ Tahsilat Tamamlandı (Yönet)')}
                   </Text>
                 </TouchableOpacity>
 

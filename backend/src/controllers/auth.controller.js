@@ -186,7 +186,14 @@ exports.refreshToken = async (req, res, next) => {
       return error(res, 'Geçersiz veya süresi dolmuş refresh token.', 401);
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    } catch (jwtErr) {
+      await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
+      return error(res, 'Geçersiz veya süresi dolmuş refresh token.', 401);
+    }
+
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(
       decoded.userId, decoded.companyId, decoded.role
     );

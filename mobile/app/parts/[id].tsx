@@ -276,12 +276,14 @@ export default function PartDetailScreen() {
             <Text style={dynamicStyles.backText}>← Geri</Text>
           </TouchableOpacity>
           <View style={dynamicStyles.headerActions}>
-            <TouchableOpacity
-              style={dynamicStyles.actionBtn}
-              onPress={() => router.push(`/parts/edit?id=${id}` as any)}
-            >
-              <Text style={dynamicStyles.actionBtnText}>✏️ Düzenle</Text>
-            </TouchableOpacity>
+            {!isTechnician && (
+              <TouchableOpacity
+                style={dynamicStyles.actionBtn}
+                onPress={() => router.push(`/parts/edit?id=${id}` as any)}
+              >
+                <Text style={dynamicStyles.actionBtnText}>✏️ Düzenle</Text>
+              </TouchableOpacity>
+            )}
             {!isTechnician && (
               <TouchableOpacity style={[dynamicStyles.actionBtn, dynamicStyles.deleteBtn]} onPress={handleDelete}>
                 <Text style={[dynamicStyles.actionBtnText, { color: theme.danger }]}>🗑️</Text>
@@ -373,13 +375,15 @@ export default function PartDetailScreen() {
         <View style={dynamicStyles.section}>
           <Text style={dynamicStyles.sectionTitle}>İşlemler</Text>
           <View style={dynamicStyles.actionsGrid}>
-            {[
+            {(!isTechnician ? [
               { emoji: '➕', label: 'Stok Ekle', onPress: () => handleOpenStockModal('IN') },
               { emoji: '➖', label: 'Stok Düş', onPress: () => handleOpenStockModal('OUT') },
               { emoji: '↩️', label: 'Parçacıya İade', onPress: handleOpenReturnModal },
               { emoji: '💬', label: 'Parçacıya Sor', onPress: handleAskSupplier },
               { emoji: '🏢', label: 'Depo Sayım', onPress: handleOpenAdjustModal },
-            ].map((a) => (
+            ] : [
+              { emoji: '💬', label: 'Parçacıya WhatsApp İle Sor', onPress: handleAskSupplier },
+            ]).map((a) => (
               <TouchableOpacity key={a.label} style={dynamicStyles.actionCard} onPress={a.onPress} activeOpacity={0.8}>
                 <Text style={dynamicStyles.actionEmoji}>{a.emoji}</Text>
                 <Text style={dynamicStyles.actionLabel}>{a.label}</Text>

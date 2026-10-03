@@ -103,14 +103,16 @@ export default function PartsScreen() {
           <Text style={dynamicStyles.title}>Parça Envanteri</Text>
           <Text style={dynamicStyles.subtitle}>{(data as any)?.pagination?.total || 0} parça</Text>
         </View>
-        <TouchableOpacity
-          style={dynamicStyles.addBtn}
-          onPress={() => router.push('/parts/create' as any)}
-        >
-          <LinearGradient colors={[theme.primary, theme.primaryDark || '#4F46E5']} style={dynamicStyles.addBtnInner}>
-            <Text style={dynamicStyles.addBtnText}>+ Ekle</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+        {!isTechnician && (
+          <TouchableOpacity
+            style={dynamicStyles.addBtn}
+            onPress={() => router.push('/parts/create' as any)}
+          >
+            <LinearGradient colors={[theme.primary, theme.primaryDark || '#4F46E5']} style={dynamicStyles.addBtnInner}>
+              <Text style={dynamicStyles.addBtnText}>+ Ekle</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Stats */}

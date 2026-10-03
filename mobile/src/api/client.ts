@@ -11,17 +11,46 @@ export const apiClient = axios.create({
   },
 });
 
+const isValidToken = (t: any): t is string =>
+  typeof t === 'string' &&
+  t.trim().length > 10 &&
+  t !== 'undefined' &&
+  t !== 'null' &&
+  t.split('.').length === 3;
+
+const setAuthHeader = (headers: any, token: string) => {
+  if (headers && typeof headers.set === 'function') {
+    headers.set('Authorization', `Bearer ${token}`);
+  } else if (headers) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+};
+
 // Request interceptor — token ekle
 apiClient.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (isValidToken(token)) {
+      setAuthHeader(config.headers, token);
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
+
+let onUnauthorizedListener: (() => void) | null = null;
+
+export const setOnUnauthorizedListener = (listener: () => void) => {
+  onUnauthorizedListener = listener;
+};
+
+const notifyUnauthorized = () => {
+  if (onUnauthorizedListener) {
+    try {
+      onUnauthorizedListener();
+    } catch {}
+  }
+};
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -45,18 +74,22 @@ apiClient.interceptors.response.use(
   (response) => response.data,
   async (error) => {
     const originalRequest = error.config;
+    const isAuthEndpoint =
+      originalRequest?.url?.includes('/auth/login') ||
+      originalRequest?.url?.includes('/auth/refresh') ||
+      originalRequest?.url?.includes('/auth/register');
 
-    // Only attempt token refresh on actual 401 responses
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Only attempt token refresh on actual 401 responses for non-auth endpoints
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
+        return new Promise<string>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
+            setAuthHeader(originalRequest.headers, token);
             return apiClient(originalRequest);
           })
-          .catch((err) => Promise.reject(err));
+          .catch((err) => Promise.reject(err?.response?.data || err));
       }
 
       originalRequest._retry = true;
@@ -64,25 +97,35 @@ apiClient.interceptors.response.use(
 
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
-        if (!refreshToken) {
+        if (!isValidToken(refreshToken)) {
           processQueue(error, null);
           await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
-          return Promise.reject(error);
+          notifyUnauthorized();
+          return Promise.reject(error.response?.data || error);
         }
 
         const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
-        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
+        const resData = response.data?.data;
+        const accessToken = resData?.accessToken;
+        const newRefreshToken = resData?.refreshToken;
+
+        if (!isValidToken(accessToken)) {
+          throw new Error('Geçersiz access token');
+        }
 
         await AsyncStorage.setItem('accessToken', accessToken);
-        await AsyncStorage.setItem('refreshToken', newRefreshToken);
+        if (isValidToken(newRefreshToken)) {
+          await AsyncStorage.setItem('refreshToken', newRefreshToken);
+        }
 
         processQueue(null, accessToken);
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        setAuthHeader(originalRequest.headers, accessToken);
         return apiClient(originalRequest);
       } catch (refreshErr) {
         processQueue(refreshErr, null);
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
-        return Promise.reject(error);
+        notifyUnauthorized();
+        return Promise.reject(error.response?.data || error);
       } finally {
         isRefreshing = false;
       }

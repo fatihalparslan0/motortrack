@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { error } = require('../utils/apiResponse');
 const prisma = require('../utils/prisma');
+const logger = require('../utils/logger');
 
 /**
  * JWT doğrulama middleware
@@ -9,11 +10,22 @@ const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      logger.warn(`[Auth 401] Yetkilendirme tokenı yok veya geçersiz başlık: ${req.method} ${req.originalUrl}`);
       return error(res, 'Yetkilendirme token\'ı gerekli.', 401);
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        logger.warn(`[Auth 401] Access Token süresi dolmuş: ${req.method} ${req.originalUrl}`);
+        return error(res, 'Token süresi dolmuş.', 401);
+      }
+      logger.warn(`[Auth 401] Geçersiz token (${err.message}): ${req.method} ${req.originalUrl}`);
+      return error(res, 'Geçersiz token.', 401);
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
@@ -25,6 +37,7 @@ const authenticate = async (req, res, next) => {
     });
 
     if (!user || !user.isActive) {
+      logger.warn(`[Auth 401] Kullanıcı bulunamadı veya pasif: ${decoded.userId} on ${req.method} ${req.originalUrl}`);
       return error(res, 'Kullanıcı bulunamadı veya hesap devre dışı.', 401);
     }
 
@@ -32,10 +45,8 @@ const authenticate = async (req, res, next) => {
     req.company = user.company;
     next();
   } catch (err) {
-    if (err.name === 'TokenExpiredError') {
-      return error(res, 'Token süresi dolmuş.', 401);
-    }
-    return error(res, 'Geçersiz token.', 401);
+    logger.error(`[Auth Error] ${err.message}`);
+    next(err);
   }
 };
 

@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  RefreshControl, Alert,
+  RefreshControl, Alert, Modal, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,7 +16,8 @@ import { useTabStore } from '../../store/tab.store';
 import { 
   Settings, CheckCircle, ClipboardList, Package, Bell, 
   PlusCircle, Warehouse, ScanLine, Moon, Sun, Palette,
-  DollarSign, ChevronRight, Search, Users, ShieldCheck, LogOut
+  DollarSign, ChevronRight, Search, Users, ShieldCheck, LogOut,
+  MoreVertical, X
 } from 'lucide-react-native';
 
 function StatCard({ Icon, label, value, color, onPress, theme }: any) {
@@ -49,6 +50,7 @@ export default function Dashboard() {
   const { colors: theme, themeMode } = useAppTheme();
   const setTheme = useThemeStore((s) => s.setTheme);
   const setActiveTab = useTabStore((s) => s.setActiveTab);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -148,9 +150,9 @@ export default function Dashboard() {
       >
         {/* Header */}
         <LinearGradient colors={gradientHeaderColors as [string, string]} style={dynamicStyles.header}>
-          <View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-              <Text style={[dynamicStyles.greeting, themeMode === 'light' && {color: '#FFF'}]}>
+          <View style={{ flex: 1, marginRight: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
+              <Text style={[dynamicStyles.greeting, themeMode === 'light' && {color: '#FFF'}]} numberOfLines={1}>
                 {greeting()}, {user?.fullName?.split(' ')[0]} 👋
               </Text>
               <View style={{
@@ -170,35 +172,28 @@ export default function Dashboard() {
                 </Text>
               </View>
             </View>
-            <Text style={[dynamicStyles.companyName, themeMode === 'light' && {color: 'rgba(255,255,255,0.8)'}]}>
+            <Text style={[dynamicStyles.companyName, themeMode === 'light' && {color: 'rgba(255,255,255,0.8)'}]} numberOfLines={1}>
               {user?.companyName}
             </Text>
           </View>
-          <View style={{flexDirection: 'row', gap: 8, alignItems: 'center'}}>
-            {isAdmin && (
-              <TouchableOpacity
-                style={dynamicStyles.iconBtn}
-                onPress={() => router.push('/users' as any)}
-                activeOpacity={0.8}
-              >
-                <Users size={19} color={themeMode === 'light' ? '#FFF' : theme.textPrimary} />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={dynamicStyles.iconBtn} onPress={toggleTheme}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <TouchableOpacity
+              style={dynamicStyles.iconBtn}
+              onPress={toggleTheme}
+              activeOpacity={0.8}
+            >
               <ThemeIcon size={19} color={themeMode === 'light' ? '#FFF' : theme.textPrimary} />
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[
                 dynamicStyles.iconBtn,
-                {
-                  backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                  borderColor: 'rgba(239, 68, 68, 0.4)',
-                },
+                isMenuOpen && { backgroundColor: theme.primary + '30', borderColor: theme.primary },
               ]}
-              onPress={handleLogout}
+              onPress={() => setIsMenuOpen(true)}
               activeOpacity={0.8}
             >
-              <LogOut size={19} color={themeMode === 'light' ? '#FFF' : '#F87171'} />
+              <MoreVertical size={20} color={themeMode === 'light' ? '#FFF' : theme.textPrimary} />
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -473,6 +468,109 @@ export default function Dashboard() {
 
         <View style={{ height: Spacing.xl }} />
       </ScrollView>
+
+      {/* Sağ Üst Açılır Menü (Modal) */}
+      <Modal
+        visible={isMenuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsMenuOpen(false)}
+      >
+        <TouchableOpacity
+          style={dynamicStyles.menuOverlay}
+          activeOpacity={1}
+          onPress={() => setIsMenuOpen(false)}
+        >
+          <View style={dynamicStyles.dropdownMenu}>
+            {/* Kullanıcı Özeti Başlığı */}
+            <View style={dynamicStyles.menuUserHeader}>
+              <View style={dynamicStyles.menuAvatar}>
+                <Text style={dynamicStyles.menuAvatarText}>
+                  {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                </Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={dynamicStyles.menuUserName} numberOfLines={1}>
+                  {user?.fullName}
+                </Text>
+                <Text style={dynamicStyles.menuUserRole}>
+                  {isTech ? '🔧 Teknisyen' : '👑 Şirket Yöneticisi'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setIsMenuOpen(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={18} color={theme.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={dynamicStyles.menuDivider} />
+
+            {/* Yetkilendirme / Kullanıcı Yönetimi (Admin ise) */}
+            {isAdmin && (
+              <TouchableOpacity
+                style={dynamicStyles.menuItem}
+                onPress={() => {
+                  setIsMenuOpen(false);
+                  router.push('/users' as any);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[dynamicStyles.menuItemIconBg, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                  <Users size={18} color="#10B981" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={dynamicStyles.menuItemTitle}>Kullanıcı & Yetki Yönetimi</Text>
+                  <Text style={dynamicStyles.menuItemSub}>Personel ekle, yetki ve şifre düzenle</Text>
+                </View>
+                <ChevronRight size={16} color={theme.textMuted} />
+              </TouchableOpacity>
+            )}
+
+            {/* Tema Değiştir */}
+            <TouchableOpacity
+              style={dynamicStyles.menuItem}
+              onPress={() => {
+                toggleTheme();
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[dynamicStyles.menuItemIconBg, { backgroundColor: theme.primary + '20' }]}>
+                <ThemeIcon size={18} color={theme.primary} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={dynamicStyles.menuItemTitle}>
+                  {themeMode === 'light' ? 'Koyu Moda Geç' : 'Açık Moda Geç'}
+                </Text>
+                <Text style={dynamicStyles.menuItemSub}>
+                  {themeMode === 'light' ? 'Karanlık temaya geçiş yap' : 'Aydınlık temaya geçiş yap'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={dynamicStyles.menuDivider} />
+
+            {/* Çıkış Yap */}
+            <TouchableOpacity
+              style={dynamicStyles.menuItem}
+              onPress={() => {
+                setIsMenuOpen(false);
+                setTimeout(handleLogout, 250);
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[dynamicStyles.menuItemIconBg, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
+                <LogOut size={18} color="#EF4444" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[dynamicStyles.menuItemTitle, { color: '#EF4444' }]}>Çıkış Yap</Text>
+                <Text style={dynamicStyles.menuItemSub}>Hesaptan güvenli oturum kapat</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -639,6 +737,83 @@ const styles = (theme: any) => StyleSheet.create({
     color: '#EF4444',
     fontSize: Typography.fontSize.sm,
     fontWeight: '700',
+  },
+
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: Platform.OS === 'ios' ? 95 : 65,
+    paddingRight: Spacing.md,
+  },
+  dropdownMenu: {
+    width: 290,
+    backgroundColor: theme.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: theme.border,
+    ...Shadows.lg,
+  },
+  menuUserHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: Spacing.sm,
+  },
+  menuAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.full,
+    backgroundColor: theme.primary + '25',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.primary + '50',
+  },
+  menuAvatarText: {
+    color: theme.primary,
+    fontWeight: '800',
+    fontSize: Typography.fontSize.sm,
+  },
+  menuUserName: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: '700',
+    color: theme.textPrimary,
+  },
+  menuUserRole: {
+    fontSize: Typography.fontSize.xs,
+    color: theme.textMuted,
+    marginTop: 1,
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: theme.border,
+    marginVertical: Spacing.xs,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: BorderRadius.md,
+  },
+  menuItemIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuItemTitle: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: '600',
+    color: theme.textPrimary,
+  },
+  menuItemSub: {
+    fontSize: 10,
+    color: theme.textMuted,
+    marginTop: 1,
   },
 });
 

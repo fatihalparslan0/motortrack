@@ -270,7 +270,25 @@ export default function UsersManagementScreen() {
       );
     },
     onError: (err: any) => {
-      Alert.alert('Hata', err?.error || err?.message || 'Kullanıcı oluşturulurken bir hata oluştu.');
+      const msg = err?.message || err?.error || 'Kullanıcı oluşturulurken bir hata oluştu.';
+      if (
+        msg.includes('token') ||
+        msg.includes('Yetkilendirme') ||
+        msg.includes('oturum') ||
+        msg.includes('yetkiniz yok')
+      ) {
+        setIsAddUserModalOpen(false);
+        Alert.alert(
+          'Yetki / Oturum Hatası',
+          `${msg}\n\nKullanıcı ekleme işlemi sadece Şirket Yöneticisi (ADMIN) hesabı ile yapılabilir. Oturumunuz sonlanmışsa lütfen tekrar giriş yapın.`,
+          [
+            { text: 'Giriş Ekranına Git', onPress: () => router.replace('/(auth)/login') },
+            { text: 'Tamam', style: 'cancel' },
+          ]
+        );
+        return;
+      }
+      Alert.alert('Hata', msg);
     },
   });
 

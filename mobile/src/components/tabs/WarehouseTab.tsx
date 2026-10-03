@@ -985,51 +985,73 @@ export default function WarehouseTab() {
           <Text style={dynamicStyles.sectionTitle}>⚡ Hızlı İşlemler</Text>
           <View style={dynamicStyles.quickActions}>
             {!isTechnician ? (
-              <TouchableOpacity
-                style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.success + '15', borderColor: theme.success + '40' }]}
-                onPress={() => setShowStockIn(true)}
-                activeOpacity={0.8}
-              >
-                <ArrowDownCircle size={28} color={theme.success} />
-                <Text style={[dynamicStyles.quickActionLabel, { color: theme.success }]}>+ STOK GİR</Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.success + '15', borderColor: theme.success + '40' }]}
+                  onPress={() => setShowStockIn(true)}
+                  activeOpacity={0.8}
+                >
+                  <ArrowDownCircle size={28} color={theme.success} />
+                  <Text style={[dynamicStyles.quickActionLabel, { color: theme.success }]}>+ STOK GİR</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.danger + '15', borderColor: theme.danger + '40' }]}
+                  onPress={() => setShowStockOut(true)}
+                  activeOpacity={0.8}
+                >
+                  <ArrowUpCircle size={28} color={theme.danger} />
+                  <Text style={[dynamicStyles.quickActionLabel, { color: theme.danger }]}>- STOK ÇIK</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[dynamicStyles.quickActionBtn, { backgroundColor: '#6366F115', borderColor: '#6366F140' }]}
+                  onPress={() => setShowTransfer(true)}
+                  activeOpacity={0.8}
+                >
+                  <ArrowLeftRight size={28} color="#6366F1" />
+                  <Text style={[dynamicStyles.quickActionLabel, { color: '#6366F1' }]}>TRANSFER</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '40' }]}
+                  onPress={() => router.push('/work-orders' as any)}
+                  activeOpacity={0.8}
+                >
+                  <Package size={28} color={theme.primary} />
+                  <Text style={[dynamicStyles.quickActionLabel, { color: theme.primary }]}>İŞ EMRİ</Text>
+                </TouchableOpacity>
+              </>
             ) : (
-              <TouchableOpacity
-                style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.accent + '15', borderColor: theme.accent + '40' }]}
-                onPress={() => router.push('/warehouse/critical' as any)}
-                activeOpacity={0.8}
-              >
-                <AlertTriangle size={28} color={theme.accent} />
-                <Text style={[dynamicStyles.quickActionLabel, { color: theme.accent }]}>KRİTİK STOK</Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.accent + '15', borderColor: theme.accent + '40' }]}
+                  onPress={() => router.push('/warehouse/critical' as any)}
+                  activeOpacity={0.8}
+                >
+                  <AlertTriangle size={28} color={theme.accent} />
+                  <Text style={[dynamicStyles.quickActionLabel, { color: theme.accent }]}>KRİTİK STOK</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.secondary + '15', borderColor: theme.secondary + '40' }]}
+                  onPress={() => router.push('/warehouse/list' as any)}
+                  activeOpacity={0.8}
+                >
+                  <Warehouse size={28} color={theme.secondary} />
+                  <Text style={[dynamicStyles.quickActionLabel, { color: theme.secondary }]}>DEPOLAR</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '40' }]}
+                  onPress={() => router.push('/work-orders' as any)}
+                  activeOpacity={0.8}
+                >
+                  <Package size={28} color={theme.primary} />
+                  <Text style={[dynamicStyles.quickActionLabel, { color: theme.primary }]}>İŞ EMİRLERİ</Text>
+                </TouchableOpacity>
+              </>
             )}
-
-            <TouchableOpacity
-              style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.danger + '15', borderColor: theme.danger + '40' }]}
-              onPress={() => setShowStockOut(true)}
-              activeOpacity={0.8}
-            >
-              <ArrowUpCircle size={28} color={theme.danger} />
-              <Text style={[dynamicStyles.quickActionLabel, { color: theme.danger }]}>- STOK ÇIK</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[dynamicStyles.quickActionBtn, { backgroundColor: '#6366F115', borderColor: '#6366F140' }]}
-              onPress={() => setShowTransfer(true)}
-              activeOpacity={0.8}
-            >
-              <ArrowLeftRight size={28} color="#6366F1" />
-              <Text style={[dynamicStyles.quickActionLabel, { color: '#6366F1' }]}>TRANSFER</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '40' }]}
-              onPress={() => router.push('/work-orders' as any)}
-              activeOpacity={0.8}
-            >
-              <Package size={28} color={theme.primary} />
-              <Text style={[dynamicStyles.quickActionLabel, { color: theme.primary }]}>İŞ EMRİ</Text>
-            </TouchableOpacity>
           </View>
         </View>
 

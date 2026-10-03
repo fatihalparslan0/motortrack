@@ -89,6 +89,31 @@ export default function CreatePartScreen() {
   const { colors: theme } = useAppTheme();
   const dynamicStyles = useMemo(() => styles(theme), [theme]);
 
+  if (isTechnician) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl }}>
+        <Text style={{ fontSize: 56, marginBottom: Spacing.md }}>🔒</Text>
+        <Text style={{ fontSize: Typography.fontSize.xl, fontWeight: '800', color: theme.textPrimary, marginBottom: Spacing.xs, textAlign: 'center' }}>
+          Yetkisiz Erişim
+        </Text>
+        <Text style={{ color: theme.textSecondary, textAlign: 'center', marginBottom: Spacing.xl, fontSize: Typography.fontSize.sm, lineHeight: 20 }}>
+          Yeni parça ve stok kartı ekleme işlemi sadece Atölye Yöneticisi ve Admin yetkisine açıktır.
+        </Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: theme.primary,
+            paddingHorizontal: Spacing.xl,
+            paddingVertical: Spacing.md,
+            borderRadius: BorderRadius.md,
+          }}
+          onPress={() => router.back()}
+        >
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.sm }}>Geri Dön</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   const [form, setForm] = useState({
     name: '', brand: '', partNumber: '', sku: '', barcode: '', oemCode: '',
     category: '',

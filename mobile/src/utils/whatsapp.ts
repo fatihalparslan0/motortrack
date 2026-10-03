@@ -100,7 +100,7 @@ ${itemsText}
 🔧 *İşçilik Ücreti:* ₺${labor}
 💰 *TOPLAM TUTAR:* ₺${total}
 💳 *Ödeme Durumu:* ${payStatusText}
-${parseFloat(order.paidAmount || 0) > 0 ? `💵 *Tahsil Edilen:* ₺${paid}\n` : ''}${order.paymentNotes ? `📝 *Ödeme Notu:* ${order.paymentNotes}\n` : ''}${photoNote}
+${parseFloat(order.paidAmount || 0) > 0 ? `💵 *Tahsil Edilen:* ₺${paid}\n` : ''}${parseFloat(order.tipAmount || 0) > 0 ? `🎁 *Bahşiş / İkramiye:* ₺${parseFloat(order.tipAmount).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` : ''}${order.paymentNotes ? `📝 *Ödeme Notu:* ${order.paymentNotes}\n` : ''}${photoNote}
 ${order.notes ? `\n📝 *Servis Notu:* ${order.notes}` : ''}
 ━━━━━━━━━━━━━━━━━━━━
 Bizi tercih ettiğiniz için teşekkür eder, iyi ve güvenli sürüşler dileriz! 🏍️`;

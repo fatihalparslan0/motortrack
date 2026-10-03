@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authAPI } from '../api/client';
+import { authAPI, setOnUnauthorizedListener } from '../api/client';
 
 interface User {
   id: string;
@@ -73,18 +73,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const accessToken = token[1];
       const userJson = userStr[1];
 
-      if (accessToken && userJson) {
-        set({
-          accessToken,
-          user: JSON.parse(userJson),
-          isAuthenticated: true,
-          isLoading: false,
-        });
-      } else {
-        set({ isLoading: false });
+      const isValid =
+        typeof accessToken === 'string' &&
+        accessToken.trim().length > 10 &&
+        accessToken !== 'undefined' &&
+        accessToken !== 'null' &&
+        accessToken.split('.').length === 3 &&
+        typeof userJson === 'string' &&
+        userJson !== 'undefined' &&
+        userJson !== 'null';
+
+      if (isValid) {
+        try {
+          const user = JSON.parse(userJson);
+          set({
+            accessToken,
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          return;
+        } catch {}
       }
+
+      await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
+      set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
     } catch {
-      set({ isLoading: false });
+      set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
     }
   },
 
@@ -101,4 +116,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 export const isTechnicianRole = (role?: string) => role === 'TECHNICIAN';
 export const canManageFinancesRole = (role?: string) =>
   ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(role || '');
+
+setOnUnauthorizedListener(() => {
+  useAuthStore.setState({ user: null, accessToken: null, isAuthenticated: false });
+});
 

@@ -30,3 +30,4 @@ uploads/
 # OS / Editor
 .DS_Store
 .vscode/
+.antigravity/

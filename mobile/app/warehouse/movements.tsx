@@ -10,6 +10,7 @@ import { router } from 'expo-router';
 import { stockAPI, warehouseAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { useAuthStore, isTechnicianRole } from '../../src/store/auth.store';
 import {
   ArrowLeft, Search, X, ArrowLeftRight, ArrowDownLeft,
   ArrowUpRight, RefreshCw, Filter, Warehouse, Clock, User
@@ -40,6 +41,34 @@ const MOVEMENT_CONFIG: Record<string, { label: string; color: string; sign: stri
 
 export default function StockMovementsScreen() {
   const { colors: theme } = useAppTheme();
+  const { user } = useAuthStore();
+  const isTechnician = isTechnicianRole(user?.role);
+
+  if (isTechnician) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl }}>
+        <Text style={{ fontSize: 56, marginBottom: Spacing.md }}>🔒</Text>
+        <Text style={{ fontSize: Typography.fontSize.xl, fontWeight: '800', color: theme.textPrimary, marginBottom: Spacing.xs, textAlign: 'center' }}>
+          Yetkisiz Erişim
+        </Text>
+        <Text style={{ color: theme.textSecondary, textAlign: 'center', marginBottom: Spacing.xl, fontSize: Typography.fontSize.sm, lineHeight: 20 }}>
+          Depo ve stok hareketleri denetim geçmişi sadece Atölye Yöneticisi ve Admin yetkisine açıktır.
+        </Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: theme.primary,
+            paddingHorizontal: Spacing.xl,
+            paddingVertical: Spacing.md,
+            borderRadius: BorderRadius.md,
+          }}
+          onPress={() => router.back()}
+        >
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.sm }}>Geri Dön</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');

@@ -123,6 +123,31 @@ exports.getWorkOrderById = async (req, res, next) => {
 
     const isTech = req.user.role === 'TECHNICIAN';
 
+    // Bahşiş / Usta İkramiyesi toplamını kasadan çek
+    const tipTransactions = await prisma.cashTransaction.findMany({
+      where: {
+        companyId: req.company.id,
+        category: 'BAHSIS',
+        documentNo: order.id,
+      },
+      select: {
+        id: true,
+        amount: true,
+        paymentMethod: true,
+        description: true,
+        createdAt: true,
+      },
+    });
+
+    let dbTipSum = tipTransactions.reduce((sum, tx) => sum + parseFloat(tx.amount || 0), 0);
+    if (dbTipSum === 0 && order.paymentNotes) {
+      const match = order.paymentNotes.match(/\[₺([0-9.,]+)\s*Bahşiş\/İkramiye\]/i);
+      if (match && match[1]) {
+        const parsed = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
+        if (!isNaN(parsed)) dbTipSum = parsed;
+      }
+    }
+
     // Teknisyen için maliyet ve kâr bilgilerini gizle
     const sanitizedItems = order.items.map((item) => {
       if (!isTech) return item;
@@ -144,6 +169,8 @@ exports.getWorkOrderById = async (req, res, next) => {
       totalAmount,
       paidAmount: paid,
       remainingAmount,
+      tipAmount: dbTipSum,
+      tipTransactions,
     });
   } catch (err) {
     next(err);
@@ -707,7 +734,7 @@ exports.getPlateHistory = async (req, res, next) => {
 exports.updateWorkOrderPayment = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { amountCollected, paidAmount, paymentStatus, paymentMethod, paymentNotes } = req.body;
+    const { amountCollected, paidAmount, paymentStatus, paymentMethod, paymentNotes, isTip } = req.body;
 
     const order = await prisma.workOrder.findFirst({
       where: { id, companyId: req.company.id },
@@ -730,12 +757,23 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
     let tipAmount = 0;
     let woPaymentPortion = 0;
 
+    const remainingBefore = Math.max(0, totalAmount - prevPaid);
+
     if (amountCollected !== undefined) {
       // YENİ TAHSİLAT AL MODU:
       const rawCollected = parseFloat(amountCollected || 0);
-      const remainingBefore = Math.max(0, totalAmount - prevPaid);
 
-      if (rawCollected > remainingBefore) {
+      if (isTip || (remainingBefore === 0 && totalAmount > 0)) {
+        // Ödemenin tamamı yapıldıktan sonra girilen bahşiş veya açıkça bahşiş seçilmişse:
+        tipAmount = rawCollected;
+        woPaymentPortion = 0;
+        numericPaid = prevPaid;
+      } else if (totalAmount === 0 || remainingBefore === 0) {
+        // Ön Ödeme / Kapora Modu: İş emri henüz fiyatlandırılmamış veya bakiye yokken kapora alınıyor
+        woPaymentPortion = rawCollected;
+        tipAmount = 0;
+        numericPaid = prevPaid + rawCollected;
+      } else if (rawCollected > remainingBefore) {
         // Kalan tutardan fazla girildi: Akıllı Bahşiş Modu
         woPaymentPortion = remainingBefore;
         tipAmount = Math.round((rawCollected - remainingBefore) * 100) / 100;
@@ -748,7 +786,7 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
     } else if (paidAmount !== undefined) {
       // TOPLAMI DÜZELT MODU:
       const requestedPaid = parseFloat(paidAmount || 0);
-      if (requestedPaid > totalAmount) {
+      if (totalAmount > 0 && requestedPaid > totalAmount) {
         // En fazla totalAmount kadar düzeltilebilir
         numericPaid = totalAmount;
       } else {
@@ -762,17 +800,17 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
     let calculatedStatus = paymentStatus;
     if (amountCollected !== undefined) {
       // YENİ TAHSİLAT AL MODU: Tahsilat sonrasındaki toplam ödemeye göre durum kesinleştirilir
-      if (numericPaid >= totalAmount - 0.01 && totalAmount > 0) {
+      if (totalAmount > 0 && numericPaid >= totalAmount - 0.01) {
         calculatedStatus = 'ODENDI';
-      } else if (numericPaid > 0 && numericPaid < totalAmount - 0.01) {
+      } else if (numericPaid > 0) {
         calculatedStatus = 'KISMI';
       } else if (numericPaid <= 0) {
         calculatedStatus = order.paymentStatus || 'VERESIYE';
       }
     } else if (!paymentStatus) {
-      if (numericPaid >= totalAmount - 0.01 && totalAmount > 0) {
+      if (totalAmount > 0 && numericPaid >= totalAmount - 0.01) {
         calculatedStatus = 'ODENDI';
-      } else if (numericPaid > 0 && numericPaid < totalAmount - 0.01) {
+      } else if (numericPaid > 0) {
         calculatedStatus = 'KISMI';
       } else if (numericPaid === 0 && order.paymentStatus === 'VERESIYE') {
         calculatedStatus = 'VERESIYE';
@@ -813,6 +851,7 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
     // 1. İş Emri Tahsilatı (Kalan borç kadar veya tahsil edilen kadar)
     if (woPaymentPortion > 0) {
       try {
+        const isAdvance = totalAmount === 0 || prevPaid >= totalAmount;
         await prisma.cashTransaction.create({
           data: {
             companyId: req.company.id,
@@ -822,7 +861,7 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
             amount: woPaymentPortion,
             paymentMethod: paymentMethod || order.paymentMethod || 'NAKIT',
             documentNo: order.id,
-            description: `İş Emri Tahsilatı: ${order.customerName ? order.customerName + ' - ' : ''}${order.title}`,
+            description: `${isAdvance ? 'İş Emri Ön Ödeme (Kapora)' : 'İş Emri Tahsilatı'}: ${order.customerName ? order.customerName + ' - ' : ''}${order.title}`,
             date: new Date(),
           },
         });
@@ -854,8 +893,10 @@ exports.updateWorkOrderPayment = async (req, res, next) => {
 
     const remainingAmount = Math.max(0, totalAmount - numericPaid);
     const msg = tipAmount > 0
-      ? `Tahsilat kaydedildi. ₺${tipAmount.toLocaleString('tr-TR')} tutarındaki fazlalık Bahşiş/İkramiye olarak kasaya işlendi. 🎁`
-      : 'Ödeme bilgileri güncellendi.';
+      ? (remainingBefore === 0 && totalAmount > 0
+          ? `₺${tipAmount.toLocaleString('tr-TR')} tutarındaki Bahşiş/İkramiye kasaya başarıyla işlendi! 🎁`
+          : `Tahsilat kaydedildi. ₺${tipAmount.toLocaleString('tr-TR')} tutarındaki fazlalık Bahşiş/İkramiye olarak kasaya işlendi. 🎁`)
+      : (totalAmount === 0 ? 'Ön ödeme (kapora) başarıyla tahsil edildi ve kasaya işlendi! ✅' : 'Tahsilat başarıyla kaydedildi ve kasaya işlendi! ✅');
 
     return success(res, {
       ...updated,
