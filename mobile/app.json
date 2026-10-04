@@ -30,8 +30,20 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      ["expo-camera", { "cameraPermission": "Parça ve motor QR kodlarını taramak için kamera izni gereklidir." }],
-      ["expo-notifications", { "icon": "./assets/notification-icon.png", "color": "#6366F1" }]
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Parça ve motor QR kodlarını taramak için kamera izni gereklidir."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#6366F1"
+        }
+      ],
+      "expo-sharing"
     ],
     "scheme": "motortrack",
     "web": {

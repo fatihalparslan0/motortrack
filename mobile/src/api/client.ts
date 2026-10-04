@@ -314,3 +314,13 @@ export const cashAPI = {
   }) => apiClient.post('/cash/close-day', data),
   getZReports: (params?: any) => apiClient.get('/cash/reports', { params }),
 };
+
+export const analyticsAPI = {
+  getExecutiveSummary: (params?: {
+    period?: 'today' | 'week' | 'month' | 'year' | 'custom';
+    startDate?: string;
+    endDate?: string;
+    technicianId?: string;
+  }) => apiClient.get('/analytics/executive-summary', { params }),
+};
+

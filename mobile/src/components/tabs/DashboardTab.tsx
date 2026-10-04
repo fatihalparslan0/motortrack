@@ -17,7 +17,7 @@ import {
   Settings, CheckCircle, ClipboardList, Package, Bell, 
   PlusCircle, Warehouse, ScanLine, Moon, Sun, Palette,
   DollarSign, ChevronRight, Search, Users, ShieldCheck, LogOut,
-  MoreVertical, X
+  MoreVertical, X, TrendingUp
 } from 'lucide-react-native';
 
 function StatCard({ Icon, label, value, color, onPress, theme }: any) {
@@ -327,6 +327,39 @@ export default function Dashboard() {
             </TouchableOpacity>
           )}
 
+          {!isTech && (
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={() => router.push('/analytics' as any)}
+              style={[dynamicStyles.cashBanner, { marginTop: 10 }]}
+            >
+              <LinearGradient
+                colors={themeMode === 'light' ? ['#4338CA', '#312E81'] : ['#312E81', '#1E1B4B']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={dynamicStyles.cashBannerInner}
+              >
+                <View style={dynamicStyles.cashBannerLeft}>
+                  <View style={[dynamicStyles.cashIconBg, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <TrendingUp size={22} color="#A5B4FC" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={dynamicStyles.cashBannerTitle}>Ciro, Kâr & Personel Analizi</Text>
+                      <View style={[dynamicStyles.cashBadge, { backgroundColor: '#6366F1' }]}>
+                        <Text style={dynamicStyles.cashBadgeText}>YÖNETİM</Text>
+                      </View>
+                    </View>
+                    <Text style={dynamicStyles.cashBannerSubtitle}>
+                      Günlük/haftalık/aylık ciro, maliyet ve teknisyen katkısı
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={20} color="#A5B4FC" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
           {isAdmin && (
             <TouchableOpacity
               activeOpacity={0.88}
@@ -372,9 +405,9 @@ export default function Dashboard() {
               { Icon: Warehouse, label: 'Depo Durumu', path: '/warehouse/list' },
             ] : [
               { Icon: ClipboardList, label: 'Yeni İş Emri', path: '/work-orders/create' },
+              { Icon: TrendingUp, label: 'Ciro & Analiz', path: '/analytics' },
               { Icon: DollarSign, label: 'Atölye Kasası', path: '/cash' },
               { Icon: Users, label: 'Kullanıcılar', path: '/users' },
-              { Icon: Warehouse, label: 'Depo Durumu', path: '/warehouse/list' },
             ]).map((action: any) => (
               <TouchableOpacity
                 key={action.label}

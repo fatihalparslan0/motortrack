@@ -22,6 +22,7 @@ const cashRoutes = require('./routes/cash.routes');
 
 const path = require('path');
 const uploadRoutes = require('./routes/upload.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 
 const { errorHandler } = require('./middleware/error.middleware');
 const logger = require('./utils/logger');
@@ -79,6 +80,7 @@ app.use('/api/work-orders', workorderRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/cash', cashRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get(['/health', '/api/health'], (req, res) => {

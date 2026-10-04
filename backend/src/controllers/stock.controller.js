@@ -458,7 +458,17 @@ exports.findByBarcode = async (req, res, next) => {
 // ─── Stok Hareketleri Listesi ────────────────────────────────────────────────
 exports.getMovements = async (req, res, next) => {
   try {
-    const { warehouseId, partId, movementType, search, limit = 100 } = req.query;
+    const {
+      warehouseId,
+      partId,
+      movementType,
+      search,
+      startDate,
+      endDate,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      limit = 200,
+    } = req.query;
 
     const filter = {
       part: { companyId: req.company.id },
@@ -473,7 +483,7 @@ exports.getMovements = async (req, res, next) => {
       } else if (movementType === 'IN') {
         filter.movementType = { in: ['SATIN_ALMA', 'IN', 'IADE'] };
       } else if (movementType === 'OUT') {
-        filter.movementType = { in: ['IS_EMRI_KULLANIMI', 'SATIS', 'FIRE', 'OUT'] };
+        filter.movementType = { in: ['IS_EMRI_KULLANIMI', 'SATIS', 'FIRE', 'OUT', 'ATOLYE_SARFI'] };
       } else if (movementType === 'ADJUSTMENT') {
         filter.movementType = { in: ['DUZELTME', 'ADJUSTMENT'] };
       } else {
@@ -494,7 +504,18 @@ exports.getMovements = async (req, res, next) => {
       }
     }
 
-    // Parça veya notlarda arama
+    // Tarih filtreleme
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.createdAt.lte = end;
+      }
+    }
+
+    // Parça, kod, barkod, evrak veya kullanıcı arama
     if (search && search.trim()) {
       const term = search.trim();
       const searchConditions = [
@@ -502,7 +523,11 @@ exports.getMovements = async (req, res, next) => {
         { part: { brand: { contains: term, mode: 'insensitive' } } },
         { part: { sku: { contains: term, mode: 'insensitive' } } },
         { part: { partNumber: { contains: term, mode: 'insensitive' } } },
+        { part: { oemCode: { contains: term, mode: 'insensitive' } } },
+        { part: { barcode: { contains: term, mode: 'insensitive' } } },
+        { documentNo: { contains: term, mode: 'insensitive' } },
         { notes: { contains: term, mode: 'insensitive' } },
+        { user: { fullName: { contains: term, mode: 'insensitive' } } },
       ];
 
       if (filter.OR) {
@@ -516,18 +541,64 @@ exports.getMovements = async (req, res, next) => {
       }
     }
 
+    // Sıralama
+    let orderBy = { createdAt: 'desc' };
+    if (sortBy === 'quantity') {
+      orderBy = { quantity: sortOrder === 'asc' ? 'asc' : 'desc' };
+    } else if (sortBy === 'unitCost') {
+      orderBy = { unitCost: sortOrder === 'asc' ? 'asc' : 'desc' };
+    }
+
     const movements = await prisma.partMovement.findMany({
       where: filter,
-      orderBy: { createdAt: 'desc' },
-      take: parseInt(limit) || 100,
+      orderBy,
+      take: parseInt(limit) || 200,
       include: {
-        part: { select: { name: true, unit: true, sku: true, partNumber: true, brand: true } },
-        user: { select: { fullName: true } },
-        warehouse: { select: { name: true } },
+        part: {
+          select: {
+            id: true,
+            name: true,
+            unit: true,
+            sku: true,
+            partNumber: true,
+            brand: true,
+            category: true,
+            barcode: true,
+            oemCode: true,
+            purchasePrice: true,
+            sellingPrice: true,
+            quantity: true,
+          },
+        },
+        user: { select: { id: true, fullName: true, role: true } },
+        warehouse: { select: { id: true, name: true, type: true } },
+        motor: { select: { id: true, plate: true, brand: true, model: true } },
       },
     });
 
-    return success(res, movements);
+    const enrichedMovements = movements.map(m => {
+      const unitCost = m.unitCost !== null && m.unitCost !== undefined
+        ? parseFloat(m.unitCost)
+        : (m.part?.purchasePrice ? parseFloat(m.part.purchasePrice) : 0);
+      const sellingPrice = m.part?.sellingPrice ? parseFloat(m.part.sellingPrice) : 0;
+      const totalCost = unitCost * (m.quantity || 0);
+      const totalSelling = sellingPrice * (m.quantity || 0);
+      const profit = totalSelling - totalCost;
+      const profitMargin = totalSelling > 0 ? parseFloat(((profit / totalSelling) * 100).toFixed(1)) : 0;
+
+      return {
+        ...m,
+        unitCost,
+        purchasePrice: m.part?.purchasePrice ? parseFloat(m.part.purchasePrice) : null,
+        sellingPrice: m.part?.sellingPrice ? parseFloat(m.part.sellingPrice) : null,
+        totalCost,
+        totalSelling,
+        profit,
+        profitMargin,
+      };
+    });
+
+    return success(res, enrichedMovements);
   } catch (err) {
     next(err);
   }
