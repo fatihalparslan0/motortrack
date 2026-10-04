@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { workOrderAPI, partsAPI, uploadAPI, warehouseAPI } from '../../src/api/client';
+import { workOrderAPI, partsAPI, uploadAPI, warehouseAPI, companiesAPI } from '../../src/api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { useAuthStore } from '../../src/store/auth.store';
@@ -2184,7 +2184,15 @@ function PaymentUpdateModal({ visible, order, onClose, theme }: any) {
 }
 
 // ─── Fotoğraf Galerisi & Öncesi/Sonrası (Step 4) ──────────────────────────────
-function PhotoSection({ order, theme }: { order: any; theme: any }) {
+function PhotoSection({
+  order,
+  theme,
+  canEdit = true,
+}: {
+  order: any;
+  theme: any;
+  canEdit?: boolean;
+}) {
   const queryClient = useQueryClient();
   const [photoType, setPhotoType] = useState<'before' | 'after'>('before');
   const [uploading, setUploading] = useState(false);
@@ -2340,7 +2348,9 @@ function PhotoSection({ order, theme }: { order: any; theme: any }) {
               : 'Henüz Yeni Takılan Parça Fotoğrafı Yok'}
           </Text>
           <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted, textAlign: 'center', marginTop: 4, paddingHorizontal: Spacing.md }}>
-            Müşteriye parçanın gerçekten değiştiğini göstermek için fotoğraf ekleyin.
+            {canEdit
+              ? 'Müşteriye parçanın gerçekten değiştiğini göstermek için fotoğraf ekleyin.'
+              : 'Bu iş emrine henüz fotoğraf yüklenmemiş.'}
           </Text>
         </View>
       ) : (
@@ -2371,79 +2381,83 @@ function PhotoSection({ order, theme }: { order: any; theme: any }) {
                 />
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={{
-                  position: 'absolute',
-                  top: 6,
-                  right: 6,
-                  backgroundColor: 'rgba(0,0,0,0.65)',
-                  width: 26,
-                  height: 26,
-                  borderRadius: 13,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                onPress={() => handleConfirmDelete(imgUrl)}
-              >
-                <Trash2 size={13} color="#EF4444" />
-              </TouchableOpacity>
+              {canEdit && (
+                <TouchableOpacity
+                  style={{
+                    position: 'absolute',
+                    top: 6,
+                    right: 6,
+                    backgroundColor: 'rgba(0,0,0,0.65)',
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => handleConfirmDelete(imgUrl)}
+                >
+                  <Trash2 size={13} color="#EF4444" />
+                </TouchableOpacity>
+              )}
             </View>
           ))}
         </View>
       )}
 
       {/* Upload action buttons */}
-      <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm }}>
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            backgroundColor: theme.primary,
-            borderRadius: BorderRadius.md,
-            paddingVertical: 10,
-            opacity: uploading ? 0.6 : 1,
-          }}
-          onPress={() => handlePickImage(true)}
-          disabled={uploading}
-        >
-          {uploading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <>
-              <Camera size={16} color="#fff" />
-              <Text style={{ color: '#fff', fontSize: Typography.fontSize.xs, fontWeight: '700' }}>
-                Fotoğraf Çek
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
+      {canEdit && (
+        <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm }}>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              backgroundColor: theme.primary,
+              borderRadius: BorderRadius.md,
+              paddingVertical: 10,
+              opacity: uploading ? 0.6 : 1,
+            }}
+            onPress={() => handlePickImage(true)}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Camera size={16} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: Typography.fontSize.xs, fontWeight: '700' }}>
+                  Fotoğraf Çek
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            backgroundColor: theme.surface,
-            borderRadius: BorderRadius.md,
-            borderWidth: 1,
-            borderColor: theme.border,
-            paddingVertical: 10,
-            opacity: uploading ? 0.6 : 1,
-          }}
-          onPress={() => handlePickImage(false)}
-          disabled={uploading}
-        >
-          <ImageIcon size={16} color={theme.textPrimary} />
-          <Text style={{ color: theme.textPrimary, fontSize: Typography.fontSize.xs, fontWeight: '700' }}>
-            Galeriden Seç
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              backgroundColor: theme.surface,
+              borderRadius: BorderRadius.md,
+              borderWidth: 1,
+              borderColor: theme.border,
+              paddingVertical: 10,
+              opacity: uploading ? 0.6 : 1,
+            }}
+            onPress={() => handlePickImage(false)}
+            disabled={uploading}
+          >
+            <ImageIcon size={16} color={theme.textPrimary} />
+            <Text style={{ color: theme.textPrimary, fontSize: Typography.fontSize.xs, fontWeight: '700' }}>
+              Galeriden Seç
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Full Screen Image Preview Modal */}
       <Modal visible={!!previewImage} transparent animationType="fade" onRequestClose={() => setPreviewImage(null)}>
@@ -2467,6 +2481,231 @@ function PhotoSection({ order, theme }: { order: any; theme: any }) {
   );
 }
 
+// ─── Personel Atama & Değiştirme Modalı (Yönetici / Müdür) ───────────────────
+function AssignStaffModal({
+  visible,
+  order,
+  onClose,
+  theme,
+  onAssign,
+  isPending,
+}: {
+  visible: boolean;
+  order: any;
+  onClose: () => void;
+  theme: any;
+  onAssign: (userId: string) => void;
+  isPending: boolean;
+}) {
+  const { data: usersResponse, isLoading } = useQuery({
+    queryKey: ['companyUsers'],
+    queryFn: () => companiesAPI.getUsers(),
+    enabled: visible,
+  });
+
+  const staffList = useMemo(() => {
+    const list = (usersResponse as any)?.data || [];
+    return Array.isArray(list) ? list.filter((u: any) => u.isActive) : [];
+  }, [usersResponse]);
+
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(order?.userId || null);
+  const [search, setSearch] = useState('');
+
+  React.useEffect(() => {
+    if (visible && order?.userId) {
+      setSelectedUserId(order.userId);
+    }
+  }, [visible, order?.userId]);
+
+  const filteredStaff = useMemo(() => {
+    if (!search.trim()) return staffList;
+    const s = search.toLowerCase();
+    return staffList.filter((u: any) =>
+      u.fullName?.toLowerCase().includes(s) || u.role?.toLowerCase().includes(s)
+    );
+  }, [staffList, search]);
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+        <View
+          style={{
+            backgroundColor: theme.surface,
+            borderTopLeftRadius: BorderRadius.xl,
+            borderTopRightRadius: BorderRadius.xl,
+            maxHeight: '85%',
+            padding: Spacing.lg,
+          }}
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md }}>
+            <View>
+              <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: theme.textPrimary }}>
+                👤 Personel Ata / Değiştir
+              </Text>
+              <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary, marginTop: 2 }}>
+                Bu iş emrini bir personele zimmetleyip onaylayabilirsiniz.
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
+              <X size={22} color={theme.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Arama Input */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: theme.background,
+              borderRadius: BorderRadius.md,
+              borderWidth: 1,
+              borderColor: theme.border,
+              paddingHorizontal: Spacing.sm,
+              marginBottom: Spacing.md,
+            }}
+          >
+            <Search size={16} color={theme.textMuted} />
+            <TextInput
+              placeholder="Personel adı veya rol ara..."
+              placeholderTextColor={theme.textMuted}
+              value={search}
+              onChangeText={setSearch}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                paddingHorizontal: 8,
+                color: theme.textPrimary,
+                fontSize: Typography.fontSize.sm,
+              }}
+            />
+          </View>
+
+          {isLoading ? (
+            <ActivityIndicator size="large" color={theme.primary} style={{ marginVertical: 30 }} />
+          ) : (
+            <ScrollView style={{ maxHeight: 350 }} showsVerticalScrollIndicator={false}>
+              {filteredStaff.map((staff: any) => {
+                const isSelected = selectedUserId === staff.id;
+                const isCurrent = order?.userId === staff.id;
+                const roleLabel =
+                  staff.role === 'TECHNICIAN'
+                    ? 'Teknisyen'
+                    : staff.role === 'MANAGER'
+                    ? 'Müdür'
+                    : 'Yönetici';
+
+                return (
+                  <TouchableOpacity
+                    key={staff.id}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: Spacing.md,
+                      borderRadius: BorderRadius.md,
+                      borderWidth: 1.5,
+                      borderColor: isSelected ? theme.primary : theme.border,
+                      backgroundColor: isSelected ? theme.primary + '15' : theme.surfaceElevated || theme.surface,
+                      marginBottom: Spacing.xs,
+                    }}
+                    onPress={() => setSelectedUserId(staff.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                      <View
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 19,
+                          backgroundColor: isSelected ? theme.primary : theme.border,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>
+                          {staff.fullName?.slice(0, 1) || 'P'}
+                        </Text>
+                      </View>
+                      <View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ fontWeight: '700', color: theme.textPrimary, fontSize: Typography.fontSize.sm }}>
+                            {staff.fullName}
+                          </Text>
+                          {isCurrent && (
+                            <View style={{ backgroundColor: theme.primary + '20', paddingHorizontal: 6, paddingVertical: 1, borderRadius: BorderRadius.full }}>
+                              <Text style={{ fontSize: 10, fontWeight: '700', color: theme.primary }}>Mevcut Sorumlu</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted }}>
+                          {roleLabel} {staff.email ? `• ${staff.email}` : ''}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        borderWidth: 2,
+                        borderColor: isSelected ? theme.primary : theme.border,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {isSelected && (
+                        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: theme.primary }} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+
+          <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 12,
+                borderRadius: BorderRadius.md,
+                borderWidth: 1,
+                borderColor: theme.border,
+                alignItems: 'center',
+              }}
+              onPress={onClose}
+            >
+              <Text style={{ color: theme.textSecondary, fontWeight: '600' }}>İptal</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flex: 2,
+                backgroundColor: theme.primary,
+                paddingVertical: 12,
+                borderRadius: BorderRadius.md,
+                alignItems: 'center',
+                opacity: !selectedUserId || isPending ? 0.7 : 1,
+              }}
+              disabled={!selectedUserId || isPending}
+              onPress={() => {
+                if (selectedUserId) onAssign(selectedUserId);
+              }}
+            >
+              {isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={{ color: '#fff', fontWeight: '800' }}>✅ İşi Ata ve Onayla</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── İş Emri Detay Ana Ekranı ───────────────────────────────────────────────
 export default function WorkOrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -2480,6 +2719,7 @@ export default function WorkOrderDetailScreen() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showConsumablesModal, setShowConsumablesModal] = useState(false);
   const [showSalvageModal, setShowSalvageModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['work-order', id],
@@ -2488,8 +2728,72 @@ export default function WorkOrderDetailScreen() {
 
   const statusMutation = useMutation({
     mutationFn: (newStatus: string) => workOrderAPI.update(id, { status: newStatus }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['work-order', id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['workOrderStats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouseStats'] });
+      queryClient.invalidateQueries({ queryKey: ['receivables'] });
+    },
     onError: (err: any) => Alert.alert('Hata', err?.message || 'Durum güncellenemedi.'),
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: (userId: string) => workOrderAPI.assign(id, userId),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['workOrderStats'] });
+      setShowAssignModal(false);
+      Alert.alert('✅ Başarılı', res?.message || 'İş emri atandı ve onaylandı.');
+    },
+    onError: (err: any) => Alert.alert('Hata', err?.message || 'Personel atanamadı.'),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: () => workOrderAPI.approve(id),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['workOrderStats'] });
+      Alert.alert('✅ Onaylandı', res?.message || 'İş emri atölyede başlatılmaya açıldı.');
+    },
+    onError: (err: any) => Alert.alert('Hata', err?.message || 'İş emri onaylanamadı.'),
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: () => workOrderAPI.claim(id),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['workOrderStats'] });
+      Alert.alert('✅ Başarılı', res?.message || 'İş emri üzerinize alındı.');
+    },
+    onError: (err: any) => Alert.alert('Hata', err?.message || 'İş üzerinize alınamadı.'),
+  });
+
+  const requestTakeoverMutation = useMutation({
+    mutationFn: () => workOrderAPI.requestTakeover(id),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] });
+      Alert.alert('✅ Talep İletildi', res?.message || 'İşi devralma talebiniz yöneticinin onayına iletildi.');
+    },
+    onError: (err: any) => Alert.alert('Hata', err?.message || 'Talep iletilemedi.'),
+  });
+
+  const respondTakeoverMutation = useMutation({
+    mutationFn: ({ action }: { action: 'APPROVE' | 'REJECT' }) => workOrderAPI.respondTakeover(id, action),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['workOrderStats'] });
+      Alert.alert('✅ Başarılı', res?.message || 'Devralma talebi yanıtlandı.');
+    },
+    onError: (err: any) => Alert.alert('Hata', err?.message || 'Talep yanıtlanamadı.'),
   });
 
   const itemStatusMutation = useMutation({
@@ -2529,6 +2833,8 @@ export default function WorkOrderDetailScreen() {
       </View>
     );
   }
+
+  const isOwnerOrAdmin = !isTech || order?.userId === user?.id;
 
   const statusColor = STATUS_COLORS[order.status] || '#94A3B8';
 
@@ -2636,19 +2942,105 @@ export default function WorkOrderDetailScreen() {
               </Text>
               {order.customerName && <Text style={{ color: 'rgba(255,255,255,0.9)', marginTop: 4, fontWeight: '600' }}>👤 {order.customerName}</Text>}
               {order.vehicleInfo && <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: Typography.fontSize.sm }}>🚗 {order.vehicleInfo}</Text>}
-              {order.user?.fullName && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                  <Text style={{ color: '#fff', fontSize: Typography.fontSize.xs, fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: BorderRadius.sm }}>
-                    🔧 Sorumlu: {order.user.fullName} {order.userId === user?.id ? '★ (Ben)' : ''}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                <View style={{ backgroundColor: 'rgba(0,0,0,0.25)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: BorderRadius.sm }}>
+                  <Text style={{ color: '#fff', fontSize: Typography.fontSize.xs, fontWeight: '700' }}>
+                    🔧 Sorumlu: {order.user?.fullName || 'Atölye Havuzu'} {order.userId === user?.id ? '★ (Ben)' : ''}
                   </Text>
                 </View>
-              )}
+
+                {/* Onay Rozeti */}
+                <View
+                  style={{
+                    backgroundColor: order.isApproved ? 'rgba(16, 185, 129, 0.35)' : 'rgba(245, 158, 11, 0.35)',
+                    borderWidth: 1,
+                    borderColor: order.isApproved ? '#10B981' : '#F59E0B',
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: BorderRadius.sm,
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>
+                    {order.isApproved ? '✅ YÖNETİCİ ONAYLI' : '⏳ ONAY BEKLİYOR'}
+                  </Text>
+                </View>
+
+                {/* Yönetici Personel Atama Butonu */}
+                {!isTech && (
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#fff',
+                      paddingHorizontal: 8,
+                      paddingVertical: 3,
+                      borderRadius: BorderRadius.sm,
+                    }}
+                    onPress={() => setShowAssignModal(true)}
+                  >
+                    <Text style={{ color: theme.primary, fontSize: 11, fontWeight: '800' }}>
+                      👤 Personel Ata / Değiştir
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
             <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: BorderRadius.full, marginLeft: Spacing.sm }}>
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.sm }}>{STATUS_LABELS[order.status]}</Text>
             </View>
           </View>
         </LinearGradient>
+
+        {/* Yönetici için Devralma Talebi Uyarısı */}
+        {!isTech && Boolean(order.takeoverRequestedById) && (
+          <View style={{ marginHorizontal: Spacing.lg, marginTop: Spacing.md, backgroundColor: '#FEF3C7', borderWidth: 1.5, borderColor: '#F59E0B', borderRadius: BorderRadius.lg, padding: Spacing.md, ...Shadows.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Text style={{ fontSize: 18 }}>🔔</Text>
+              <Text style={{ fontWeight: '800', color: '#92400E', fontSize: Typography.fontSize.sm }}>
+                İŞİ DEVRALMA TALEBİ MEVCUT
+              </Text>
+            </View>
+            <Text style={{ color: '#78350F', fontSize: Typography.fontSize.xs, marginBottom: Spacing.md, lineHeight: 18 }}>
+              Teknisyen <Text style={{ fontWeight: '800' }}>"{order.takeoverUser?.fullName || 'Personel'}"</Text>, bu iş emrini mevcut sorumlu ({order.user?.fullName || 'Atölye'}) üzerinden kendi üzerine devralmak istiyor.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: '#10B981', paddingVertical: 10, borderRadius: BorderRadius.md, alignItems: 'center', justifyContent: 'center' }}
+                onPress={() => {
+                  Alert.alert(
+                    'Devri Onayla',
+                    `Bu iş emrinin "${order.takeoverUser?.fullName || 'teknisyen'}" adlı personele devredilmesini onaylıyor musunuz?`,
+                    [
+                      { text: 'Vazgeç', style: 'cancel' },
+                      { text: '✅ Evet, Onayla', onPress: () => respondTakeoverMutation.mutate({ action: 'APPROVE' }) },
+                    ]
+                  );
+                }}
+                disabled={respondTakeoverMutation.isPending}
+              >
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.xs }}>
+                  ✅ Devri Onayla
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: '#EF4444', paddingVertical: 10, borderRadius: BorderRadius.md, alignItems: 'center', justifyContent: 'center' }}
+                onPress={() => {
+                  Alert.alert(
+                    'Talebi Reddet',
+                    'Devralma talebini reddetmek istediğinize emin misiniz?',
+                    [
+                      { text: 'Vazgeç', style: 'cancel' },
+                      { text: '❌ Reddet', style: 'destructive', onPress: () => respondTakeoverMutation.mutate({ action: 'REJECT' }) },
+                    ]
+                  );
+                }}
+                disabled={respondTakeoverMutation.isPending}
+              >
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.xs }}>
+                  ❌ Reddet
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Maliyet ve Ödeme Özeti */}
         <View style={[dynamicStyles.section, { marginTop: 0 }]}>
@@ -2860,30 +3252,193 @@ export default function WorkOrderDetailScreen() {
           {/* 1. DURUM: ACIK (Bekliyor) */}
           {order.status === 'ACIK' && (
             <View style={{ gap: Spacing.sm }}>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#F59E0B',
-                  borderRadius: BorderRadius.md,
-                  paddingVertical: 14,
-                  paddingHorizontal: Spacing.md,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: Spacing.sm,
-                  ...Shadows.sm,
-                }}
-                onPress={() => {
-                  Alert.alert('İşi Başlat', 'İş emri başlatılsın ve araç lifte alınsın mı?', [
-                    { text: 'Vazgeç', style: 'cancel' },
-                    { text: '▶️ Evet, Başlat', onPress: () => statusMutation.mutate('DEVAM_EDIYOR') },
-                  ]);
-                }}
-              >
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.base }}>
-                  ▶️ İşe Başla (Lifte Al)
-                </Text>
-              </TouchableOpacity>
+              {/* Onay Bekleyen İş Emri Durumu */}
+              {!order.isApproved ? (
+                !isTech ? (
+                  /* Yönetici Onay Butonu */
+                  <View style={{ backgroundColor: '#FEF3C7', borderWidth: 1.5, borderColor: '#F59E0B', borderRadius: BorderRadius.lg, padding: Spacing.md, gap: Spacing.sm }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={{ fontSize: 18 }}>⏳</Text>
+                      <Text style={{ fontWeight: '800', color: '#92400E', fontSize: Typography.fontSize.sm }}>
+                        Yönetici Onayı Bekleniyor
+                      </Text>
+                    </View>
+                    <Text style={{ color: '#78350F', fontSize: Typography.fontSize.xs, lineHeight: 18 }}>
+                      Bu iş emri henüz onaylanmadı. Onay vererek teknisyenlerin işi lifte almasına izin verebilirsiniz.
+                    </Text>
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: '#10B981',
+                        borderRadius: BorderRadius.md,
+                        paddingVertical: 12,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        ...Shadows.sm,
+                      }}
+                      onPress={() => {
+                        Alert.alert('İşi Onayla', 'Bu iş emrini onaylayarak atölyede başlatılmaya açmak istiyor musunuz?', [
+                          { text: 'Vazgeç', style: 'cancel' },
+                          { text: '✅ Evet, Onayla', onPress: () => approveMutation.mutate() },
+                        ]);
+                      }}
+                      disabled={approveMutation.isPending}
+                    >
+                      {approveMutation.isPending ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.sm }}>
+                          ✅ İşi Onayla & Başlatmaya Aç
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  /* Teknisyen için Bilgilendirme (Lifte Alınamaz) */
+                  <View style={{ backgroundColor: theme.surfaceElevated || theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.lg, padding: Spacing.md, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 24, marginBottom: 4 }}>⏳</Text>
+                    <Text style={{ fontWeight: '800', color: theme.textPrimary, fontSize: Typography.fontSize.sm, marginBottom: 4 }}>
+                      Yönetici Onayı Bekleniyor
+                    </Text>
+                    <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs, textAlign: 'center', lineHeight: 18 }}>
+                      Bu iş emri havuzda beklemektedir. Yönetici onaylamadan önce lifte alınamaz veya başlatılamaz.
+                    </Text>
+                  </View>
+                )
+              ) : (
+                /* Onaylı İş Emri Başlatma / Devralma Seçenekleri */
+                <>
+                  {/* Durum A: Kendi üzerindeki iş VEYA Yönetici/Müdür */}
+                  {(!isTech || order.userId === user?.id) && (
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: '#F59E0B',
+                        borderRadius: BorderRadius.md,
+                        paddingVertical: 14,
+                        paddingHorizontal: Spacing.md,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: Spacing.sm,
+                        ...Shadows.sm,
+                      }}
+                      onPress={() => {
+                        Alert.alert('İşi Başlat', 'İş emri başlatılsın ve araç lifte alınsın mı?', [
+                          { text: 'Vazgeç', style: 'cancel' },
+                          { text: '▶️ Evet, Başlat', onPress: () => statusMutation.mutate('DEVAM_EDIYOR') },
+                        ]);
+                      }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.base }}>
+                        ▶️ İşe Başla (Lifte Al)
+                      </Text>
+                    </TouchableOpacity>
+                  )}
 
+                  {/* Durum B: Teknisyen & İş başka bir teknisyenin üzerinde */}
+                  {isTech && order.userId !== user?.id && order.user?.role === 'TECHNICIAN' && (
+                    <View style={{ gap: Spacing.sm }}>
+                      {order.takeoverRequestedById === user?.id ? (
+                        <View style={{ backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#93C5FD', borderRadius: BorderRadius.lg, padding: Spacing.md, alignItems: 'center' }}>
+                          <Text style={{ fontSize: 20, marginBottom: 4 }}>⏳</Text>
+                          <Text style={{ fontWeight: '800', color: '#1D4ED8', fontSize: Typography.fontSize.sm }}>
+                            Devralma Talebiniz Yönetici Onayında
+                          </Text>
+                          <Text style={{ color: '#3B82F6', fontSize: Typography.fontSize.xs, textAlign: 'center', marginTop: 4 }}>
+                            Bu işi "{order.user?.fullName}" üzerinden devralmak için talep ilettiniz. Yönetici onayından sonra üzerinize geçecektir.
+                          </Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={{
+                            backgroundColor: '#6366F1',
+                            borderRadius: BorderRadius.md,
+                            paddingVertical: 14,
+                            paddingHorizontal: Spacing.md,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            ...Shadows.sm,
+                          }}
+                          onPress={() => {
+                            Alert.alert(
+                              'İşi Devralma Talebi',
+                              `Bu iş emri şu anda "${order.user?.fullName}" adlı teknisyene atanmıştır.\n\nİşi kendi üzerinize devralmak için yöneticiye onay talebi göndermek istiyor musunuz?`,
+                              [
+                                { text: 'Vazgeç', style: 'cancel' },
+                                { text: '🤝 Evet, Talep Gönder', onPress: () => requestTakeoverMutation.mutate() },
+                              ]
+                            );
+                          }}
+                          disabled={requestTakeoverMutation.isPending}
+                        >
+                          <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.base }}>
+                            🤝 İşi Devralma Talebi Gönder
+                          </Text>
+                          <Text style={{ color: '#E0E7FF', fontSize: 11, marginTop: 2 }}>
+                            (Şu anki sorumlu teknisyen: {order.user?.fullName})
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Durum C: Teknisyen & İş havuzda açık (teknisyene zimmetli değil) ve ONAYLI */}
+                  {isTech && order.userId !== user?.id && order.user?.role !== 'TECHNICIAN' && (
+                    <View style={{ gap: Spacing.sm }}>
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: '#F59E0B',
+                          borderRadius: BorderRadius.md,
+                          paddingVertical: 14,
+                          paddingHorizontal: Spacing.md,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: Spacing.sm,
+                          ...Shadows.sm,
+                        }}
+                        onPress={() => {
+                          Alert.alert(
+                            'İşi Üzerine Al ve Başlat',
+                            'Bu iş emri yönetici tarafından onaylanmıştır.\n\nİşi kendi üzerinize alıp lifte başlatmak istiyor musunuz?',
+                            [
+                              { text: 'Vazgeç', style: 'cancel' },
+                              { text: '▶️ Evet, Üzerime Al ve Başlat', onPress: () => statusMutation.mutate('DEVAM_EDIYOR') },
+                            ]
+                          );
+                        }}
+                      >
+                        <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.base }}>
+                          ▶️ İşi Üzerime Al ve Başlat
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: theme.primary + '15',
+                          borderWidth: 1,
+                          borderColor: theme.primary,
+                          borderRadius: BorderRadius.md,
+                          paddingVertical: 10,
+                          alignItems: 'center',
+                        }}
+                        onPress={() => {
+                          Alert.alert('İşi Üzerine Al', 'Bu onaylı iş emrini kendi üzerinize almak istiyor musunuz?', [
+                            { text: 'Vazgeç', style: 'cancel' },
+                            { text: '🎯 Evet, Üzerime Al', onPress: () => claimMutation.mutate() },
+                          ]);
+                        }}
+                        disabled={claimMutation.isPending}
+                      >
+                        <Text style={{ color: theme.primary, fontWeight: '700', fontSize: Typography.fontSize.xs }}>
+                          🎯 İşi Sadece Üzerime Al (Başlatmadan)
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              )}
+
+              {/* İptal Butonu (Sadece Yönetici / Admin) */}
               {!isTech && (
                 <TouchableOpacity
                   style={{
@@ -2909,92 +3464,147 @@ export default function WorkOrderDetailScreen() {
             </View>
           )}
 
-          {/* 2. DURUM: DEVAM_EDIYOR (Teknisyen İşi Geri Alabilir veya Tamamlayabilir) */}
+          {/* 2. DURUM: DEVAM_EDIYOR (Lifte Alındı) */}
           {order.status === 'DEVAM_EDIYOR' && (
             <View style={{ gap: Spacing.sm }}>
-              <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-                {/* ⏸️ İŞİ GERİ AL / BEKLEMEYE AL */}
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#3B82F6',
-                    borderRadius: BorderRadius.md,
-                    paddingVertical: 12,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    ...Shadows.sm,
-                  }}
-                  onPress={() => {
-                    Alert.alert(
-                      'İşi Geri Al (Beklemeye Al)',
-                      'İş emrini geri alıp beklemeye (Açık durumuna) almak istiyor musunuz?\n\n(Parça bekleniyorsa veya işlem durdurulduysa aracı bekleme sırasına alabilirsiniz.)',
-                      [
-                        { text: 'Vazgeç', style: 'cancel' },
-                        { text: '⏸️ Evet, Geri Al', onPress: () => statusMutation.mutate('ACIK') },
-                      ]
-                    );
-                  }}
-                >
-                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.sm }}>
-                    ⏸️ İşi Geri Al
-                  </Text>
-                  <Text style={{ color: '#E0F2FE', fontSize: 10, fontWeight: '600', marginTop: 2 }}>
-                    (Beklemeye Al)
-                  </Text>
-                </TouchableOpacity>
+              {isTech && order.userId !== user?.id ? (
+                /* Başka bir teknisyen lifte almış çalışıyor */
+                <View style={{ gap: Spacing.sm }}>
+                  {order.takeoverRequestedById === user?.id ? (
+                    <View style={{ backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#93C5FD', borderRadius: BorderRadius.lg, padding: Spacing.md, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 20, marginBottom: 4 }}>⏳</Text>
+                      <Text style={{ fontWeight: '800', color: '#1D4ED8', fontSize: Typography.fontSize.sm }}>
+                        Devralma Talebiniz Yönetici Onayında
+                      </Text>
+                      <Text style={{ color: '#3B82F6', fontSize: Typography.fontSize.xs, textAlign: 'center', marginTop: 4 }}>
+                        Bu devam eden işi devralmak için talep ilettiniz. Yönetici onayından sonra üzerinize geçecektir.
+                      </Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: '#6366F1',
+                        borderRadius: BorderRadius.md,
+                        paddingVertical: 14,
+                        paddingHorizontal: Spacing.md,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        ...Shadows.sm,
+                      }}
+                      onPress={() => {
+                        Alert.alert(
+                          'Devam Eden İşi Devralma Talebi',
+                          `Bu iş şu anda "${order.user?.fullName}" tarafından lifte alınmış ve devam etmektedir.\n\nİşi devralmak için yöneticiye onay talebi göndermek istiyor musunuz?`,
+                          [
+                            { text: 'Vazgeç', style: 'cancel' },
+                            { text: '🤝 Evet, Talep Gönder', onPress: () => requestTakeoverMutation.mutate() },
+                          ]
+                        );
+                      }}
+                      disabled={requestTakeoverMutation.isPending}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.base }}>
+                        🤝 Devam Eden İşi Devralma Talebi Gönder
+                      </Text>
+                      <Text style={{ color: '#E0E7FF', fontSize: 11, marginTop: 2 }}>
+                        (Lifte alan teknisyen: {order.user?.fullName})
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : (
+                /* Sorumlu teknisyen veya Yönetici */
+                <View style={{ gap: Spacing.sm }}>
+                  <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                    {/* ⏸️ İŞİ GERİ AL / BEKLEMEYE AL */}
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        backgroundColor: '#3B82F6',
+                        borderRadius: BorderRadius.md,
+                        paddingVertical: 12,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        ...Shadows.sm,
+                      }}
+                      onPress={() => {
+                        const isRevertingToOwner = order.previousUserId || (order.creatorId && order.creatorId !== user?.id);
+                        const alertMsg = isRevertingToOwner
+                          ? 'İş emrini geri alıp beklemeye (Açık durumuna) almak istiyor musunuz?\n\nİş emri atölye havuzuna ve önceki asıl sahibine iade edilecektir.'
+                          : 'İş emrini geri alıp beklemeye (Açık durumuna) almak istiyor musunuz?\n\n(Parça bekleniyorsa veya işlem durdurulduysa aracı bekleme sırasına alabilirsiniz.)';
 
-                {/* ✅ İŞİ TAMAMLA */}
-                <TouchableOpacity
-                  style={{
-                    flex: 1.2,
-                    backgroundColor: '#10B981',
-                    borderRadius: BorderRadius.md,
-                    paddingVertical: 12,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    ...Shadows.sm,
-                  }}
-                  onPress={() => {
-                    Alert.alert(
-                      'İşi Tamamla',
-                      'İş emri başarıyla tamamlandı olarak işaretlensin mi?\n\nKullanılan parçalar otomatik olarak depodan düşülecektir.',
-                      [
-                        { text: 'Vazgeç', style: 'cancel' },
-                        { text: '✅ Evet, Tamamla', onPress: () => statusMutation.mutate('TAMAMLANDI') },
-                      ]
-                    );
-                  }}
-                >
-                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.sm }}>
-                    ✅ İşi Tamamla
-                  </Text>
-                  <Text style={{ color: '#D1FAE5', fontSize: 10, fontWeight: '600', marginTop: 2 }}>
-                    (Depodan Düş)
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                        Alert.alert(
+                          'İşi Geri Al (Beklemeye Al)',
+                          alertMsg,
+                          [
+                            { text: 'Vazgeç', style: 'cancel' },
+                            { text: '⏸️ Evet, Geri Al', onPress: () => statusMutation.mutate('ACIK') },
+                          ]
+                        );
+                      }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.sm }}>
+                        ⏸️ İşi Geri Al
+                      </Text>
+                      <Text style={{ color: '#E0F2FE', fontSize: 10, fontWeight: '600', marginTop: 2 }}>
+                        (Beklemeye Al)
+                      </Text>
+                    </TouchableOpacity>
 
-              {!isTech && (
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: theme.danger + '10',
-                    borderWidth: 1,
-                    borderColor: theme.danger + '40',
-                    borderRadius: BorderRadius.md,
-                    paddingVertical: 9,
-                    alignItems: 'center',
-                  }}
-                  onPress={() => {
-                    Alert.alert('İş Emrini İptal Et', 'Devam eden bu iş emrini iptal etmek istediğinize emin misiniz? Kullanılan parçalar depoya geri iade edilecektir.', [
-                      { text: 'Vazgeç', style: 'cancel' },
-                      { text: '❌ Evet, İptal Et', style: 'destructive', onPress: () => statusMutation.mutate('IPTAL') },
-                    ]);
-                  }}
-                >
-                  <Text style={{ color: theme.danger, fontWeight: '700', fontSize: Typography.fontSize.xs }}>
-                    ❌ İş Emrini İptal Et
-                  </Text>
-                </TouchableOpacity>
+                    {/* ✅ İŞİ TAMAMLA */}
+                    <TouchableOpacity
+                      style={{
+                        flex: 1.2,
+                        backgroundColor: '#10B981',
+                        borderRadius: BorderRadius.md,
+                        paddingVertical: 12,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        ...Shadows.sm,
+                      }}
+                      onPress={() => {
+                        Alert.alert(
+                          'İşi Tamamla',
+                          'İş emri başarıyla tamamlandı olarak işaretlensin mi?\n\nKullanılan parçalar otomatik olarak depodan düşülecektir.',
+                          [
+                            { text: 'Vazgeç', style: 'cancel' },
+                            { text: '✅ Evet, Tamamla', onPress: () => statusMutation.mutate('TAMAMLANDI') },
+                          ]
+                        );
+                      }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.sm }}>
+                        ✅ İşi Tamamla
+                      </Text>
+                      <Text style={{ color: '#D1FAE5', fontSize: 10, fontWeight: '600', marginTop: 2 }}>
+                        (Depodan Düş)
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {!isTech && (
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: theme.danger + '10',
+                        borderWidth: 1,
+                        borderColor: theme.danger + '40',
+                        borderRadius: BorderRadius.md,
+                        paddingVertical: 9,
+                        alignItems: 'center',
+                      }}
+                      onPress={() => {
+                        Alert.alert('İş Emrini İptal Et', 'Devam eden bu iş emrini iptal etmek istediğinize emin misiniz? Kullanılan parçalar depoya geri iade edilecektir.', [
+                          { text: 'Vazgeç', style: 'cancel' },
+                          { text: '❌ Evet, İptal Et', style: 'destructive', onPress: () => statusMutation.mutate('IPTAL') },
+                        ]);
+                      }}
+                    >
+                      <Text style={{ color: theme.danger, fontWeight: '700', fontSize: Typography.fontSize.xs }}>
+                        ❌ İş Emrini İptal Et
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               )}
             </View>
           )}
@@ -3080,7 +3690,7 @@ export default function WorkOrderDetailScreen() {
         <View style={dynamicStyles.section}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm }}>
             <Text style={dynamicStyles.sectionTitle}>🔩 Kullanılan Parçalar</Text>
-            {order.status !== 'TAMAMLANDI' && order.status !== 'IPTAL' && (
+            {isOwnerOrAdmin && order.status !== 'TAMAMLANDI' && order.status !== 'IPTAL' && (
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.primary, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, paddingVertical: 8 }}
                 onPress={() => setShowAddPart(true)}
@@ -3091,8 +3701,18 @@ export default function WorkOrderDetailScreen() {
             )}
           </View>
 
+          {/* Başka personele ait ise bilgilendirme uyarısı */}
+          {isTech && order.userId !== user?.id && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.primary + '10', padding: Spacing.sm, borderRadius: BorderRadius.md, marginBottom: Spacing.sm, borderWidth: 1, borderColor: theme.border }}>
+              <Text style={{ fontSize: 14 }}>🔒</Text>
+              <Text style={{ color: theme.textSecondary, fontSize: Typography.fontSize.xs, flex: 1 }}>
+                Bu iş emri başka bir personele ait olduğu için parça/sarf ekleme ve düzenleme yetkisi kısıtlanmıştır (Salt Okunur).
+              </Text>
+            </View>
+          )}
+
           {/* Hızlı Sanayi Butonları (Sarf Malzemesi & Çıkma Parça) */}
-          {order.status !== 'TAMAMLANDI' && order.status !== 'IPTAL' && (
+          {isOwnerOrAdmin && order.status !== 'TAMAMLANDI' && order.status !== 'IPTAL' && (
             <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md }}>
               <TouchableOpacity
                 style={{
@@ -3141,13 +3761,20 @@ export default function WorkOrderDetailScreen() {
           )}
 
           {order.items?.length === 0 ? (
-            <TouchableOpacity
-              style={{ backgroundColor: theme.surface, borderWidth: 2, borderStyle: 'dashed', borderColor: theme.border, borderRadius: BorderRadius.lg, padding: Spacing.xl, alignItems: 'center' }}
-              onPress={() => setShowAddPart(true)}
-            >
-              <Text style={{ fontSize: 40, marginBottom: 8 }}>🔩</Text>
-              <Text style={{ color: theme.textSecondary, fontWeight: '600' }}>Parça eklemek için dokun</Text>
-            </TouchableOpacity>
+            isOwnerOrAdmin && order.status !== 'TAMAMLANDI' && order.status !== 'IPTAL' ? (
+              <TouchableOpacity
+                style={{ backgroundColor: theme.surface, borderWidth: 2, borderStyle: 'dashed', borderColor: theme.border, borderRadius: BorderRadius.lg, padding: Spacing.xl, alignItems: 'center' }}
+                onPress={() => setShowAddPart(true)}
+              >
+                <Text style={{ fontSize: 40, marginBottom: 8 }}>🔩</Text>
+                <Text style={{ color: theme.textSecondary, fontWeight: '600' }}>Parça eklemek için dokun</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.lg, padding: Spacing.lg, alignItems: 'center' }}>
+                <Text style={{ fontSize: 32, marginBottom: 6 }}>🔩</Text>
+                <Text style={{ color: theme.textSecondary, fontWeight: '600', textAlign: 'center' }}>Bu iş emrine henüz parça eklenmemiş.</Text>
+              </View>
+            )
           ) : (
             <View style={dynamicStyles.card}>
               {order.items.map((item: any, i: number) => {
@@ -3173,7 +3800,7 @@ export default function WorkOrderDetailScreen() {
                           {ITEM_STATUS_LABELS[item.status]}
                         </Text>
                       </View>
-                      {canProgress && order.status !== 'IPTAL' && (
+                      {isOwnerOrAdmin && canProgress && order.status !== 'IPTAL' && (
                         <TouchableOpacity
                           style={{ backgroundColor: theme.primary + '15', borderRadius: BorderRadius.sm, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: theme.primary }}
                           onPress={() => handleItemStatusChange(item)}
@@ -3184,7 +3811,7 @@ export default function WorkOrderDetailScreen() {
                           </Text>
                         </TouchableOpacity>
                       )}
-                      {item.status !== 'KULLANILDI' && order.status !== 'TAMAMLANDI' && (
+                      {isOwnerOrAdmin && item.status !== 'KULLANILDI' && order.status !== 'TAMAMLANDI' && (
                         <TouchableOpacity
                           onPress={() => {
                             Alert.alert('Parçayı Çıkar', `"${item.part.name}" iş emrinden çıkarılsın mı?`, [
@@ -3206,7 +3833,11 @@ export default function WorkOrderDetailScreen() {
 
         {/* 📸 Fotoğraflı Eski / Yeni Parça & Ekspertiz (Step 4) */}
         <View style={dynamicStyles.section}>
-          <PhotoSection order={order} theme={theme} />
+          <PhotoSection
+            order={order}
+            theme={theme}
+            canEdit={isOwnerOrAdmin && order.status !== 'TAMAMLANDI' && order.status !== 'IPTAL'}
+          />
         </View>
 
         <View style={{ height: 40 }} />
@@ -3216,6 +3847,14 @@ export default function WorkOrderDetailScreen() {
       <PaymentUpdateModal visible={showPaymentModal} order={order} onClose={() => setShowPaymentModal(false)} theme={theme} />
       <WorkshopConsumableModal visible={showConsumablesModal} orderId={id} onClose={() => setShowConsumablesModal(false)} theme={theme} />
       <SalvagePartModal visible={showSalvageModal} order={order} onClose={() => setShowSalvageModal(false)} theme={theme} />
+      <AssignStaffModal
+        visible={showAssignModal}
+        order={order}
+        onClose={() => setShowAssignModal(false)}
+        theme={theme}
+        onAssign={(userId) => assignMutation.mutate(userId)}
+        isPending={assignMutation.isPending}
+      />
     </SafeAreaView>
   );
 }

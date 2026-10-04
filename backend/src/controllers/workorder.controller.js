@@ -41,6 +41,15 @@ exports.getWorkOrders = async (req, res, next) => {
       prisma.workOrder.count({ where }),
     ]);
 
+    const takeoverUserIds = orders.map(o => o.takeoverRequestedById).filter(Boolean);
+    const takeoverUsers = takeoverUserIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: takeoverUserIds } },
+          select: { id: true, fullName: true, role: true },
+        })
+      : [];
+    const takeoverUserMap = new Map(takeoverUsers.map(u => [u.id, u]));
+
     // Her iş emrine maliyet ve ödeme hesapla
     const ordersWithCosts = orders.map(order => {
       const isCancelled = order.status === 'IPTAL';
@@ -66,6 +75,7 @@ exports.getWorkOrders = async (req, res, next) => {
 
       return {
         ...order,
+        takeoverUser: order.takeoverRequestedById ? takeoverUserMap.get(order.takeoverRequestedById) : null,
         partsSaleTotal,
         partsCostTotal,
         partsProfit: partsSaleTotal - partsCostTotal,
@@ -88,7 +98,7 @@ exports.getWorkOrderById = async (req, res, next) => {
     const order = await prisma.workOrder.findFirst({
       where: { id: req.params.id, companyId: req.company.id },
       include: {
-        user: { select: { fullName: true, avatarUrl: true } },
+        user: { select: { id: true, fullName: true, role: true, avatarUrl: true } },
         items: {
           include: {
             part: {
@@ -163,8 +173,26 @@ exports.getWorkOrderById = async (req, res, next) => {
       return restItem;
     });
 
+    let takeoverUser = null;
+    if (order.takeoverRequestedById) {
+      takeoverUser = await prisma.user.findUnique({
+        where: { id: order.takeoverRequestedById },
+        select: { id: true, fullName: true, role: true },
+      });
+    }
+
+    let approvedByUser = null;
+    if (order.approvedById) {
+      approvedByUser = await prisma.user.findUnique({
+        where: { id: order.approvedById },
+        select: { id: true, fullName: true, role: true },
+      });
+    }
+
     return success(res, {
       ...order,
+      takeoverUser,
+      approvedByUser,
       items: sanitizedItems,
       partsSaleTotal,
       partsCostTotal: isTech ? undefined : partsCostTotal,
@@ -184,12 +212,26 @@ exports.getWorkOrderById = async (req, res, next) => {
 // ─── İş Emri Oluştur ──────────────────────────────────────────────────────────
 exports.createWorkOrder = async (req, res, next) => {
   try {
-    const { title, description, customerName, customerPhone, vehicleInfo, laborCost, notes, paymentStatus, paidAmount, paymentMethod, paymentNotes } = req.body;
+    const isTech = req.user.role === 'TECHNICIAN';
+    const isApproved = !isTech; // Yöneticinin açtığı işler doğrudan onaylıdır, teknisyenin açtığı işler yönetici onayı bekler
+
+    const {
+      title, description, customerName, customerPhone, vehicleInfo,
+      laborCost, notes, paymentStatus, paidAmount, paymentMethod, paymentNotes,
+      userId,
+    } = req.body;
+
+    const assignedUserId = (!isTech && userId) ? userId : req.user.id;
 
     const order = await prisma.workOrder.create({
       data: {
         companyId: req.company.id,
-        userId: req.user.id,
+        userId: assignedUserId,
+        creatorId: req.user.id,
+        previousUserId: null,
+        isApproved,
+        approvedById: isApproved ? req.user.id : null,
+        approvedAt: isApproved ? new Date() : null,
         title, description, customerName, customerPhone, vehicleInfo,
         laborCost: laborCost ? parseFloat(laborCost) : null,
         notes,
@@ -216,7 +258,7 @@ exports.updateWorkOrder = async (req, res, next) => {
   try {
     const existing = await prisma.workOrder.findFirst({
       where: { id: req.params.id, companyId: req.company.id },
-      include: { items: true },
+      include: { items: true, user: { select: { id: true, role: true, fullName: true } } },
     });
     if (!existing) return error(res, 'İş emri bulunamadı.', 404);
 
@@ -238,6 +280,16 @@ exports.updateWorkOrder = async (req, res, next) => {
       // Teknisyen sadece ACIK, DEVAM_EDIYOR veya TAMAMLANDI durumlarına geçiş yapabilir
       if (status !== undefined && !['ACIK', 'DEVAM_EDIYOR', 'TAMAMLANDI'].includes(status)) {
         return error(res, 'Geçersiz durum geçişi.', 400);
+      }
+
+      // Teknisyen için iş başlatma (lifte alma) onay ve sahiplik koruması:
+      if (status === 'DEVAM_EDIYOR') {
+        if (!existing.isApproved) {
+          return error(res, 'Bu iş emri henüz yönetici tarafından onaylanmamıştır. Lifte almak için yönetici onayını bekleyiniz veya devralma talebi gönderiniz.', 403);
+        }
+        if (existing.userId !== req.user.id && existing.user?.role === 'TECHNICIAN') {
+          return error(res, 'Bu iş emri başka bir teknisyene atanmıştır. Devralabilmek için devralma talebi gönderip yönetici onayını bekleyiniz.', 403);
+        }
       }
     }
 
@@ -317,10 +369,11 @@ exports.updateWorkOrder = async (req, res, next) => {
       targetPaymentStatus = 'IPTAL';
     }
 
-    // 4. İŞİ BAŞLATMA / GERİ ALMA / TAMAMLAMA ZAMAN DAMGALARI & OTOMATİK STOK DÜŞÜŞÜ
+    // 4. İŞİ BAŞLATMA / GERİ ALMA / TAMAMLAMA ZAMAN DAMGALARI & KULLANICI ZİMMET YÖNETİMİ
     let finalStartedAt = startedAt !== undefined ? (startedAt ? new Date(startedAt) : null) : existing.startedAt;
     let finalCompletedAt = completedAt !== undefined ? (completedAt ? new Date(completedAt) : null) : existing.completedAt;
     let finalUserId = undefined;
+    let finalPreviousUserId = undefined;
 
     if (!isTech && req.body.userId !== undefined) {
       finalUserId = req.body.userId;
@@ -331,13 +384,31 @@ exports.updateWorkOrder = async (req, res, next) => {
         finalStartedAt = new Date(); // İşe başlama saati
       }
       finalCompletedAt = null; // Devam ediyorsa tamamlanma tarihi sıfır
-      // Eğer iş emrini bir teknisyen başlatıyorsa, iş emrini bu teknisyene zimmetle
+      
+      // Eğer işi başlatan kullanıcı mevcut sorumlu kullanıcıdan farklıysa:
+      // Mevcut sorumlu kullanıcıyı previousUserId olarak hafızaya al
+      if (existing.userId !== req.user.id) {
+        finalPreviousUserId = existing.userId;
+      }
+      
+      // Teknisyen işi lifte alıp başlattığında işi kendi üzerine al
       if (isTech) {
         finalUserId = req.user.id;
       }
     } else if (status === 'ACIK') {
-      // İşi geri alma / beklemeye alma
+      // İşi geri alma / beklemeye alma / atölye havuzuna iade etme
       finalCompletedAt = null;
+
+      // EĞER İŞ GERİ ALINDI İSE (HAVUZA BIRAKILDI):
+      // Başkasından devralınmış bir iş ise, asıl sahibine (previousUserId veya creatorId) iade et!
+      // Asla işi geri alan teknisyenin üzerinde kalmasın!
+      if (existing.previousUserId && existing.previousUserId !== existing.userId) {
+        finalUserId = existing.previousUserId;
+        finalPreviousUserId = null; // İade edildi, sıfırla
+      } else if (existing.creatorId && existing.creatorId !== existing.userId) {
+        finalUserId = existing.creatorId;
+        finalPreviousUserId = null;
+      }
     } else if (status === 'TAMAMLANDI' && existing.status !== 'TAMAMLANDI') {
       finalCompletedAt = new Date();
 
@@ -420,7 +491,8 @@ exports.updateWorkOrder = async (req, res, next) => {
         ...(status !== undefined && { status }),
         startedAt: finalStartedAt,
         completedAt: finalCompletedAt,
-        ...(finalUserId && { userId: finalUserId }),
+        ...(finalUserId !== undefined && { userId: finalUserId }),
+        ...(finalPreviousUserId !== undefined && { previousUserId: finalPreviousUserId }),
         ...(targetPaymentStatus !== undefined && { paymentStatus: targetPaymentStatus }),
         ...(paidAmount !== undefined && { paidAmount: parseFloat(paidAmount || 0) }),
         ...(paymentMethod !== undefined && { paymentMethod }),
@@ -502,6 +574,11 @@ exports.addWorkOrderItem = async (req, res, next) => {
       return error(res, 'Tamamlanmış veya iptal edilmiş iş emrine parça eklenemez.', 400);
     }
 
+    const isTech = req.user.role === 'TECHNICIAN';
+    if (isTech && order.userId !== req.user.id) {
+      return error(res, 'Başka bir personele ait iş emrine parça veya sarfiyat ekleyemezsiniz.', 403);
+    }
+
     const part = await prisma.part.findFirst({
       where: { id: partId, companyId: req.company.id, isActive: true },
     });
@@ -555,6 +632,11 @@ exports.addWorkOrderBatchItems = async (req, res, next) => {
     if (!order) return error(res, 'İş emri bulunamadı.', 404);
     if (order.status === 'TAMAMLANDI' || order.status === 'IPTAL') {
       return error(res, 'Tamamlanmış veya iptal edilmiş iş emrine parça eklenemez.', 400);
+    }
+
+    const isTech = req.user.role === 'TECHNICIAN';
+    if (isTech && order.userId !== req.user.id) {
+      return error(res, 'Başka bir personele ait iş emrine parça veya sarfiyat ekleyemezsiniz.', 403);
     }
 
     const defaultWarehouse = await prisma.warehouse.findFirst({
@@ -617,6 +699,11 @@ exports.updateWorkOrderItemStatus = async (req, res, next) => {
       include: { part: true, workOrder: true },
     });
     if (!item) return error(res, 'Parça kalemi bulunamadı.', 404);
+
+    const isTech = req.user.role === 'TECHNICIAN';
+    if (isTech && item.workOrder.userId !== req.user.id) {
+      return error(res, 'Başka bir personele ait iş emrindeki parçaların durumunu değiştiremezsiniz.', 403);
+    }
 
     const part = item.part;
     const prevStatus = item.status;
@@ -812,8 +899,15 @@ exports.removeWorkOrderItem = async (req, res, next) => {
         id: itemId,
         workOrder: { companyId: req.company.id },
       },
+      include: { workOrder: true },
     });
     if (!item) return error(res, 'Parça kalemi bulunamadı.', 404);
+
+    const isTech = req.user.role === 'TECHNICIAN';
+    if (isTech && item.workOrder.userId !== req.user.id) {
+      return error(res, 'Başka bir personele ait iş emrinden parça silemezsiniz.', 403);
+    }
+
     if (item.status === 'KULLANILDI') {
       return error(res, 'Kullanılmış parça iş emrinden çıkarılamaz.', 400);
     }
@@ -1280,6 +1374,11 @@ exports.addWorkOrderPhoto = async (req, res, next) => {
     });
     if (!order) return error(res, 'İş emri bulunamadı.', 404);
 
+    const isTech = req.user.role === 'TECHNICIAN';
+    if (isTech && order.userId !== req.user.id) {
+      return error(res, 'Başka bir personele ait iş emrine fotoğraf ekleyemezsiniz.', 403);
+    }
+
     const field = type === 'before' ? 'beforeImages' : 'afterImages';
     const currentList = order[field] || [];
 
@@ -1311,6 +1410,11 @@ exports.removeWorkOrderPhoto = async (req, res, next) => {
     });
     if (!order) return error(res, 'İş emri bulunamadı.', 404);
 
+    const isTechPhoto = req.user.role === 'TECHNICIAN';
+    if (isTechPhoto && order.userId !== req.user.id) {
+      return error(res, 'Başka bir personele ait iş emrinden fotoğraf silemezsiniz.', 403);
+    }
+
     const field = type === 'before' ? 'beforeImages' : 'afterImages';
     const currentList = order[field] || [];
 
@@ -1322,6 +1426,197 @@ exports.removeWorkOrderPhoto = async (req, res, next) => {
     });
 
     return success(res, updated, 'Fotoğraf silindi.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── Personel Ata (Yönetici / Müdür) ─────────────────────────────────────────
+exports.assignWorkOrder = async (req, res, next) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return error(res, 'Atanacak personel seçilmelidir.', 400);
+
+    const order = await prisma.workOrder.findFirst({
+      where: { id: req.params.id, companyId: req.company.id },
+    });
+    if (!order) return error(res, 'İş emri bulunamadı.', 404);
+
+    const targetUser = await prisma.user.findFirst({
+      where: { id: userId, companyId: req.company.id, isActive: true },
+      select: { id: true, fullName: true, role: true },
+    });
+    if (!targetUser) return error(res, 'Seçilen personel bulunamadı veya pasif.', 400);
+
+    const updated = await prisma.workOrder.update({
+      where: { id: req.params.id },
+      data: {
+        userId: targetUser.id,
+        previousUserId: order.userId !== targetUser.id ? order.userId : order.previousUserId,
+        isApproved: true,
+        approvedById: req.user.id,
+        approvedAt: new Date(),
+        takeoverRequestedById: null,
+        takeoverRequestedAt: null,
+      },
+      include: {
+        user: { select: { id: true, fullName: true, role: true } },
+      },
+    });
+
+    return success(res, updated, `İş emri "${targetUser.fullName}" adlı personele atandı ve onaylandı.`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── İş Emrini Onayla / Başlatmaya Aç (Yönetici / Müdür) ──────────────────────
+exports.approveWorkOrder = async (req, res, next) => {
+  try {
+    const order = await prisma.workOrder.findFirst({
+      where: { id: req.params.id, companyId: req.company.id },
+    });
+    if (!order) return error(res, 'İş emri bulunamadı.', 404);
+
+    const updated = await prisma.workOrder.update({
+      where: { id: req.params.id },
+      data: {
+        isApproved: true,
+        approvedById: req.user.id,
+        approvedAt: new Date(),
+      },
+      include: {
+        user: { select: { id: true, fullName: true, role: true } },
+      },
+    });
+
+    return success(res, updated, 'İş emri onaylandı ve atölyede başlatılmaya açıldı.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── Açık ve Onaylı İşi Teknisyenin Üzerine Alması ────────────────────────────
+exports.claimWorkOrder = async (req, res, next) => {
+  try {
+    const order = await prisma.workOrder.findFirst({
+      where: { id: req.params.id, companyId: req.company.id },
+      include: { user: { select: { id: true, fullName: true, role: true } } },
+    });
+    if (!order) return error(res, 'İş emri bulunamadı.', 404);
+
+    if (order.status === 'TAMAMLANDI' || order.status === 'IPTAL') {
+      return error(res, 'Tamamlanmış veya iptal edilmiş iş emri üzerinize alınamaz.', 400);
+    }
+
+    if (!order.isApproved) {
+      return error(res, 'Bu iş emri henüz yönetici tarafından onaylanmamıştır. Lifte alabilmek için yöneticinin işi onaylaması gerekmektedir.', 403);
+    }
+
+    if (order.userId === req.user.id) {
+      return error(res, 'Bu iş emri zaten sizin üzerinize atanmıştır.', 400);
+    }
+
+    if (order.user?.role === 'TECHNICIAN') {
+      return error(res, 'Bu iş emri başka bir teknisyenin üzerindedir. Devralabilmek için lütfen devralma talebi gönderiniz.', 403);
+    }
+
+    const updated = await prisma.workOrder.update({
+      where: { id: req.params.id },
+      data: {
+        userId: req.user.id,
+        previousUserId: order.userId,
+      },
+      include: {
+        user: { select: { id: true, fullName: true, role: true } },
+      },
+    });
+
+    return success(res, updated, 'İş emri başarıyla üzerinize alındı.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── İşi Devralma / Üzerine Alma Talebi Gönder (Teknisyen) ────────────────────
+exports.requestWorkOrderTakeover = async (req, res, next) => {
+  try {
+    const order = await prisma.workOrder.findFirst({
+      where: { id: req.params.id, companyId: req.company.id },
+      include: { user: { select: { fullName: true } } },
+    });
+    if (!order) return error(res, 'İş emri bulunamadı.', 404);
+
+    if (order.status === 'TAMAMLANDI' || order.status === 'IPTAL') {
+      return error(res, 'Tamamlanmış veya iptal edilmiş iş emri için devralma talebi gönderilemez.', 400);
+    }
+
+    if (order.userId === req.user.id) {
+      return error(res, 'Bu iş emri zaten sizin üzerinize atanmıştır.', 400);
+    }
+
+    const updated = await prisma.workOrder.update({
+      where: { id: req.params.id },
+      data: {
+        takeoverRequestedById: req.user.id,
+        takeoverRequestedAt: new Date(),
+      },
+      include: {
+        user: { select: { id: true, fullName: true, role: true } },
+      },
+    });
+
+    return success(res, updated, 'İşi üzerinize alma talebiniz yöneticinin onayına iletildi.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── Devralma Talebini Yanıtla (Yönetici / Müdür) ─────────────────────────────
+exports.respondWorkOrderTakeover = async (req, res, next) => {
+  try {
+    const { action } = req.body; // 'APPROVE' | 'REJECT'
+    const order = await prisma.workOrder.findFirst({
+      where: { id: req.params.id, companyId: req.company.id },
+    });
+    if (!order) return error(res, 'İş emri bulunamadı.', 404);
+
+    if (!order.takeoverRequestedById) {
+      return error(res, 'Bu iş emrinde bekleyen bir devralma talebi bulunmuyor.', 400);
+    }
+
+    const requestingUser = await prisma.user.findFirst({
+      where: { id: order.takeoverRequestedById, companyId: req.company.id },
+      select: { id: true, fullName: true, role: true },
+    });
+
+    if (action === 'APPROVE') {
+      const updated = await prisma.workOrder.update({
+        where: { id: req.params.id },
+        data: {
+          userId: order.takeoverRequestedById,
+          previousUserId: order.userId,
+          isApproved: true,
+          approvedById: req.user.id,
+          approvedAt: new Date(),
+          takeoverRequestedById: null,
+          takeoverRequestedAt: null,
+        },
+        include: {
+          user: { select: { id: true, fullName: true, role: true } },
+        },
+      });
+      return success(res, updated, `Devralma talebi onaylandı. İş emri "${requestingUser?.fullName || 'Teknisyen'}" üzerine devredildi.`);
+    } else {
+      const updated = await prisma.workOrder.update({
+        where: { id: req.params.id },
+        data: {
+          takeoverRequestedById: null,
+          takeoverRequestedAt: null,
+        },
+      });
+      return success(res, updated, 'Devralma talebi reddedildi.');
+    }
   } catch (err) {
     next(err);
   }

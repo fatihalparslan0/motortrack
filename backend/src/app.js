@@ -36,7 +36,7 @@ app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(compression());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: process.env.NODE_ENV === 'development' ? true : (process.env.FRONTEND_URL || '*'),
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -44,23 +44,27 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 dakika
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Çok fazla istek gönderildi, lütfen daha sonra tekrar deneyin.' },
-});
+const isDev = process.env.NODE_ENV === 'development';
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: { error: 'Çok fazla giriş denemesi, lütfen 15 dakika bekleyin.' },
-});
+if (!isDev) {
+  const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 dakika
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Çok fazla istek gönderildi, lütfen daha sonra tekrar deneyin.' },
+  });
 
-app.use('/api', generalLimiter);
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { error: 'Çok fazla giriş denemesi, lütfen 15 dakika bekleyin.' },
+  });
+
+  app.use('/api', generalLimiter);
+  app.use('/api/auth/login', authLimiter);
+  app.use('/api/auth/register', authLimiter);
+}
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
@@ -77,7 +81,7 @@ app.use('/api/cash', cashRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
-app.get('/health', (req, res) => {
+app.get(['/health', '/api/health'], (req, res) => {
   res.json({
     status: 'OK',
     version: '1.0.0',

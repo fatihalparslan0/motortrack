@@ -129,26 +129,6 @@ export default function UsersManagementScreen() {
   const queryClient = useQueryClient();
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
 
-  if (!isAdmin) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl }}>
-        <Text style={{ fontSize: 56, marginBottom: Spacing.md }}>🔒</Text>
-        <Text style={{ fontSize: Typography.fontSize.xl, fontWeight: '800', color: theme.textPrimary, marginBottom: Spacing.xs, textAlign: 'center' }}>
-          Yetkisiz Erişim
-        </Text>
-        <Text style={{ color: theme.textSecondary, textAlign: 'center', marginBottom: Spacing.xl, fontSize: Typography.fontSize.sm, lineHeight: 20 }}>
-          Kullanıcı ve personel yetki yönetimi sadece Şirket Yöneticisi yetkisine açıktır.
-        </Text>
-        <TouchableOpacity
-          style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: BorderRadius.md }}
-          onPress={() => router.back()}
-        >
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.sm }}>Geri Dön</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
   const handleLogout = () => {
     Alert.alert(
       'Çıkış Yap',
@@ -160,9 +140,10 @@ export default function UsersManagementScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await logout();
               router.replace('/(auth)/login');
+              await logout();
             } catch (err) {
+              console.error('Logout error:', err);
               router.replace('/(auth)/login');
             }
           },
@@ -394,6 +375,10 @@ export default function UsersManagementScreen() {
     const inactive = users.filter((u) => !u.isActive).length;
     return { total, admins, managers, techs, inactive };
   }, [users]);
+
+  if (!currentUser) {
+    return null;
+  }
 
   if (!isAdmin) {
     return (

@@ -13,6 +13,7 @@ import { useAppTheme } from '../../src/hooks/useAppTheme';
 
 import { DatePickerField } from '../../src/components/ui/DatePickerField';
 import { SearchableSelect } from '../../src/components/ui/SearchableSelect';
+import { formatPlateTR, POPULAR_BRANDS, getModelsForBrand } from '../../src/utils/vehicle';
 
 const TYPES = [
   { value: 'PREVENTIVE', label: '🛡️ Önleyici' },
@@ -33,44 +34,13 @@ const VEHICLE_TYPES = [
   { value: 'MOTOR', label: '🏍️ Motosiklet' },
 ];
 
-const CAR_BRANDS = [
-  { id: 'Volvo', label: 'Volvo' },
-  { id: 'Scania', label: 'Scania' },
-  { id: 'Mercedes-Benz', label: 'Mercedes-Benz' },
-  { id: 'MAN', label: 'MAN' },
-  { id: 'Ford', label: 'Ford' },
-  { id: 'Renault', label: 'Renault' },
-  { id: 'DAF', label: 'DAF' },
-  { id: 'Iveco', label: 'Iveco' },
-  { id: 'BMC', label: 'BMC' },
-  { id: 'Isuzu', label: 'Isuzu' },
-  { id: 'Fiat', label: 'Fiat' },
-  { id: 'Volkswagen', label: 'Volkswagen' },
-];
+const CAR_BRANDS = POPULAR_BRANDS
+  .filter(b => b.vehicleType === 'CAR' || b.vehicleType === 'BOTH')
+  .map(b => ({ id: b.name, label: b.name, subtitle: b.category }));
 
-const MOTOR_BRANDS = [
-  { id: 'Yamaha', label: 'Yamaha' },
-  { id: 'Honda', label: 'Honda' },
-  { id: 'Suzuki', label: 'Suzuki' },
-  { id: 'Kawasaki', label: 'Kawasaki' },
-  { id: 'Ducati', label: 'Ducati' },
-  { id: 'BMW', label: 'BMW' },
-  { id: 'Triumph', label: 'Triumph' },
-  { id: 'KTM', label: 'KTM' },
-  { id: 'Harley-Davidson', label: 'Harley-Davidson' },
-];
-
-const MODELS_BY_BRAND: Record<string, { id: string, label: string }[]> = {
-  'Volvo': [{ id: 'FH', label: 'FH' }, { id: 'FMX', label: 'FMX' }, { id: 'FM', label: 'FM' }],
-  'Scania': [{ id: 'R Serisi', label: 'R Serisi' }, { id: 'S Serisi', label: 'S Serisi' }, { id: 'G Serisi', label: 'G Serisi' }],
-  'Mercedes-Benz': [{ id: 'Actros', label: 'Actros' }, { id: 'Arocs', label: 'Arocs' }, { id: 'Atego', label: 'Atego' }, { id: 'Sprinter', label: 'Sprinter' }],
-  'Ford': [{ id: 'F-MAX', label: 'F-MAX' }, { id: 'Cargo', label: 'Cargo' }, { id: 'Transit', label: 'Transit' }],
-  'Renault': [{ id: 'T Serisi', label: 'T Serisi' }, { id: 'K Serisi', label: 'K Serisi' }, { id: 'Master', label: 'Master' }],
-  'Fiat': [{ id: 'Ducato', label: 'Ducato' }, { id: 'Fiorino', label: 'Fiorino' }, { id: 'Doblo', label: 'Doblo' }],
-  'Volkswagen': [{ id: 'Crafter', label: 'Crafter' }, { id: 'Transporter', label: 'Transporter' }, { id: 'Caddy', label: 'Caddy' }],
-  'Yamaha': [{ id: 'MT-07', label: 'MT-07' }, { id: 'MT-09', label: 'MT-09' }, { id: 'R25', label: 'R25' }, { id: 'NMAX', label: 'NMAX' }, { id: 'XMAX', label: 'XMAX' }],
-  'Honda': [{ id: 'CBR650R', label: 'CBR650R' }, { id: 'PCX', label: 'PCX' }, { id: 'Dio', label: 'Dio' }, { id: 'Forza', label: 'Forza' }],
-};
+const MOTOR_BRANDS = POPULAR_BRANDS
+  .filter(b => b.vehicleType === 'MOTO' || b.vehicleType === 'BOTH')
+  .map(b => ({ id: b.name, label: b.name, subtitle: b.category }));
 
 const formatPhone = (val: string) => {
   const numeric = val.replace(/\D/g, '');
@@ -109,7 +79,10 @@ export default function CreateMaintenanceScreen() {
   const update = (field: string, value: string) => setForm(p => ({ ...p, [field]: value }));
 
   const brandOptions = form.vehicleType === 'CAR' ? CAR_BRANDS : MOTOR_BRANDS;
-  const modelOptions = form.brand && MODELS_BY_BRAND[form.brand] ? MODELS_BY_BRAND[form.brand] : [];
+  const modelOptions = useMemo(() => {
+    if (!form.brand) return [];
+    return getModelsForBrand(form.brand).map(m => ({ id: m, label: m }));
+  }, [form.brand]);
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -252,14 +225,15 @@ export default function CreateMaintenanceScreen() {
               </View>
             </View>
             <View style={[{ borderTopWidth: 1, borderTopColor: theme.border }, dynamicStyles.inputWrapper]}>
-              <Text style={dynamicStyles.inputLabel}>Plaka</Text>
+              <Text style={dynamicStyles.inputLabel}>Plaka (TR Standartı)</Text>
               <TextInput 
                 style={dynamicStyles.input} 
                 value={form.plate} 
-                onChangeText={v => update('plate', v)} 
+                onChangeText={v => update('plate', formatPlateTR(v))} 
                 placeholder="34 ABC 123" 
                 placeholderTextColor={theme.textMuted} 
                 autoCapitalize="characters"
+                maxLength={11}
               />
             </View>
           </View>

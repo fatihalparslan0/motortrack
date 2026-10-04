@@ -15,6 +15,7 @@ import {
   Clock, Calendar, Wrench, ShieldCheck, FileText, CheckCircle2, History
 } from 'lucide-react-native';
 import { openWhatsApp } from '../../src/utils/whatsapp';
+import { parseVehicleInfo, formatPlateTR } from '../../src/utils/vehicle';
 
 const SUGGESTED_PLATES = ['34 ABC 789', '35 YMH 12', '06 KWS 90', '34 BMW 125', '16 KTM 39'];
 
@@ -125,10 +126,11 @@ export default function PlateHistoryScreen() {
             placeholder="34 ABC 123"
             placeholderTextColor="#94A3B8"
             value={plateInput}
-            onChangeText={setPlateInput}
+            onChangeText={v => setPlateInput(formatPlateTR(v))}
             onSubmitEditing={() => handleSearch(plateInput)}
             returnKeyType="search"
             autoCapitalize="characters"
+            maxLength={11}
           />
 
           <TouchableOpacity
@@ -321,7 +323,21 @@ export default function PlateHistoryScreen() {
                 marginBottom: Spacing.lg,
                 ...Shadows.sm,
               }}
-              onPress={() => router.push('/work-orders/create' as any)}
+              onPress={() => {
+                const parsed = parseVehicleInfo(result?.vehicleInfo, result?.plate || searchedPlate);
+                router.push({
+                  pathname: '/work-orders/create',
+                  params: {
+                    plate: parsed.plate || result?.plate || searchedPlate,
+                    customerName: result?.customerName || '',
+                    customerPhone: result?.customerPhone || '',
+                    vehicleBrand: parsed.brand || '',
+                    vehicleModel: parsed.model || '',
+                    vehicleInfo: result?.vehicleInfo || '',
+                    prefilled: 'true',
+                  },
+                } as any);
+              }}
             >
               <Plus size={18} color="#fff" />
               <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.sm }}>
@@ -509,7 +525,15 @@ export default function PlateHistoryScreen() {
                 paddingVertical: 12,
                 borderRadius: BorderRadius.full,
               }}
-              onPress={() => router.push('/work-orders/create' as any)}
+              onPress={() => {
+                router.push({
+                  pathname: '/work-orders/create',
+                  params: {
+                    plate: searchedPlate.trim().toUpperCase(),
+                    prefilled: 'true',
+                  },
+                } as any);
+              }}
             >
               <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.sm }}>
                 ➕ Bu Plakaya İlk İş Emrini Aç

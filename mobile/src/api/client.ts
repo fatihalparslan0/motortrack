@@ -1,7 +1,25 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
+function getApiBaseUrl(): string {
+  // If running in Expo Go or dev client, hostUri contains the IP of the dev machine
+  const hostUri = Constants.expoConfig?.hostUri || (Constants as any)?.manifest2?.extra?.expoGo?.debuggerHost;
+  if (hostUri) {
+    const ip = hostUri.split(':')[0];
+    if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+      return `http://${ip}:3000/api`;
+    }
+  }
+
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  return 'http://localhost:3000/api';
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -245,6 +263,11 @@ export const workOrderAPI = {
     apiClient.patch(`/work-orders/${orderId}/items/${itemId}/status`, { status }),
   removeItem: (orderId: string, itemId: string) =>
     apiClient.delete(`/work-orders/${orderId}/items/${itemId}`),
+  assign: (id: string, userId: string) => apiClient.patch(`/work-orders/${id}/assign`, { userId }),
+  approve: (id: string) => apiClient.patch(`/work-orders/${id}/approve`),
+  claim: (id: string) => apiClient.post(`/work-orders/${id}/claim`),
+  requestTakeover: (id: string) => apiClient.post(`/work-orders/${id}/takeover-request`),
+  respondTakeover: (id: string, action: 'APPROVE' | 'REJECT') => apiClient.post(`/work-orders/${id}/takeover-respond`, { action }),
 };
 
 export const uploadAPI = {

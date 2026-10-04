@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { workOrderAPI } from '../../api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -112,6 +112,40 @@ function WorkOrderCard({ order, onPress, theme, currentUserId }: any) {
           </View>
         )}
 
+        {order.isApproved === false && (
+          <View
+            style={{
+              backgroundColor: '#FEF3C7',
+              borderColor: '#F59E0B',
+              borderWidth: 1,
+              paddingHorizontal: 7,
+              paddingVertical: 2,
+              borderRadius: BorderRadius.full,
+            }}
+          >
+            <Text style={{ fontSize: 10, fontWeight: '800', color: '#B45309' }}>
+              ⏳ Onay Bekliyor
+            </Text>
+          </View>
+        )}
+
+        {Boolean(order.takeoverRequestedById) && (
+          <View
+            style={{
+              backgroundColor: '#EFF6FF',
+              borderColor: '#3B82F6',
+              borderWidth: 1,
+              paddingHorizontal: 7,
+              paddingVertical: 2,
+              borderRadius: BorderRadius.full,
+            }}
+          >
+            <Text style={{ fontSize: 10, fontWeight: '800', color: '#1D4ED8' }}>
+              🔔 Devir Talebi
+            </Text>
+          </View>
+        )}
+
         {order.user?.fullName && (
           <View
             style={{
@@ -190,10 +224,17 @@ export default function WorkOrdersTab() {
     placeholderData: (prev) => prev,
   });
 
-  const { data: statsData } = useQuery({
+  const { data: statsData, refetch: refetchStats } = useQuery({
     queryKey: ['workOrderStats'],
     queryFn: () => workOrderAPI.getStats(),
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      refetchStats();
+    }, [refetch, refetchStats])
+  );
 
   const orders: any[] = (data as any)?.data || [];
   const stats = (statsData as any)?.data;

@@ -20,6 +20,13 @@ router.post('/', [
 router.put('/:id', ctrl.updateWorkOrder);
 router.delete('/:id', authorize('ADMIN', 'MANAGER'), ctrl.deleteWorkOrder);
 
+// Personel Atama & Yönetici Onay Yönetimi
+router.patch('/:id/assign', authorize('ADMIN', 'MANAGER'), ctrl.assignWorkOrder);
+router.patch('/:id/approve', authorize('ADMIN', 'MANAGER'), ctrl.approveWorkOrder);
+router.post('/:id/claim', ctrl.claimWorkOrder);
+router.post('/:id/takeover-request', ctrl.requestWorkOrderTakeover);
+router.post('/:id/takeover-respond', authorize('ADMIN', 'MANAGER'), ctrl.respondWorkOrderTakeover);
+
 // Ödeme ve Veresiye Yönetimi (Sadece Yönetici / Admin)
 router.patch('/:id/payment', authorize('ADMIN', 'MANAGER'), ctrl.updateWorkOrderPayment);
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   RefreshControl, ActivityIndicator, Alert, Modal, TextInput,
@@ -7,7 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import {
   Package, AlertTriangle, TrendingUp, TrendingDown,
   Plus, ArrowDownCircle, ArrowUpCircle, ChevronRight, Warehouse,
@@ -1334,6 +1334,12 @@ export default function WarehouseTab() {
     queryFn: () => supplierAPI.getSummary(),
     enabled: !isTechnician,
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   const stats = (statsData as any)?.data;
   const supplierSummary = (supplierSummaryData as any)?.data;

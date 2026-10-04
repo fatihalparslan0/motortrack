@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, RefreshControl, ScrollView
@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { partsAPI } from '../../api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -88,10 +88,17 @@ export default function PartsScreen() {
     placeholderData: (prev) => prev,
   });
 
-  const { data: statsData } = useQuery({
+  const { data: statsData, refetch: refetchStats } = useQuery({
     queryKey: ['partStats'],
     queryFn: () => partsAPI.getStats(),
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      refetchStats();
+    }, [refetch, refetchStats])
+  );
 
   const parts = (data as any)?.data || [];
   const stats = (statsData as any)?.data;

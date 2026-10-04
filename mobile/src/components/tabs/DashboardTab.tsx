@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   RefreshControl, Alert, Modal, Platform,
@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useAuthStore } from '../../store/auth.store';
 import { useThemeStore } from '../../store/theme.store';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -111,7 +111,13 @@ export default function Dashboard() {
   });
 
   const isLoading = l1 || l2 || l3 || l4 || l5;
-  const refetch = () => { r1(); r2(); r3(); r4(); r5(); };
+  const refetch = useCallback(() => { r1(); r2(); r3(); r4(); r5(); }, [r1, r2, r3, r4, r5]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   const ms = (motorStats as any)?.data;
   const ps = (partStats as any)?.data;

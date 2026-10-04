@@ -33,7 +33,8 @@ export default function LoginScreen() {
       await login(email.trim().toLowerCase(), password);
       router.replace('/(tabs)');
     } catch (err: any) {
-      Alert.alert('Giriş Hatası', err?.message || 'E-posta veya şifre hatalı.');
+      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'E-posta veya şifre hatalı.';
+      Alert.alert('Giriş Hatası', msg);
     } finally {
       setLoading(false);
     }
@@ -150,7 +151,8 @@ export default function LoginScreen() {
                       await login('admin@motortrack.com', 'Demo1234!');
                       router.replace('/(tabs)');
                     } catch (err: any) {
-                      Alert.alert('Giriş Hatası', err?.message || 'Giriş yapılamadı.');
+                      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Giriş yapılamadı.';
+                      Alert.alert('Giriş Hatası', msg);
                     } finally {
                       setLoading(false);
                     }
@@ -171,7 +173,8 @@ export default function LoginScreen() {
                       await login('teknisyen@motortrack.com', 'Demo1234!');
                       router.replace('/(tabs)');
                     } catch (err: any) {
-                      Alert.alert('Giriş Hatası', err?.message || 'Giriş yapılamadı.');
+                      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Giriş yapılamadı.';
+                      Alert.alert('Giriş Hatası', msg);
                     } finally {
                       setLoading(false);
                     }

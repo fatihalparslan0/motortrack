@@ -348,7 +348,9 @@ model PurchaseRecord {
 model WorkOrder {
   id            String          @id @default(uuid())
   companyId     String
-  userId        String
+  userId        String          // Sorumlu / zimmetli kullanıcı
+  creatorId     String?         // İş emrini oluşturan asıl kullanıcı
+  previousUserId String?        // Başlatılmadan önceki asıl sahip (geri alınınca iade etmek için)
   title         String
   description   String?
   customerName  String?
@@ -361,6 +363,13 @@ model WorkOrder {
   completedAt   DateTime?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+
+  // Yönetici Onayı & Personel Devralma / Zimmet Yönetimi
+  isApproved            Boolean   @default(true)
+  approvedById          String?
+  approvedAt            DateTime?
+  takeoverRequestedById String?
+  takeoverRequestedAt   DateTime?
 
   // Ödeme ve Veresiye Takibi
   paymentStatus PaymentStatus   @default(BEKLIYOR)
