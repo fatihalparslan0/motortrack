@@ -2834,7 +2834,8 @@ export default function WorkOrderDetailScreen() {
     );
   }
 
-  const isOwnerOrAdmin = !isTech || order?.userId === user?.id;
+  const isAnotherTech = isTech && order?.userId && order?.userId !== user?.id && order?.user?.role === 'TECHNICIAN';
+  const isOwnerOrAdmin = !isAnotherTech;
 
   const statusColor = STATUS_COLORS[order.status] || '#94A3B8';
 

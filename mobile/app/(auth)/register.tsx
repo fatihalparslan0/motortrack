@@ -42,7 +42,7 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await register(form);
-      router.replace('/(tabs)');
+      router.replace('/paywall' as any);
     } catch (err: any) {
       Alert.alert('Kayıt Hatası', err?.message || 'Bir hata oluştu, lütfen tekrar deneyin.');
     } finally {
@@ -74,7 +74,7 @@ export default function RegisterScreen() {
 
           <View style={dynamicStyles.header}>
             <Text style={dynamicStyles.title}>Hesap Oluştur</Text>
-            <Text style={dynamicStyles.subtitle}>14 gün ücretsiz deneyin, kredi kartı gerekmez</Text>
+            <Text style={dynamicStyles.subtitle}>3 gün ücretsiz deneyin, kredi kartı gerekmez</Text>
           </View>
 
           <View style={dynamicStyles.trialBadge}>
@@ -82,7 +82,7 @@ export default function RegisterScreen() {
               colors={['rgba(99,102,241,0.2)', 'rgba(99,102,241,0.1)']}
               style={dynamicStyles.trialBadgeInner}
             >
-              <Text style={dynamicStyles.trialBadgeText}>🎉 14 Gün Ücretsiz Deneme</Text>
+              <Text style={dynamicStyles.trialBadgeText}>🎉 3 Gün Ücretsiz Deneme</Text>
             </LinearGradient>
           </View>
 

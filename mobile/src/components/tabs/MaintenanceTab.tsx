@@ -38,8 +38,8 @@ function MaintenanceCard({ record, onPress, theme }: any) {
         <Text style={dynamicStyles.typeEmoji}>{type.emoji}</Text>
         <View style={dynamicStyles.cardInfo}>
           <Text style={dynamicStyles.title}>{record.title}</Text>
-          {record.customerInfo && <Text style={dynamicStyles.infoText}>👤 {record.customerInfo}</Text>}
-          {record.vehicleInfo && <Text style={dynamicStyles.infoText}>🚗 {record.vehicleInfo}</Text>}
+          {Boolean(record.customerInfo) && <Text style={dynamicStyles.infoText}>👤 {record.customerInfo}</Text>}
+          {Boolean(record.vehicleInfo) && <Text style={dynamicStyles.infoText}>🚗 {record.vehicleInfo}</Text>}
           {(!record.customerInfo && !record.vehicleInfo) && (
             <Text style={dynamicStyles.motor}>⚙️ {record.motor?.brand} {record.motor?.model}</Text>
           )}
@@ -52,12 +52,12 @@ function MaintenanceCard({ record, onPress, theme }: any) {
         <Text style={dynamicStyles.date}>
           📅 {new Date(record.performedAt).toLocaleDateString('tr-TR')} (Alınan)
         </Text>
-        {record.nextMaintenanceDate && (
+        {Boolean(record.nextMaintenanceDate) && (
           <Text style={dynamicStyles.nextDate}>
             ⏭️ Teslim: {new Date(record.nextMaintenanceDate).toLocaleDateString('tr-TR')}
           </Text>
         )}
-        {record.cost && <Text style={dynamicStyles.cost}>💰 ₺{parseFloat(record.cost).toLocaleString('tr-TR')}</Text>}
+        {Boolean(record.cost) && <Text style={dynamicStyles.cost}>💰 ₺{parseFloat(record.cost).toLocaleString('tr-TR')}</Text>}
       </View>
     </TouchableOpacity>
   );

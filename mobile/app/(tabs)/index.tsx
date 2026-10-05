@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import PagerView from 'react-native-pager-view';
+import { TabPager, TabPagerRef } from '../../src/components/common/TabPager';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { useTabStore } from '../../src/store/tab.store';
 import { LayoutDashboard, ClipboardList, Package, Warehouse } from 'lucide-react-native';
@@ -21,7 +21,7 @@ const TABS = [
 export default function MainTabs() {
   const { colors } = useAppTheme();
   const { activeTab, setActiveTab } = useTabStore();
-  const pagerRef = useRef<PagerView>(null);
+  const pagerRef = useRef<TabPagerRef>(null);
 
   useEffect(() => {
     pagerRef.current?.setPage(activeTab);
@@ -29,25 +29,16 @@ export default function MainTabs() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['bottom']}>
-      <PagerView
+      <TabPager
         ref={pagerRef}
-        style={{ flex: 1 }}
         initialPage={0}
-        onPageSelected={(e) => setActiveTab(e.nativeEvent.position)}
+        onPageSelected={(index) => setActiveTab(index)}
       >
-        <View key="1" style={{ flex: 1 }}>
-          <DashboardTab />
-        </View>
-        <View key="2" style={{ flex: 1 }}>
-          <WorkOrdersTab />
-        </View>
-        <View key="3" style={{ flex: 1 }}>
-          <PartsTab />
-        </View>
-        <View key="4" style={{ flex: 1 }}>
-          <WarehouseTab />
-        </View>
-      </PagerView>
+        <DashboardTab />
+        <WorkOrdersTab />
+        <PartsTab />
+        <WarehouseTab />
+      </TabPager>
 
       <View style={[styles.tabBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         {TABS.map((tab, index) => {

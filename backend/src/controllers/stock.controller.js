@@ -232,6 +232,10 @@ exports.stockOut = async (req, res, next) => {
     const isWorkshopConsumable = reason === 'ATOLYE_SARFI' || reason === 'SARF';
     const movementType = movementTypeMap[reason] || 'OUT';
 
+    if (req.user.role === 'TECHNICIAN' && isSupplierReturn) {
+      return error(res, 'Tedarikçiye parça iade işlemi sadece Yönetici ve Admin yetkisine açıktır.', 403);
+    }
+
     const warehouse = warehouseId 
       ? await prisma.warehouse.findFirst({ where: { id: warehouseId, companyId: req.company.id } }) 
       : await prisma.warehouse.findFirst({ where: { isDefault: true, companyId: req.company.id } });
@@ -572,7 +576,7 @@ exports.getMovements = async (req, res, next) => {
         },
         user: { select: { id: true, fullName: true, role: true } },
         warehouse: { select: { id: true, name: true, type: true } },
-        motor: { select: { id: true, plate: true, brand: true, model: true } },
+        motor: { select: { id: true, serialNumber: true, brand: true, model: true } },
       },
     });
 

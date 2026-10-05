@@ -14,15 +14,15 @@ router.post('/purchase', authorize('ADMIN', 'MANAGER'), [
   body('unitCost').isFloat({ min: 0 }).withMessage('Alış fiyatı 0 veya daha fazla olmalı.'),
 ], validate, ctrl.purchaseStock);
 
-// Manuel stok çıkışı (Sadece Admin ve Manager)
-router.post('/out', authorize('ADMIN', 'MANAGER'), [
+// Manuel stok çıkışı (Admin, Manager ve Teknisyen)
+router.post('/out', authorize('ADMIN', 'MANAGER', 'TECHNICIAN'), [
   body('partId').notEmpty().withMessage('Parça ID zorunludur.'),
   body('quantity').isInt({ min: 1 }).withMessage('Miktar en az 1 olmalı.'),
   body('reason').isIn(['FIRE', 'SATIS', 'DUZELTME', 'ATOLYE_SARFI', 'SARF', 'IADE', 'TEDARIKCIYE_IADE', 'OUT']).withMessage('Geçerli bir sebep seçin.'),
 ], validate, ctrl.stockOut);
 
-// Atölye Hızlı Sarfiyat Toplu Çıkışı (Sadece Admin ve Manager)
-router.post('/batch-consume', authorize('ADMIN', 'MANAGER'), [
+// Atölye Hızlı Sarfiyat Toplu Çıkışı (Admin, Manager ve Teknisyen)
+router.post('/batch-consume', authorize('ADMIN', 'MANAGER', 'TECHNICIAN'), [
   body('items').isArray({ min: 1 }).withMessage('En az bir sarf malzemesi girilmelidir.'),
 ], validate, ctrl.batchConsumeWorkshop);
 

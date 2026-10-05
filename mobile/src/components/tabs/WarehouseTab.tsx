@@ -160,7 +160,7 @@ function StockInModal({ visible, onClose, theme }: any) {
                     >
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: theme.textPrimary, fontWeight: '600' }}>{p.name}</Text>
-                        {p.brand && <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs }}>{p.brand}</Text>}
+                        {Boolean(p.brand) && <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs }}>{p.brand}</Text>}
                       </View>
                       <Text style={{ color: theme.primary, fontSize: Typography.fontSize.sm, fontWeight: '700' }}>{p.quantity} {p.unit}</Text>
                     </TouchableOpacity>
@@ -420,7 +420,7 @@ function StockOutModal({ visible, onClose, theme }: any) {
                     >
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: theme.textPrimary, fontWeight: '600' }}>{p.name}</Text>
-                        {p.brand && <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs }}>{p.brand}</Text>}
+                        {Boolean(p.brand) && <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.xs }}>{p.brand}</Text>}
                       </View>
                       <Text style={{ color: theme.textMuted, fontSize: Typography.fontSize.sm }}>
                         {p.quantity - (p.reservedQuantity || 0)} {p.unit}
@@ -659,7 +659,7 @@ function StockTransferModal({ visible, onClose, theme }: any) {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#6366F1', fontWeight: '800', fontSize: Typography.fontSize.base }}>{selectedPart.name}</Text>
-                  {selectedPart.brand && <Text style={{ color: theme.textSecondary, fontSize: Typography.fontSize.xs }}>{selectedPart.brand}</Text>}
+                  {Boolean(selectedPart.brand) && <Text style={{ color: theme.textSecondary, fontSize: Typography.fontSize.xs }}>{selectedPart.brand}</Text>}
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 6 }}>
                     <Text style={{ color: sourceQty > 0 ? theme.success : theme.danger, fontWeight: '700', fontSize: Typography.fontSize.xs }}>
                       📍 {fromWarehouseName} Mevcut: {sourceQty} {selectedPart.unit}
@@ -1308,6 +1308,251 @@ function QuickConsumablesModal({ visible, onClose, theme }: any) {
   );
 }
 
+// ─── Çıkma Parça Envantere Alma Modalı (Sanayi Çıkma Deposu) ─────────────────
+function QuickSalvageModal({ visible, onClose, theme }: any) {
+  const queryClient = useQueryClient();
+  const [partName, setPartName] = useState('');
+  const [vehicleInfo, setVehicleInfo] = useState('');
+  const [category, setCategory] = useState('Motor');
+  const [warehouseId, setWarehouseId] = useState('');
+  const [quantity, setQuantity] = useState('1');
+  const [sellingPrice, setSellingPrice] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const { data: warehousesData } = useQuery({
+    queryKey: ['warehouses'],
+    queryFn: () => warehouseAPI.getAll(),
+    enabled: visible,
+  });
+
+  const warehouses: any[] = (warehousesData as any)?.data || [];
+
+  useEffect(() => {
+    if (visible && warehouses.length > 0 && !warehouseId) {
+      const def = warehouses.find((w: any) => w.isDefault) || warehouses[0];
+      setWarehouseId(def.id);
+    }
+  }, [visible, warehouses, warehouseId]);
+
+  const salvageMutation = useMutation({
+    mutationFn: async () => {
+      if (!partName.trim()) throw new Error('Lütfen parça adını girin.');
+      const qty = parseInt(quantity) || 1;
+      const sPrice = sellingPrice ? parseFloat(sellingPrice.replace(/\./g, '').replace(',', '.')) : 0;
+
+      return await partsAPI.create({
+        name: partName.trim(),
+        condition: 'USED',
+        category: category || 'Çıkma / İkinci El',
+        quantity: qty,
+        unit: 'adet',
+        purchasePrice: 0,
+        sellingPrice: sPrice,
+        warehouseId: warehouseId || undefined,
+        notes: `${vehicleInfo ? `Araç: ${vehicleInfo}. ` : ''}${notes}`.trim(),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouseStats'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      Alert.alert('♻️ Çıkma Parça Kaydedildi', 'Araçtan sökülen çıkma parça 0 TL maliyetle depo envanterinize eklendi.');
+      setPartName('');
+      setVehicleInfo('');
+      setSellingPrice('');
+      setNotes('');
+      setQuantity('1');
+      onClose();
+    },
+    onError: (err: any) => {
+      Alert.alert('Hata', err?.response?.data?.error || err?.message || 'Çıkma parça kaydedilemedi.');
+    },
+  });
+
+  const CATEGORIES = ['Motor', 'Fren', 'Elektrik', 'Şanzıman', 'Kaporta', 'Filtre', 'Diğer'];
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: theme.background }}>
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+            <View>
+              <Text style={{ fontSize: Typography.fontSize.lg, fontWeight: '800', color: theme.textPrimary }}>
+                ♻️ Çıkma Parça Envantere Al
+              </Text>
+              <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textSecondary, marginTop: 2 }}>
+                Sökülen parçayı 0 TL maliyetle depoya ekleyin
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={{ color: theme.primary, fontWeight: '700' }}>Kapat</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md }}>
+            <View style={{ backgroundColor: '#ECFDF5', borderWidth: 1, borderColor: '#A7F3D0', borderRadius: BorderRadius.md, padding: Spacing.md }}>
+              <Text style={{ color: '#065F46', fontSize: Typography.fontSize.xs, lineHeight: 18 }}>
+                💡 <Text style={{ fontWeight: '700' }}>Sanayi Çıkma Parça Pratiği:</Text> Araçlardan sağlam çıkan marş motoru, alternatör, kaliper veya grenaj gibi parçaları burada depoya kaydedebilir, dükkanda başka müşterilerinize uygun fiyata takabilirsiniz.
+              </Text>
+            </View>
+
+            <View>
+              <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 6, textTransform: 'uppercase' }}>
+                Parça Adı *
+              </Text>
+              <TextInput
+                style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary, fontSize: Typography.fontSize.base }}
+                placeholder="Örn: Çıkma Marş Motoru"
+                placeholderTextColor={theme.textMuted}
+                value={partName}
+                onChangeText={setPartName}
+              />
+            </View>
+
+            <View>
+              <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 6, textTransform: 'uppercase' }}>
+                Hangi Araçtan Söküldü? (Model / Plaka)
+              </Text>
+              <TextInput
+                style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary, fontSize: Typography.fontSize.base }}
+                placeholder="Örn: Honda PCX 125 veya 34 ABC 123"
+                placeholderTextColor={theme.textMuted}
+                value={vehicleInfo}
+                onChangeText={setVehicleInfo}
+              />
+            </View>
+
+            <View>
+              <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 6, textTransform: 'uppercase' }}>
+                Kategori
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                {CATEGORIES.map(cat => {
+                  const isSel = category === cat;
+                  return (
+                    <TouchableOpacity
+                      key={cat}
+                      onPress={() => setCategory(cat)}
+                      style={{
+                        paddingHorizontal: Spacing.md,
+                        paddingVertical: 7,
+                        borderRadius: BorderRadius.full,
+                        borderWidth: 1,
+                        borderColor: isSel ? '#059669' : theme.border,
+                        backgroundColor: isSel ? '#ECFDF5' : theme.surface,
+                      }}
+                    >
+                      <Text style={{ color: isSel ? '#065F46' : theme.textSecondary, fontWeight: isSel ? '700' : '400', fontSize: Typography.fontSize.xs }}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: Spacing.md }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 6, textTransform: 'uppercase' }}>
+                  Adet
+                </Text>
+                <TextInput
+                  style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary, fontSize: Typography.fontSize.base }}
+                  keyboardType="number-pad"
+                  value={quantity}
+                  onChangeText={setQuantity}
+                />
+              </View>
+
+              <View style={{ flex: 1.5 }}>
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 6, textTransform: 'uppercase' }}>
+                  Öngörülen Satış Fiyatı (₺)
+                </Text>
+                <TextInput
+                  style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary, fontSize: Typography.fontSize.base }}
+                  placeholder="0,00"
+                  placeholderTextColor={theme.textMuted}
+                  keyboardType="decimal-pad"
+                  value={sellingPrice}
+                  onChangeText={setSellingPrice}
+                />
+              </View>
+            </View>
+
+            {warehouses.length > 0 && (
+              <View>
+                <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 6, textTransform: 'uppercase' }}>
+                  Giriş Yapılacak Depo
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {warehouses.map((w: any) => {
+                    const isSel = warehouseId === w.id;
+                    return (
+                      <TouchableOpacity
+                        key={w.id}
+                        onPress={() => setWarehouseId(w.id)}
+                        style={{
+                          paddingHorizontal: Spacing.md,
+                          paddingVertical: 7,
+                          borderRadius: BorderRadius.full,
+                          borderWidth: 1,
+                          borderColor: isSel ? theme.primary : theme.border,
+                          backgroundColor: isSel ? theme.primary + '15' : theme.surface,
+                        }}
+                      >
+                        <Text style={{ color: isSel ? theme.primary : theme.textSecondary, fontWeight: isSel ? '700' : '400', fontSize: Typography.fontSize.xs }}>
+                          {w.name} {w.isDefault ? '⭐' : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
+            <View>
+              <Text style={{ fontSize: Typography.fontSize.xs, fontWeight: '700', color: theme.textSecondary, marginBottom: 6, textTransform: 'uppercase' }}>
+                Kondisyon / Not
+              </Text>
+              <TextInput
+                style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: BorderRadius.md, padding: Spacing.md, color: theme.textPrimary, fontSize: Typography.fontSize.base, minHeight: 60 }}
+                placeholder="Örn: Kömürleri sağlam, test edildi çalışıyor."
+                placeholderTextColor={theme.textMuted}
+                multiline
+                value={notes}
+                onChangeText={setNotes}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#059669',
+                borderRadius: BorderRadius.lg,
+                padding: Spacing.md,
+                alignItems: 'center',
+                marginTop: Spacing.sm,
+                marginBottom: Spacing.xl,
+                opacity: salvageMutation.isPending || !partName.trim() ? 0.6 : 1,
+              }}
+              onPress={() => salvageMutation.mutate()}
+              disabled={salvageMutation.isPending || !partName.trim()}
+            >
+              {salvageMutation.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: Typography.fontSize.base }}>
+                  ♻️ Çıkma Parçayı Depoya Ekle
+                </Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ─── Ana Depo Ekranı ─────────────────────────────────────────────────────────
 export default function WarehouseTab() {
   const { colors: theme } = useAppTheme();
@@ -1318,6 +1563,7 @@ export default function WarehouseTab() {
   const [showStockOut, setShowStockOut] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showQuickConsumables, setShowQuickConsumables] = useState(false);
+  const [showQuickSalvage, setShowQuickSalvage] = useState(false);
 
   const { data: statsData, isLoading, refetch } = useQuery({
     queryKey: ['warehouseStats'],
@@ -1485,6 +1731,15 @@ export default function WarehouseTab() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  style={[dynamicStyles.quickActionBtn, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}
+                  onPress={() => setShowQuickSalvage(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 24 }}>♻️</Text>
+                  <Text style={[dynamicStyles.quickActionLabel, { color: '#059669' }]}>ÇIKMA PARÇA</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
                   style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.danger + '15', borderColor: theme.danger + '40' }]}
                   onPress={() => setShowStockOut(true)}
                   activeOpacity={0.8}
@@ -1504,6 +1759,24 @@ export default function WarehouseTab() {
               </>
             ) : (
               <>
+                <TouchableOpacity
+                  style={[dynamicStyles.quickActionBtn, { backgroundColor: '#8B5CF615', borderColor: '#8B5CF640' }]}
+                  onPress={() => setShowQuickConsumables(true)}
+                  activeOpacity={0.8}
+                >
+                  <Wrench size={28} color="#8B5CF6" />
+                  <Text style={[dynamicStyles.quickActionLabel, { color: '#8B5CF6' }]}>🧰 HIZLI SARF</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[dynamicStyles.quickActionBtn, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}
+                  onPress={() => setShowQuickSalvage(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 24 }}>♻️</Text>
+                  <Text style={[dynamicStyles.quickActionLabel, { color: '#059669' }]}>ÇIKMA PARÇA</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={[dynamicStyles.quickActionBtn, { backgroundColor: theme.accent + '15', borderColor: theme.accent + '40' }]}
                   onPress={() => router.push('/warehouse/critical' as any)}
@@ -1563,7 +1836,7 @@ export default function WarehouseTab() {
                   <View style={[dynamicStyles.criticalIndicator, { backgroundColor: theme.danger }]} />
                   <View style={{ flex: 1 }}>
                     <Text style={dynamicStyles.criticalName}>{p.name}</Text>
-                    {p.brand && <Text style={dynamicStyles.criticalBrand}>{p.brand}</Text>}
+                    {Boolean(p.brand) && <Text style={dynamicStyles.criticalBrand}>{p.brand}</Text>}
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={[dynamicStyles.criticalQty, { color: theme.danger }]}>
@@ -1655,12 +1928,13 @@ export default function WarehouseTab() {
       </ScrollView>
 
       {/* Modals */}
+      <QuickConsumablesModal visible={showQuickConsumables} onClose={() => setShowQuickConsumables(false)} theme={theme} />
+      <QuickSalvageModal visible={showQuickSalvage} onClose={() => setShowQuickSalvage(false)} theme={theme} />
       {!isTechnician && (
         <>
           <StockInModal visible={showStockIn} onClose={() => setShowStockIn(false)} theme={theme} />
           <StockOutModal visible={showStockOut} onClose={() => setShowStockOut(false)} theme={theme} />
           <StockTransferModal visible={showTransfer} onClose={() => setShowTransfer(false)} theme={theme} />
-          <QuickConsumablesModal visible={showQuickConsumables} onClose={() => setShowQuickConsumables(false)} theme={theme} />
         </>
       )}
     </SafeAreaView>

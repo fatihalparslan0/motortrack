@@ -57,7 +57,7 @@ export default function LoginScreen() {
               <Text style={dynamicStyles.logoIcon}>⚙️</Text>
             </LinearGradient>
             <Text style={dynamicStyles.logoText}>MotorTrack</Text>
-            <Text style={dynamicStyles.tagline}>Motor & Parça Yönetim Sistemi</Text>
+            <Text style={dynamicStyles.tagline}>Oto Servis & Atölye Yönetim Sistemi</Text>
           </View>
 
           {/* Form */}
@@ -131,9 +131,15 @@ export default function LoginScreen() {
               </Text>
             </TouchableOpacity>
 
-            <Text style={dynamicStyles.trialNote}>
-              🎉 14 gün ücretsiz deneme — kredi kartı gerekmez
-            </Text>
+            <TouchableOpacity
+              onPress={() => router.push('/paywall' as any)}
+              activeOpacity={0.7}
+              style={{ alignItems: 'center' }}
+            >
+              <Text style={dynamicStyles.trialNote}>
+                🎉 3 gün ücretsiz deneme — Paketleri İncele →
+              </Text>
+            </TouchableOpacity>
 
             {/* Hızlı Demo Girişi */}
             <View style={{ marginTop: Spacing.lg, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: theme.border }}>

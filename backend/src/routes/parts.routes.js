@@ -13,7 +13,7 @@ router.get('/stats', partsController.getPartsStats);
 router.get('/:id', partsController.getPartById);
 router.get('/:id/movements', partsController.getPartMovements);
 
-router.post('/', authorize('ADMIN', 'MANAGER'), [
+router.post('/', authorize('ADMIN', 'MANAGER', 'TECHNICIAN'), [
   body('name').notEmpty().withMessage('Parça adı zorunludur.'),
   body('quantity').isInt({ min: 0 }).withMessage('Miktar 0 veya daha fazla olmalı.'),
 ], validate, partsController.createPart);

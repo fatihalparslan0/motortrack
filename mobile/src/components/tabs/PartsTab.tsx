@@ -29,31 +29,31 @@ function PartCard({ part, onPress, theme }: any) {
         </View>
         <View style={dynamicStyles.cardInfo}>
           <Text style={dynamicStyles.partName}>{part.name}</Text>
-          {part.brand && <Text style={dynamicStyles.brand}>{part.brand}</Text>}
-          {part.partNumber && <Text style={dynamicStyles.partNumber}>P/N: {part.partNumber}</Text>}
-          {part.sku && <Text style={dynamicStyles.partNumber}>SKU: {part.sku}</Text>}
-          {part.motor && <Text style={dynamicStyles.motor}>⚙️ {part.motor.brand} {part.motor.model}</Text>}
+          {Boolean(part.brand) && <Text style={dynamicStyles.brand}>{part.brand}</Text>}
+          {Boolean(part.partNumber) && <Text style={dynamicStyles.partNumber}>P/N: {part.partNumber}</Text>}
+          {Boolean(part.sku) && <Text style={dynamicStyles.partNumber}>SKU: {part.sku}</Text>}
+          {Boolean(part.motor) && <Text style={dynamicStyles.motor}>⚙️ {part.motor.brand} {part.motor.model}</Text>}
         </View>
         <View style={dynamicStyles.stockContainer}>
           <View style={[dynamicStyles.stockBadge, { backgroundColor: stockColor + '20', borderColor: stockColor + '40' }]}>
             <Text style={[dynamicStyles.stockValue, { color: stockColor }]}>{part.quantity}</Text>
             <Text style={[dynamicStyles.stockUnit, { color: stockColor }]}>{part.unit}</Text>
           </View>
-          {showReserved && (
+          {showReserved ? (
             <Text style={{ fontSize: 10, color: '#F59E0B', textAlign: 'center', marginTop: 2 }}>
               {part.reservedQuantity} rezerve
             </Text>
-          )}
-          {isLowStock && <Text style={dynamicStyles.lowStockWarning}>⚠️ Düşük</Text>}
+          ) : null}
+          {isLowStock ? <Text style={dynamicStyles.lowStockWarning}>⚠️ Düşük</Text> : null}
         </View>
       </View>
-      {part.category && (
+      {Boolean(part.category) && (
         <View style={dynamicStyles.categoryBadge}>
           <Text style={dynamicStyles.categoryText}>{part.category}</Text>
         </View>
       )}
       
-      {part.warehouseStocks && part.warehouseStocks.length > 0 && (
+      {Boolean(part.warehouseStocks && part.warehouseStocks.length > 0) && (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: Spacing.sm, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: theme.borderLight }}>
           {part.warehouseStocks.filter((ws: any) => ws.quantity !== 0).map((ws: any) => (
             <View key={ws.id} style={{ backgroundColor: theme.surfaceElevated, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
@@ -110,16 +110,14 @@ export default function PartsScreen() {
           <Text style={dynamicStyles.title}>Parça Envanteri</Text>
           <Text style={dynamicStyles.subtitle}>{(data as any)?.pagination?.total || 0} parça</Text>
         </View>
-        {!isTechnician && (
-          <TouchableOpacity
-            style={dynamicStyles.addBtn}
-            onPress={() => router.push('/parts/create' as any)}
-          >
-            <LinearGradient colors={[theme.primary, theme.primaryDark || '#4F46E5']} style={dynamicStyles.addBtnInner}>
-              <Text style={dynamicStyles.addBtnText}>+ Ekle</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={dynamicStyles.addBtn}
+          onPress={() => router.push('/parts/create' as any)}
+        >
+          <LinearGradient colors={[theme.primary, theme.primaryDark || '#4F46E5']} style={dynamicStyles.addBtnInner}>
+            <Text style={dynamicStyles.addBtnText}>+ Ekle</Text>
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
 
       {/* Stats */}

@@ -702,17 +702,17 @@ export default function StockMovementsScreen() {
                 </Text>
 
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                  {item.part?.brand && (
+                  {Boolean(item.part?.brand) && (
                     <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted }}>
                       🏷️ {item.part.brand}
                     </Text>
                   )}
-                  {item.part?.sku && (
+                  {Boolean(item.part?.sku) && (
                     <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted }}>
                       • SKU: {item.part.sku}
                     </Text>
                   )}
-                  {item.part?.oemCode && (
+                  {Boolean(item.part?.oemCode) && (
                     <Text style={{ fontSize: Typography.fontSize.xs, color: theme.textMuted }}>
                       • OEM: {item.part.oemCode}
                     </Text>
@@ -800,23 +800,23 @@ export default function StockMovementsScreen() {
                 )}
 
                 {/* Evrak / Belge No & İş Emri Bilgisi */}
-                {(item.documentNo || item.referenceType || item.motor) && (
+                {Boolean(item.documentNo || item.referenceType || item.motor) && (
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
-                    {item.documentNo && (
+                    {Boolean(item.documentNo) && (
                       <View style={{ backgroundColor: theme.primary + '12', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
                         <Text style={{ fontSize: 10, color: theme.primary, fontWeight: '700' }}>
                           📄 Evrak No: {item.documentNo}
                         </Text>
                       </View>
                     )}
-                    {item.motor?.plate && (
+                    {Boolean(item.motor) && (
                       <View style={{ backgroundColor: '#00339915', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
                         <Text style={{ fontSize: 10, color: '#003399', fontWeight: '700' }}>
-                          🚗 {item.motor.plate}
+                          ⚙️ {item.motor?.brand} {item.motor?.model} ({item.motor?.serialNumber})
                         </Text>
                       </View>
                     )}
-                    {item.referenceType && (
+                    {Boolean(item.referenceType) && (
                       <View style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
                         <Text style={{ fontSize: 10, color: theme.textMuted }}>
                           Ref: {item.referenceType}

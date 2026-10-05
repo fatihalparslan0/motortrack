@@ -568,6 +568,7 @@ exports.addWorkOrderItem = async (req, res, next) => {
 
     const order = await prisma.workOrder.findFirst({
       where: { id: req.params.id, companyId: req.company.id },
+      include: { user: { select: { role: true } } },
     });
     if (!order) return error(res, 'İş emri bulunamadı.', 404);
     if (order.status === 'TAMAMLANDI' || order.status === 'IPTAL') {
@@ -575,8 +576,14 @@ exports.addWorkOrderItem = async (req, res, next) => {
     }
 
     const isTech = req.user.role === 'TECHNICIAN';
-    if (isTech && order.userId !== req.user.id) {
-      return error(res, 'Başka bir personele ait iş emrine parça veya sarfiyat ekleyemezsiniz.', 403);
+    if (isTech && order.userId && order.userId !== req.user.id && order.user?.role === 'TECHNICIAN') {
+      return error(res, 'Bu iş emri başka bir teknisyene atanmıştır. Devralma talebi gönderiniz.', 403);
+    }
+    if (isTech && (!order.userId || order.user?.role !== 'TECHNICIAN')) {
+      await prisma.workOrder.update({
+        where: { id: order.id },
+        data: { userId: req.user.id },
+      });
     }
 
     const part = await prisma.part.findFirst({
@@ -628,6 +635,7 @@ exports.addWorkOrderBatchItems = async (req, res, next) => {
 
     const order = await prisma.workOrder.findFirst({
       where: { id: req.params.id, companyId: req.company.id },
+      include: { user: { select: { role: true } } },
     });
     if (!order) return error(res, 'İş emri bulunamadı.', 404);
     if (order.status === 'TAMAMLANDI' || order.status === 'IPTAL') {
@@ -635,8 +643,14 @@ exports.addWorkOrderBatchItems = async (req, res, next) => {
     }
 
     const isTech = req.user.role === 'TECHNICIAN';
-    if (isTech && order.userId !== req.user.id) {
-      return error(res, 'Başka bir personele ait iş emrine parça veya sarfiyat ekleyemezsiniz.', 403);
+    if (isTech && order.userId && order.userId !== req.user.id && order.user?.role === 'TECHNICIAN') {
+      return error(res, 'Bu iş emri başka bir teknisyene atanmıştır. Devralma talebi gönderiniz.', 403);
+    }
+    if (isTech && (!order.userId || order.user?.role !== 'TECHNICIAN')) {
+      await prisma.workOrder.update({
+        where: { id: order.id },
+        data: { userId: req.user.id },
+      });
     }
 
     const defaultWarehouse = await prisma.warehouse.findFirst({
@@ -696,12 +710,12 @@ exports.updateWorkOrderItemStatus = async (req, res, next) => {
         id: itemId, 
         workOrder: { companyId: req.company.id } 
       },
-      include: { part: true, workOrder: true },
+      include: { part: true, workOrder: { include: { user: { select: { role: true } } } } },
     });
     if (!item) return error(res, 'Parça kalemi bulunamadı.', 404);
 
     const isTech = req.user.role === 'TECHNICIAN';
-    if (isTech && item.workOrder.userId !== req.user.id) {
+    if (isTech && item.workOrder.userId && item.workOrder.userId !== req.user.id && item.workOrder.user?.role === 'TECHNICIAN') {
       return error(res, 'Başka bir personele ait iş emrindeki parçaların durumunu değiştiremezsiniz.', 403);
     }
 
@@ -899,12 +913,12 @@ exports.removeWorkOrderItem = async (req, res, next) => {
         id: itemId,
         workOrder: { companyId: req.company.id },
       },
-      include: { workOrder: true },
+      include: { workOrder: { include: { user: { select: { role: true } } } } },
     });
     if (!item) return error(res, 'Parça kalemi bulunamadı.', 404);
 
     const isTech = req.user.role === 'TECHNICIAN';
-    if (isTech && item.workOrder.userId !== req.user.id) {
+    if (isTech && item.workOrder.userId && item.workOrder.userId !== req.user.id && item.workOrder.user?.role === 'TECHNICIAN') {
       return error(res, 'Başka bir personele ait iş emrinden parça silemezsiniz.', 403);
     }
 
@@ -1375,7 +1389,7 @@ exports.addWorkOrderPhoto = async (req, res, next) => {
     if (!order) return error(res, 'İş emri bulunamadı.', 404);
 
     const isTech = req.user.role === 'TECHNICIAN';
-    if (isTech && order.userId !== req.user.id) {
+    if (isTech && order.userId && order.userId !== req.user.id) {
       return error(res, 'Başka bir personele ait iş emrine fotoğraf ekleyemezsiniz.', 403);
     }
 
@@ -1411,7 +1425,7 @@ exports.removeWorkOrderPhoto = async (req, res, next) => {
     if (!order) return error(res, 'İş emri bulunamadı.', 404);
 
     const isTechPhoto = req.user.role === 'TECHNICIAN';
-    if (isTechPhoto && order.userId !== req.user.id) {
+    if (isTechPhoto && order.userId && order.userId !== req.user.id) {
       return error(res, 'Başka bir personele ait iş emrinden fotoğraf silemezsiniz.', 403);
     }
 

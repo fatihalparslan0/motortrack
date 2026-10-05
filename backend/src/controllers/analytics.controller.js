@@ -126,6 +126,15 @@ exports.getExecutiveSummary = async (req, res, next) => {
     const dailyTrendMap = new Map();
 
     workOrders.forEach(wo => {
+      // Durum sayıları
+      if (wo.status === 'TAMAMLANDI') completedCount++;
+      else if (wo.status === 'DEVAM_EDIYOR') inProgressCount++;
+      else if (wo.status === 'ACIK') openCount++;
+      else if (wo.status === 'IPTAL') {
+        cancelledCount++;
+        return; // İptal edilen iş emri ciro, maliyet ve kâra dahil edilmez
+      }
+
       const labor = Number(wo.laborCost || 0);
       totalLaborRevenue += labor;
 
@@ -134,6 +143,8 @@ exports.getExecutiveSummary = async (req, res, next) => {
 
       if (Array.isArray(wo.items)) {
         wo.items.forEach(item => {
+          if (item.status === 'IPTAL') return; // İptal edilmiş parça kalemi hesaba katılmaz
+
           const qty = item.quantity || 0;
           const uPrice = Number(item.unitPrice || 0);
           const uCost = item.unitCost !== null && item.unitCost !== undefined
@@ -171,12 +182,6 @@ exports.getExecutiveSummary = async (req, res, next) => {
 
       const woTotalRevenue = labor + woPartsRevenue;
       const woNetProfit = woTotalRevenue - woPartsCost;
-
-      // Durum sayıları
-      if (wo.status === 'TAMAMLANDI') completedCount++;
-      else if (wo.status === 'DEVAM_EDIYOR') inProgressCount++;
-      else if (wo.status === 'ACIK') openCount++;
-      else if (wo.status === 'IPTAL') cancelledCount++;
 
       // Araç Marka Analizi
       if (wo.vehicleInfo) {
