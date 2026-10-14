@@ -10,6 +10,8 @@ router.use(authenticate, requireSubscription);
 router.get('/', ctrl.getWarehouses);
 router.get('/stats', ctrl.getWarehouseStats);
 router.get('/critical-stock', ctrl.getCriticalStock);
+router.get('/export/all', ctrl.exportAllWarehousesExcel);
+router.get('/:id/export', ctrl.exportWarehouseExcel);
 router.get('/:id', ctrl.getWarehouseDetail);
 
 router.post('/', authorize('ADMIN', 'MANAGER'), [

@@ -1,5 +1,6 @@
 const prisma = require('../utils/prisma');
 const { success, error, paginated } = require('../utils/apiResponse');
+const XLSX = require('xlsx');
 
 exports.getParts = async (req, res, next) => {
   try {
@@ -380,6 +381,170 @@ exports.addMovement = async (req, res, next) => {
       }
     });
     return success(res, updatedPart, 'Stok hareketi kaydedildi.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── Tüm Parça Envanterini Excel Olarak İndir ─────────────────────────────────
+exports.exportPartsExcel = async (req, res, next) => {
+  try {
+    const isTech = req.user.role === 'TECHNICIAN';
+    const companyName = req.company.name || 'MotorTrack Servis';
+    const nowStr = new Date().toLocaleString('tr-TR');
+    const { search, category, lowStock } = req.query;
+
+    const where = {
+      companyId: req.company.id,
+      isActive: true,
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { partNumber: { contains: search, mode: 'insensitive' } },
+          { sku: { contains: search, mode: 'insensitive' } },
+          { barcode: { contains: search, mode: 'insensitive' } },
+          { oemCode: { contains: search, mode: 'insensitive' } },
+          { brand: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+      ...(category && category !== 'Tümü' && { category }),
+    };
+
+    let parts = await prisma.part.findMany({
+      where,
+      orderBy: { name: 'asc' },
+      include: {
+        warehouseStocks: {
+          include: { warehouse: { select: { name: true, type: true } } },
+        },
+      },
+    });
+
+    if (lowStock === 'true') {
+      parts = parts.filter(p => p.quantity <= p.minQuantity && p.minQuantity > 0);
+    }
+
+    const headers = [
+      '#',
+      'Malzeme / Parça Adı',
+      'Marka',
+      'Kategori',
+      'Toplam Stok',
+      'Birim',
+      'Depo Dağılımı (Depo: Miktar)',
+      'Stok Kodu (SKU)',
+      'Parça No (P/N)',
+      'OEM Kodu',
+      'Barkod',
+      'Durum',
+      'Kritik Eşik',
+      ...(isTech ? [] : ['Birim Alış (₺)']),
+      'Birim Satış (₺)',
+      ...(isTech ? [] : ['Toplam Stok Değeri (₺)']),
+    ];
+
+    const aoa = [
+      [`${companyName} - Parça & Malzeme Envanteri`],
+      [`Rapor Tarihi: ${nowStr}`, `Toplam Kalem: ${parts.length}`, category ? `Kategori: ${category}` : 'Tüm Kategoriler'],
+      [],
+      headers,
+    ];
+
+    let grandQty = 0;
+    let grandVal = 0;
+
+    parts.forEach((p, idx) => {
+      const qty = p.quantity || 0;
+      const pPrice = p.purchasePrice ? Number(p.purchasePrice) : 0;
+      const sPrice = p.sellingPrice ? Number(p.sellingPrice) : 0;
+      const subtotal = qty * pPrice;
+
+      grandQty += qty;
+      grandVal += subtotal;
+
+      const warehouseBreakdown = (p.warehouseStocks || [])
+        .filter(ws => ws.quantity > 0)
+        .map(ws => `${ws.warehouse?.name || 'Depo'}: ${ws.quantity} ${p.unit || 'ad.'}${ws.shelfLocation ? ' (Raf: ' + ws.shelfLocation + ')' : ''}`)
+        .join('; ') || '-';
+
+      const row = [
+        idx + 1,
+        p.name || '-',
+        p.brand || '-',
+        p.category || '-',
+        qty,
+        p.unit || 'adet',
+        warehouseBreakdown,
+        p.sku || '-',
+        p.partNumber || '-',
+        p.oemCode || '-',
+        p.barcode || '-',
+        p.condition === 'NEW' ? 'Sıfır' : (p.condition === 'USED' ? 'Çıkma / 2. El' : (p.condition || 'Sıfır')),
+        p.minQuantity || 0,
+        ...(isTech ? [] : [pPrice > 0 ? pPrice : 0]),
+        sPrice > 0 ? sPrice : 0,
+        ...(isTech ? [] : [subtotal]),
+      ];
+      aoa.push(row);
+    });
+
+    aoa.push([]);
+    aoa.push([
+      'TOPLAM',
+      `${parts.length} Kalem Malzeme`,
+      '',
+      '',
+      grandQty,
+      'adet',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      ...(isTech ? [] : ['']),
+      '',
+      ...(isTech ? [] : [grandVal]),
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    // Auto-fit column widths
+    const colCount = Math.max(...aoa.map(row => (row ? row.length : 0)));
+    const widths = [];
+    for (let c = 0; c < colCount; c++) {
+      let maxLen = 0;
+      for (let r = 0; r < aoa.length; r++) {
+        const cell = aoa[r] ? aoa[r][c] : null;
+        if (cell != null) {
+          const str = String(cell);
+          if (str.length > maxLen) maxLen = str.length;
+        }
+      }
+      widths.push({ wch: Math.min(Math.max(maxLen + 3, 10), 45) });
+    }
+    ws['!cols'] = widths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Parça Envanteri');
+
+    const dateTag = new Date().toISOString().slice(0, 10);
+
+    if (req.query.format === 'csv') {
+      const csv = '\uFEFF' + XLSX.utils.sheet_to_csv(ws, { FS: ';' });
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="Parca_Malzeme_Envanteri_${dateTag}.csv"`);
+      return res.send(csv);
+    }
+
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="Parca_Malzeme_Envanteri_${dateTag}.xlsx"; filename*=UTF-8''Parca_Malzeme_Envanteri_${dateTag}.xlsx`
+    );
+    return res.send(buffer);
   } catch (err) {
     next(err);
   }

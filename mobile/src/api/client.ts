@@ -19,7 +19,7 @@ function getApiBaseUrl(): string {
   return 'http://localhost:3000/api';
 }
 
-const API_BASE_URL = getApiBaseUrl();
+export const API_BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -185,6 +185,7 @@ export const partsAPI = {
   delete: (id: string) => apiClient.delete(`/parts/${id}`),
   addMovement: (id: string, data: any) => apiClient.post(`/parts/${id}/movement`, data),
   getMovements: (id: string, params?: any) => apiClient.get(`/parts/${id}/movements`, { params }),
+  getExportUrl: (token?: string) => `${API_BASE_URL}/parts/export-excel${token ? `?token=${token}` : ''}`,
 };
 
 export const maintenanceAPI = {
@@ -229,6 +230,10 @@ export const warehouseAPI = {
   updateShelfLocation: (data: { warehouseId: string; partId: string; shelfLocation?: string }) =>
     apiClient.patch('/warehouses/stock-shelf', data),
   delete: (id: string) => apiClient.delete(`/warehouses/${id}`),
+  getExportUrl: (id: string, token?: string) =>
+    `${API_BASE_URL}/warehouses/${id}/export${token ? `?token=${token}` : ''}`,
+  getExportAllUrl: (token?: string) =>
+    `${API_BASE_URL}/warehouses/export/all${token ? `?token=${token}` : ''}`,
 };
 
 export const supplierAPI = {

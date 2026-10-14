@@ -10,6 +10,7 @@ router.use(authenticate, requireSubscription);
 router.get('/', partsController.getParts);
 router.get('/low-stock', partsController.getLowStockParts);
 router.get('/stats', partsController.getPartsStats);
+router.get('/export-excel', partsController.exportPartsExcel);
 router.get('/:id', partsController.getPartById);
 router.get('/:id/movements', partsController.getPartMovements);
 

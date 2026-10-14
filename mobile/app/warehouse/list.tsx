@@ -14,8 +14,9 @@ import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { useAuthStore, isTechnicianRole } from '../../src/store/auth.store';
 import {
   Plus, Warehouse, MapPin, CheckCircle2, Star, Edit3, Trash2, ArrowLeft,
-  Search, Package, Tag, ArrowRight, X, ChevronRight
+  Search, Package, Tag, ArrowRight, X, ChevronRight, FileSpreadsheet, Download
 } from 'lucide-react-native';
+import { exportWarehouseToExcel, exportAllWarehousesToExcel } from '../../src/utils/warehouseExporter';
 
 // ─── Sanayi Depo Tipleri ──────────────────────────────────────────────────────
 export const WAREHOUSE_TYPES: Record<string, { label: string; icon: string; color: string; desc: string }> = {
@@ -480,6 +481,18 @@ function WarehouseInventoryModal({ visible, warehouse, onClose, theme }: any) {
     setShelfInput(currentShelf || '');
   };
 
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    if (!warehouse?.id) return;
+    setIsExporting(true);
+    try {
+      await exportWarehouseToExcel(warehouse.id, warehouse.name);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (!warehouse) return null;
 
   return (
@@ -501,9 +514,38 @@ function WarehouseInventoryModal({ visible, warehouse, onClose, theme }: any) {
               {typeInfo.label} • {stocks.length} Kalem Parça Kayıtlı
             </Text>
           </View>
-          <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
-            <X size={24} color={theme.textPrimary} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+            <TouchableOpacity
+              onPress={handleExportExcel}
+              disabled={isExporting}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+                backgroundColor: '#10B98115',
+                borderColor: '#10B981',
+                borderWidth: 1.5,
+                paddingHorizontal: Spacing.sm + 2,
+                paddingVertical: 6,
+                borderRadius: BorderRadius.md,
+              }}
+              activeOpacity={0.8}
+            >
+              {isExporting ? (
+                <ActivityIndicator size="small" color="#10B981" />
+              ) : (
+                <>
+                  <FileSpreadsheet size={15} color="#10B981" />
+                  <Text style={{ color: '#10B981', fontWeight: '800', fontSize: Typography.fontSize.xs }}>
+                    Excel İndir
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
+              <X size={24} color={theme.textPrimary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Arama Barı */}
@@ -723,6 +765,7 @@ export default function WarehousesScreen() {
   const [showAdd, setShowAdd] = useState(false);
   const [selectedWarehouseForEdit, setSelectedWarehouseForEdit] = useState<any>(null);
   const [selectedWarehouseForInventory, setSelectedWarehouseForInventory] = useState<any>(null);
+  const [isExportingAll, setIsExportingAll] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['warehouses'],
@@ -730,6 +773,15 @@ export default function WarehousesScreen() {
   });
 
   const warehouses: any[] = (data as any)?.data || [];
+
+  const handleExportAll = async () => {
+    setIsExportingAll(true);
+    try {
+      await exportAllWarehousesToExcel(user?.companyName || 'MotorTrack Servis');
+    } finally {
+      setIsExportingAll(false);
+    }
+  };
 
   // Hızlı 1-Tap Ana Depo Yap Mutation
   const setDefaultMutation = useMutation({
@@ -780,7 +832,7 @@ export default function WarehousesScreen() {
         </TouchableOpacity>
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
+          <View style={{ flex: 1, paddingRight: Spacing.sm }}>
             <Text style={{ fontSize: Typography.fontSize.xl, fontWeight: '800', color: '#fff' }}>
               📦 Depo Yönetimi
             </Text>
@@ -789,21 +841,46 @@ export default function WarehousesScreen() {
             </Text>
           </View>
 
-          {!isTechnician && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <TouchableOpacity
               style={{
-                flexDirection: 'row', alignItems: 'center', gap: 6,
-                backgroundColor: 'rgba(255,255,255,0.25)',
-                borderRadius: BorderRadius.full, paddingHorizontal: Spacing.md, paddingVertical: 8,
-                borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)'
+                flexDirection: 'row', alignItems: 'center', gap: 5,
+                backgroundColor: 'rgba(16, 185, 129, 0.35)',
+                borderRadius: BorderRadius.full, paddingHorizontal: Spacing.md - 2, paddingVertical: 8,
+                borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)'
               }}
-              onPress={() => setShowAdd(true)}
+              onPress={handleExportAll}
+              disabled={isExportingAll}
               activeOpacity={0.8}
             >
-              <Plus size={16} color="#fff" />
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.sm }}>Yeni Depo</Text>
+              {isExportingAll ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <FileSpreadsheet size={15} color="#fff" />
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.xs }}>
+                    Excel'e Aktar
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
-          )}
+
+            {!isTechnician && (
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row', alignItems: 'center', gap: 6,
+                  backgroundColor: 'rgba(255,255,255,0.25)',
+                  borderRadius: BorderRadius.full, paddingHorizontal: Spacing.md, paddingVertical: 8,
+                  borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)'
+                }}
+                onPress={() => setShowAdd(true)}
+                activeOpacity={0.8}
+              >
+                <Plus size={16} color="#fff" />
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: Typography.fontSize.sm }}>Yeni Depo</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </LinearGradient>
 
@@ -951,11 +1028,32 @@ export default function WarehousesScreen() {
                     borderTopColor: theme.borderLight || theme.border,
                   }}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={{ fontSize: Typography.fontSize.xs, color: theme.primary, fontWeight: '700' }}>
                       📦 {item._count?.stocks ?? 0} çeşit parça
                     </Text>
-                    <Text style={{ fontSize: 11, color: theme.textMuted }}>• Listeyi Gör →</Text>
+
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        exportWarehouseToExcel(item.id, item.name);
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 3,
+                        backgroundColor: '#10B98115',
+                        borderWidth: 1,
+                        borderColor: '#10B98135',
+                        paddingHorizontal: 6,
+                        paddingVertical: 2.5,
+                        borderRadius: 4,
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <FileSpreadsheet size={11} color="#10B981" />
+                      <Text style={{ fontSize: 10, color: '#10B981', fontWeight: '800' }}>Excel</Text>
+                    </TouchableOpacity>
                   </View>
 
                   {isMain ? (

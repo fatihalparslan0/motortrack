@@ -9,12 +9,17 @@ const logger = require('../utils/logger');
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    let token = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if (req.query && req.query.token) {
+      token = req.query.token;
+    }
+
+    if (!token) {
       logger.warn(`[Auth 401] Yetkilendirme tokenı yok veya geçersiz başlık: ${req.method} ${req.originalUrl}`);
       return error(res, 'Yetkilendirme token\'ı gerekli.', 401);
     }
-
-    const token = authHeader.substring(7);
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);

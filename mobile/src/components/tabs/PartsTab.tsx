@@ -11,6 +11,7 @@ import { partsAPI } from '../../api/client';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useAuthStore, isTechnicianRole } from '../../store/auth.store';
+import { exportPartsToExcel } from '../../utils/warehouseExporter';
 
 const CATEGORIES = ['Tümü', 'Filtre', 'Motor', 'Transmisyon', 'Fren', 'Elektrik', 'Soğutma', 'Yakıt', 'Diğer'];
 
@@ -102,6 +103,19 @@ export default function PartsScreen() {
 
   const parts = (data as any)?.data || [];
   const stats = (statsData as any)?.data;
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      await exportPartsToExcel({
+        category: selectedCategory,
+        search,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={dynamicStyles.container} edges={['top']}>
@@ -110,14 +124,31 @@ export default function PartsScreen() {
           <Text style={dynamicStyles.title}>Parça Envanteri</Text>
           <Text style={dynamicStyles.subtitle}>{(data as any)?.pagination?.total || 0} parça</Text>
         </View>
-        <TouchableOpacity
-          style={dynamicStyles.addBtn}
-          onPress={() => router.push('/parts/create' as any)}
-        >
-          <LinearGradient colors={[theme.primary, theme.primaryDark || '#4F46E5']} style={dynamicStyles.addBtnInner}>
-            <Text style={dynamicStyles.addBtnText}>+ Ekle</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            style={[dynamicStyles.addBtn, { minWidth: 78 }]}
+            onPress={handleExportExcel}
+            disabled={isExporting}
+            activeOpacity={0.8}
+          >
+            <View style={[dynamicStyles.addBtnInner, { backgroundColor: '#10B981', paddingHorizontal: 10 }]}>
+              {isExporting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={dynamicStyles.addBtnText}>📊 Excel</Text>
+              )}
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={dynamicStyles.addBtn}
+            onPress={() => router.push('/parts/create' as any)}
+          >
+            <LinearGradient colors={[theme.primary, theme.primaryDark || '#4F46E5']} style={dynamicStyles.addBtnInner}>
+              <Text style={dynamicStyles.addBtnText}>+ Ekle</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Stats */}
