@@ -24,11 +24,9 @@ const errorHandler = (err, req, res, next) => {
   }
 
   const statusCode = err.statusCode || err.status || 500;
-  const message = process.env.NODE_ENV === 'production' && statusCode === 500
-    ? 'Sunucu hatası oluştu.'
-    : err.message || 'Sunucu hatası oluştu.';
+  const message = err.message || 'Sunucu hatası oluştu.';
 
-  res.status(statusCode).json({ success: false, message });
+  res.status(statusCode).json({ success: false, message, error: err.message, stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined });
 };
 
 module.exports = { errorHandler };

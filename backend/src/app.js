@@ -83,9 +83,25 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
-app.get(['/health', '/api/health'], (req, res) => {
+app.get(['/health', '/api/health'], async (req, res) => {
+  let dbStatus = 'DISCONNECTED';
+  let dbError = null;
+  try {
+    const prismaClient = require('./utils/prisma');
+    await prismaClient.$queryRaw`SELECT 1`;
+    dbStatus = 'CONNECTED';
+  } catch (err) {
+    dbStatus = 'ERROR';
+    dbError = err.message;
+  }
+
   res.json({
-    status: 'OK',
+    status: dbStatus === 'CONNECTED' ? 'OK' : 'DEGRADED',
+    database: dbStatus,
+    dbError,
+    hasJwtAccessSecret: !!process.env.JWT_ACCESS_SECRET,
+    hasJwtRefreshSecret: !!process.env.JWT_REFRESH_SECRET,
+    hasDatabaseUrl: !!process.env.DATABASE_URL,
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     service: 'MotorTrack API',
