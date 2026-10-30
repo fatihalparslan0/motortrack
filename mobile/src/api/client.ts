@@ -3,6 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
 function getApiBaseUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
   // If running in Expo Go or dev client, hostUri contains the IP of the dev machine
   const hostUri = Constants.expoConfig?.hostUri || (Constants as any)?.manifest2?.extra?.expoGo?.debuggerHost;
   if (hostUri) {
@@ -10,10 +14,6 @@ function getApiBaseUrl(): string {
     if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
       return `http://${ip}:3000/api`;
     }
-  }
-
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
   }
 
   return 'http://localhost:3000/api';
